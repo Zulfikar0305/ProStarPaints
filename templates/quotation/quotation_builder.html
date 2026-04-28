@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Builder — {{ quotation.reference }} — ProStar Paints{% endblock %}
+
+{% block content %}
+
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb mb-0 small">
+    <li class="breadcrumb-item">
+      <a href="{% url 'quotation:quotation_list' %}" class="text-decoration-none">{% trans "Quotations" %}</a>
+    </li>
+    <li class="breadcrumb-item">
+      <a href="{% url 'quotation:quotation_detail' quotation.pk %}" class="text-decoration-none">{{ quotation.reference }}</a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">{% trans "Builder" %}</li>
+  </ol>
+</nav>
+
+<!-- Page header -->
+<div class="d-flex align-items-start justify-content-between mb-4 gap-2 flex-wrap">
+  <div>
+    <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">
+      <i class="bi bi-pencil-square me-2 text-primary"></i>{% trans "Quotation Builder" %}
+    </h4>
+    <p class="mb-0 mt-1 small text-muted">
+      <strong>{{ quotation.customer_name }}</strong>
+      {% if quotation.project_name %} &mdash; {{ quotation.project_name }}{% endif %}
+    </p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'quotation:quotation_sections' quotation.pk %}"
+       class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-grid me-1"></i>{% trans "Change Surfaces" %}
+    </a>
+    <a href="{% url 'quotation:quotation_detail' quotation.pk %}"
+       class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-eye me-1"></i>{% trans "View Detail" %}
+    </a>
+    {% if any_configured %}
+      <a href="{% url 'quotation:quotation_review' quotation.pk %}"
+         class="btn btn-success btn-sm">
+        <i class="bi bi-arrow-right-circle me-1"></i>{% trans "Continue to Review" %}
+      </a>
+    {% endif %}
+    <span class="badge text-bg-warning text-dark px-3 py-2 align-self-center">
+      {{ quotation.get_status_display }}
+    </span>
+  </div>
+</div>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show mb-3" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+{% if interior_secs or exterior_secs %}
+
+  {# ── Interior ── #}
+  {% if interior_secs %}
+    <h6 class="text-uppercase fw-bold text-muted small mb-3">
+      <i class="bi bi-house me-1"></i>{% trans "Interior Surfaces" %}
+    </h6>
+
+    {% for section in interior_secs %}
+      {% if section.subsection_key == "interior_walls" %}
+        {# Full dynamic Interior Walls configurator.
+           section_summaries is keyed by section.pk (int).
+           We iterate to find the matching entry because Django templates
+           cannot do dict[variable] lookups natively. #}
+        {% for sec_pk, sec_data in section_summaries.items %}
+          {% if sec_pk == section.pk %}
+            {% include "quotation/partials/_interior_walls.html" with iw_summary=sec_data %}
+          {% endif %}
+        {% endfor %}
+      {% else %}
+        {# Placeholder for future subsections #}
+        <div class="card border-0 shadow-sm mb-3"
+             style="border-left: 4px solid var(--psp-purple) !important;">
+          <div class="card-body">
+            <div class="d-flex align-items-start justify-content-between mb-1">
+              <span class="fw-semibold">{{ section.display_name }}</span>
+              <span class="badge rounded-pill"
+                    style="background:var(--psp-purple-light);color:var(--psp-purple);font-size:.7rem;">
+                {% trans "Interior" %}
+              </span>
+            </div>
+            {% for sec_pk, sec_data in section_summaries.items %}
+              {% if sec_pk == section.pk %}
+                {% if sec_data.configured %}
+                  <span class="badge text-bg-success mb-1" style="font-size:.7rem;">
+                    <i class="bi bi-check-lg me-1"></i>{% trans "Configured" %}
+                  </span>
+                {% else %}
+                  <span class="badge text-bg-secondary mb-1" style="font-size:.7rem;">
+                    <i class="bi bi-clock me-1"></i>{% trans "Not configured" %}
+                  </span>
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+            <p class="small text-muted mb-0 mt-1">{% trans "Configuration coming soon." %}</p>
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  {# ── Exterior ── #}
+  {% if exterior_secs %}
+    <h6 class="text-uppercase fw-bold text-muted small mb-3 {% if interior_secs %}mt-3{% endif %}">
+      <i class="bi bi-sun me-1"></i>{% trans "Exterior Surfaces" %}
+    </h6>
+    {% for section in exterior_secs %}
+      <div class="card border-0 shadow-sm mb-3"
+           style="border-left: 4px solid var(--psp-green) !important;">
+        <div class="card-body">
+          <div class="d-flex align-items-start justify-content-between mb-1">
+            <span class="fw-semibold">{{ section.display_name }}</span>
+            <span class="badge rounded-pill"
+                  style="background:#d1fae5;color:var(--psp-green);font-size:.7rem;">
+              {% trans "Exterior" %}
+            </span>
+          </div>
+          {% for sec_pk, sec_data in section_summaries.items %}
+            {% if sec_pk == section.pk %}
+              {% if sec_data.configured %}
+                <span class="badge text-bg-success mb-1" style="font-size:.7rem;">
+                  <i class="bi bi-check-lg me-1"></i>{% trans "Configured" %}
+                </span>
+              {% else %}
+                <span class="badge text-bg-secondary mb-1" style="font-size:.7rem;">
+                  <i class="bi bi-clock me-1"></i>{% trans "Not configured" %}
+                </span>
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+          <p class="small text-muted mb-0 mt-1">{% trans "Configuration coming soon." %}</p>
+        </div>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+{% else %}
+  <div class="card border-0 shadow-sm">
+    <div class="card-body text-center py-5 text-muted">
+      <i class="bi bi-layers fs-2 d-block mb-2"></i>
+      <p class="mb-3">{% trans "No surfaces selected yet." %}</p>
+      <a href="{% url 'quotation:quotation_sections' quotation.pk %}"
+         class="btn btn-primary btn-sm">
+        <i class="bi bi-grid me-1"></i>{% trans "Select Surfaces" %}
+      </a>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}
+

@@ -1,0 +1,280 @@
+﻿{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Review — {{ quotation.reference }} — ProStar Paints{% endblock %}
+
+{% block content %}
+
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb mb-0 small">
+    <li class="breadcrumb-item">
+      <a href="{% url 'quotation:quotation_list' %}" class="text-decoration-none">{% trans "Quotations" %}</a>
+    </li>
+    <li class="breadcrumb-item">
+      <a href="{% url 'quotation:quotation_detail' quotation.pk %}" class="text-decoration-none">{{ quotation.reference }}</a>
+    </li>
+    <li class="breadcrumb-item">
+      <a href="{% url 'quotation:quotation_builder' quotation.pk %}" class="text-decoration-none">{% trans "Builder" %}</a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">{% trans "Review" %}</li>
+  </ol>
+</nav>
+
+<!-- Page header -->
+<div class="d-flex align-items-start justify-content-between mb-4 gap-2 flex-wrap">
+  <div>
+    <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">
+      <i class="bi bi-clipboard-check me-2 text-success"></i>{% trans "Quotation Review" %}
+    </h4>
+    <p class="mb-0 mt-1 small text-muted">
+      <strong>{{ quotation.reference }}</strong>
+      {% if quotation.project_name %} &mdash; {{ quotation.project_name }}{% endif %}
+    </p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'quotation:quotation_builder' quotation.pk %}"
+       class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>{% trans "Back to Builder" %}
+    </a>
+    <a href="{% url 'quotation:quotation_detail' quotation.pk %}"
+       class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-eye me-1"></i>{% trans "View Detail" %}
+    </a>
+    <span class="badge text-bg-warning text-dark px-3 py-2 align-self-center">
+      {{ quotation.get_status_display }}
+    </span>
+  </div>
+</div>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show mb-3" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="row g-4">
+
+  {# ── Left column: Customer + Project details ── #}
+  <div class="col-12 col-lg-4">
+
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-transparent py-3">
+        <h6 class="fw-bold mb-0 small text-uppercase text-muted">
+          <i class="bi bi-person me-1"></i>{% trans "Customer" %}
+        </h6>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0 small">
+          <dt class="col-5 text-muted fw-normal">{% trans "Name" %}</dt>
+          <dd class="col-7 fw-semibold mb-1">{{ quotation.customer_name }}</dd>
+
+          {% if quotation.customer_email %}
+            <dt class="col-5 text-muted fw-normal">{% trans "Email" %}</dt>
+            <dd class="col-7 mb-1">
+              <a href="mailto:{{ quotation.customer_email }}"
+                 class="text-decoration-none text-reset">{{ quotation.customer_email }}</a>
+            </dd>
+          {% endif %}
+
+          {% if quotation.customer_phone %}
+            <dt class="col-5 text-muted fw-normal">{% trans "Phone" %}</dt>
+            <dd class="col-7 mb-1">{{ quotation.customer_phone }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+
+    {% if quotation.project_name or quotation.project_location %}
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-transparent py-3">
+          <h6 class="fw-bold mb-0 small text-uppercase text-muted">
+            <i class="bi bi-geo-alt me-1"></i>{% trans "Project" %}
+          </h6>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0 small">
+            {% if quotation.project_name %}
+              <dt class="col-5 text-muted fw-normal">{% trans "Name" %}</dt>
+              <dd class="col-7 fw-semibold mb-1">{{ quotation.project_name }}</dd>
+            {% endif %}
+            {% if quotation.project_location %}
+              <dt class="col-5 text-muted fw-normal">{% trans "Location" %}</dt>
+              <dd class="col-7 mb-1">{{ quotation.project_location }}</dd>
+            {% endif %}
+          </dl>
+        </div>
+      </div>
+    {% endif %}
+
+    {# ── Totals summary card ── #}
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-transparent py-3">
+        <h6 class="fw-bold mb-0 small text-uppercase text-muted">
+          <i class="bi bi-calculator me-1"></i>{% trans "Totals" %}
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="d-flex justify-content-between small py-1 border-bottom">
+          <span class="text-muted">{% trans "Subtotal (excl. VAT)" %}</span>
+          <span class="fw-semibold">
+            {% if subtotal %}R {{ subtotal|floatformat:2 }}{% else %}<span class="text-muted">TBC</span>{% endif %}
+          </span>
+        </div>
+        <div class="d-flex justify-content-between small py-1 border-bottom text-muted">
+          <span>{% trans "VAT (15%)" %}</span>
+          <span>{% trans "TBC" %}</span>
+        </div>
+        <div class="d-flex justify-content-between py-2 fw-bold">
+          <span>{% trans "Total (incl. VAT)" %}</span>
+          <span class="text-primary">{% trans "TBC" %}</span>
+        </div>
+        <p class="small text-muted mb-0 mt-1">
+          <i class="bi bi-info-circle me-1"></i>
+          {% trans "Pricing will be calculated once all sections are configured." %}
+        </p>
+      </div>
+    </div>
+
+  </div>{# /col-lg-4 #}
+
+  {# ── Right column: Sections + line items ── #}
+  <div class="col-12 col-lg-8">
+
+    {% if section_data %}
+      {% for entry in section_data %}
+        {% with section=entry.section %}
+          <div class="card border-0 shadow-sm mb-3"
+               style="border-left: 4px solid {% if section.substrate_type == 'INTERIOR' %}var(--psp-purple){% else %}var(--psp-green){% endif %} !important;">
+
+            <div class="card-header bg-transparent py-3 d-flex align-items-center justify-content-between">
+              <div class="d-flex align-items-center gap-2">
+                {% if section.substrate_type == "INTERIOR" %}
+                  <i class="bi bi-house text-primary"></i>
+                {% else %}
+                  <i class="bi bi-sun" style="color:var(--psp-green);"></i>
+                {% endif %}
+                <span class="fw-semibold">{{ section.display_name }}</span>
+                {% if entry.configured %}
+                  <span class="badge text-bg-success ms-1" style="font-size:.7rem;">
+                    <i class="bi bi-check-lg me-1"></i>{% trans "Configured" %}
+                  </span>
+                {% else %}
+                  <span class="badge text-bg-warning text-dark ms-1" style="font-size:.7rem;">
+                    <i class="bi bi-clock me-1"></i>{% trans "Not configured" %}
+                  </span>
+                {% endif %}
+              </div>
+              <a href="{% url 'quotation:quotation_builder' quotation.pk %}"
+                 class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-pencil me-1"></i>{% trans "Edit" %}
+              </a>
+            </div>
+
+            {% if entry.configured %}
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-sm table-hover mb-0" style="font-size:.875rem;">
+                    <thead class="table-light">
+                      <tr>
+                        <th class="ps-3 py-2 fw-semibold text-muted" style="width:45%;">{% trans "Description" %}</th>
+                        <th class="py-2 fw-semibold text-muted">{% trans "Type" %}</th>
+                        <th class="py-2 fw-semibold text-muted text-end">{% trans "Area (m²)" %}</th>
+                        <th class="py-2 fw-semibold text-muted text-end">{% trans "Coats" %}</th>
+                        <th class="py-2 pe-3 fw-semibold text-muted text-end">{% trans "Total" %}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for entry_item in entry.items %}
+                        {% with item=entry_item.item %}
+                        <tr {% if item.item_type == "NOTE" %}class="table-light text-muted"{% endif %}>
+                          <td class="ps-3 py-2">
+                            {% if item.item_type == "NOTE" %}
+                              <i class="bi bi-info-circle me-1 text-muted"></i>
+                            {% elif item.item_type == "PAINT" %}
+                              <i class="bi bi-palette me-1" style="color:var(--psp-purple);"></i>
+                            {% elif item.item_type == "PRIMER" %}
+                              <i class="bi bi-layers me-1 text-secondary"></i>
+                            {% elif item.item_type == "WATERPROOFING" %}
+                              <i class="bi bi-droplet me-1" style="color:var(--psp-blue);"></i>
+                            {% elif item.item_type == "PREP_WORK" %}
+                              <i class="bi bi-tools me-1 text-secondary"></i>
+                            {% endif %}
+                            {{ entry_item.description }}
+                          </td>
+                          <td class="py-2">
+                            <span class="badge rounded-pill
+                              {% if item.item_type == 'PAINT' %}text-bg-primary
+                              {% elif item.item_type == 'PRIMER' %}text-bg-secondary
+                              {% elif item.item_type == 'WATERPROOFING' %}text-bg-info text-dark
+                              {% elif item.item_type == 'PREP_WORK' %}text-bg-light text-dark border
+                              {% else %}text-bg-light text-muted border{% endif %}"
+                                 style="font-size:.68rem;">
+                              {{ item.get_item_type_display }}
+                            </span>
+                          </td>
+                          <td class="py-2 text-end text-muted">
+                            {% if item.area_sqm %}{{ item.area_sqm|floatformat:1 }}{% else %}—{% endif %}
+                          </td>
+                          <td class="py-2 text-end text-muted">
+                            {% if item.item_type != "NOTE" %}{{ item.coats }}{% else %}—{% endif %}
+                          </td>
+                          <td class="py-2 pe-3 text-end">
+                            {% if item.total_excl_vat %}
+                              R {{ item.total_excl_vat|floatformat:2 }}
+                            {% else %}
+                              <span class="text-muted">TBC</span>
+                            {% endif %}
+                          </td>
+                        </tr>
+                        {% endwith %}
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            {% else %}
+              <div class="card-body text-center py-4 text-muted small">
+                <i class="bi bi-exclamation-circle me-1"></i>
+                {% trans "This section has not been configured yet." %}
+                <a href="{% url 'quotation:quotation_builder' quotation.pk %}"
+                   class="ms-1 text-decoration-none">{% trans "Configure now" %}</a>
+              </div>
+            {% endif %}
+
+          </div>
+        {% endwith %}
+      {% endfor %}
+
+    {% else %}
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5 text-muted">
+          <i class="bi bi-layers fs-2 d-block mb-2"></i>
+          <p class="mb-3">{% trans "No sections found. Go back to the builder to add surfaces." %}</p>
+          <a href="{% url 'quotation:quotation_builder' quotation.pk %}"
+             class="btn btn-primary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>{% trans "Back to Builder" %}
+          </a>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if quotation.notes %}
+      <div class="card border-0 shadow-sm mt-1">
+        <div class="card-body">
+          <h6 class="fw-semibold small text-muted text-uppercase mb-2">
+            <i class="bi bi-chat-left-text me-1"></i>{% trans "Notes" %}
+          </h6>
+          <p class="small mb-0">{{ quotation.notes|linebreaksbr }}</p>
+        </div>
+      </div>
+    {% endif %}
+
+  </div>{# /col-lg-8 #}
+
+</div>{# /row #}
+
+{% endblock %}

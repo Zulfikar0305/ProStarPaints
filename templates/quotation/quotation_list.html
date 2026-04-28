@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Quotations — ProStar Paints{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">{% trans "Quotations" %}</h4>
+    <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">{% trans "Create and manage quotation records" %}</p>
+  </div>
+  <a href="{% url 'quotation:quotation_start' %}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>{% trans "New Quotation" %}
+  </a>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <form method="get" class="row g-2 align-items-end">
+
+      <div class="col-12 col-sm-6 col-md-4">
+        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Search" %}</label>
+        <div class="input-group input-group-sm">
+          <input type="text" name="q" value="{{ q }}"
+                 class="form-control" placeholder="{% trans 'Reference, customer or project…' %}">
+          <button class="btn btn-outline-secondary" type="submit">
+            <i class="bi bi-search"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="col-6 col-sm-3 col-md-2">
+        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Status" %}</label>
+        <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="">{% trans "All" %}</option>
+          {% for val, label in status_choices %}
+            <option value="{{ val }}" {% if current_status == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      {% if q or current_status %}
+        <div class="col-auto align-self-end">
+          <a href="{% url 'quotation:quotation_list' %}" class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-x-lg me-1"></i>{% trans "Clear" %}
+          </a>
+        </div>
+      {% endif %}
+
+    </form>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 small">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3">{% trans "Reference" %}</th>
+            <th>{% trans "Customer" %}</th>
+            {% if is_admin %}<th>{% trans "Rep" %}</th>{% endif %}
+            <th>{% trans "Project" %}</th>
+            <th>{% trans "Status" %}</th>
+            <th>{% trans "Created" %}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for q in quotations %}
+            <tr>
+              <td class="ps-3 fw-semibold text-nowrap">
+                <a href="{% url 'quotation:quotation_detail' q.pk %}" class="text-decoration-none text-dark">
+                  {{ q.reference }}
+                </a>
+              </td>
+              <td>{{ q.customer_name }}</td>
+              {% if is_admin %}
+                <td class="text-muted">{{ q.created_by.get_full_name|default:q.created_by.username }}</td>
+              {% endif %}
+              <td class="text-muted">{{ q.project_name|default:"—" }}</td>
+              <td>
+                {% if q.status == "COMPLETED" %}
+                  <span class="badge text-bg-success">{{ q.get_status_display }}</span>
+                {% elif q.status == "CANCELLED" %}
+                  <span class="badge text-bg-secondary">{{ q.get_status_display }}</span>
+                {% else %}
+                  <span class="badge text-bg-warning text-dark">{{ q.get_status_display }}</span>
+                {% endif %}
+              </td>
+              <td class="text-muted text-nowrap">{{ q.created_at|date:"d M Y" }}</td>
+              <td class="text-end pe-3">
+                <a href="{% url 'quotation:quotation_builder' q.pk %}"
+                   class="btn btn-sm btn-outline-primary me-1" title="{% trans 'Builder' %}">
+                  <i class="bi bi-pencil-square"></i>
+                </a>
+                <a href="{% url 'quotation:quotation_detail' q.pk %}"
+                   class="btn btn-sm btn-outline-secondary" title="{% trans 'View' %}">
+                  <i class="bi bi-eye"></i>
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="{% if is_admin %}7{% else %}6{% endif %}"
+                  class="text-center text-muted py-5">
+                <i class="bi bi-file-earmark-text fs-4 d-block mb-2"></i>
+                {% trans "No quotations found." %}
+                {% if q or current_status %}
+                  <br><a href="{% url 'quotation:quotation_list' %}" class="text-decoration-none">{% trans "Clear filters" %}</a>
+                {% else %}
+                  <br>
+                  <a href="{% url 'quotation:quotation_start' %}" class="btn btn-sm btn-primary mt-2">
+                    <i class="bi bi-plus-lg me-1"></i>{% trans "Create your first quotation" %}
+                  </a>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+  <nav class="mt-3" aria-label="{% trans 'Pagination' %}">
+    <ul class="pagination justify-content-center">
+      {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}">
+            &laquo;
+          </a>
+        </li>
+      {% endif %}
+      <li class="page-item disabled">
+        <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+      </li>
+      {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}">
+            &raquo;
+          </a>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endif %}
+
+{% endblock %}

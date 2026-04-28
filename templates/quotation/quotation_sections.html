@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Select Surfaces — {{ quotation.reference }} — ProStar Paints{% endblock %}
+
+{% block content %}
+
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb mb-0 small">
+    <li class="breadcrumb-item">
+      <a href="{% url 'quotation:quotation_list' %}" class="text-decoration-none">{% trans "Quotations" %}</a>
+    </li>
+    <li class="breadcrumb-item">{{ quotation.reference }}</li>
+    <li class="breadcrumb-item active" aria-current="page">{% trans "Select Surfaces" %}</li>
+  </ol>
+</nav>
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">{% trans "Select Surfaces" %}</h4>
+    <p class="mb-0 mt-1 small text-muted">
+      {% trans "Choose which surfaces apply to" %} <strong>{{ quotation.customer_name }}</strong>
+      {% if quotation.project_name %} — {{ quotation.project_name }}{% endif %}
+    </p>
+  </div>
+  <span class="badge text-bg-warning text-dark px-3 py-2">{{ quotation.reference }}</span>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  <div class="row g-4 mb-4">
+
+    <!-- ── Interior ── -->
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-header bg-transparent py-3 d-flex align-items-center gap-2">
+          <span class="badge rounded-pill" style="background:var(--psp-grad-purple);font-size:.75rem;padding:.35em .75em;">
+            <i class="bi bi-house-fill me-1"></i>{% trans "Interior" %}
+          </span>
+          <span class="fw-semibold">{% trans "Interior Surfaces" %}</span>
+        </div>
+        <div class="card-body">
+          <div class="row g-2">
+            {% for sub in interior_subs %}
+              <div class="col-12 col-sm-6">
+                <label class="psp-substrate-check {% if sub.key in existing_keys %}checked{% endif %}"
+                       for="sub_{{ sub.key }}">
+                  <input type="checkbox"
+                         id="sub_{{ sub.key }}"
+                         name="subsections"
+                         value="{{ sub.key }}"
+                         {% if sub.key in existing_keys %}checked{% endif %}>
+                  <i class="bi bi-check2 psp-substrate-tick"></i>
+                  {{ sub.display_name }}
+                </label>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Exterior ── -->
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-header bg-transparent py-3 d-flex align-items-center gap-2">
+          <span class="badge rounded-pill" style="background:var(--psp-grad-green);font-size:.75rem;padding:.35em .75em;">
+            <i class="bi bi-sun-fill me-1"></i>{% trans "Exterior" %}
+          </span>
+          <span class="fw-semibold">{% trans "Exterior Surfaces" %}</span>
+        </div>
+        <div class="card-body">
+          <div class="row g-2">
+            {% for sub in exterior_subs %}
+              <div class="col-12 col-sm-6 col-md-4">
+                <label class="psp-substrate-check {% if sub.key in existing_keys %}checked{% endif %}"
+                       for="sub_{{ sub.key }}">
+                  <input type="checkbox"
+                         id="sub_{{ sub.key }}"
+                         name="subsections"
+                         value="{{ sub.key }}"
+                         {% if sub.key in existing_keys %}checked{% endif %}>
+                  <i class="bi bi-check2 psp-substrate-tick"></i>
+                  {{ sub.display_name }}
+                </label>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="d-flex gap-2">
+    <button type="submit" class="btn btn-primary">
+      <i class="bi bi-arrow-right-circle me-1"></i>{% trans "Save & Continue to Builder" %}
+    </button>
+    <a href="{% url 'quotation:quotation_list' %}" class="btn btn-outline-secondary">
+      {% trans "Back to Quotations" %}
+    </a>
+  </div>
+
+</form>
+
+<style>
+/* Substrate checkbox card */
+.psp-substrate-check {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .55rem .75rem;
+  border: 1.5px solid var(--psp-border);
+  border-radius: var(--psp-radius-sm);
+  cursor: pointer;
+  font-size: .85rem;
+  font-weight: 500;
+  color: var(--psp-text);
+  background: #fff;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+  user-select: none;
+  width: 100%;
+  position: relative;
+}
+.psp-substrate-check input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.psp-substrate-tick {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--psp-border);
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .8rem;
+  flex-shrink: 0;
+  color: transparent;
+  transition: border-color .15s, background .15s, color .15s;
+  background: #f8fafc;
+}
+.psp-substrate-check:hover {
+  border-color: var(--psp-purple);
+  background: var(--psp-purple-light);
+  box-shadow: 0 0 0 3px rgba(var(--psp-purple-rgb),.10);
+}
+.psp-substrate-check.checked,
+.psp-substrate-check input:checked ~ * {
+  border-color: var(--psp-purple);
+  background: var(--psp-purple-light);
+}
+.psp-substrate-check input:checked + .psp-substrate-tick {
+  background: var(--psp-purple);
+  border-color: var(--psp-purple);
+  color: #fff;
+}
+/* JS-free checked state via sibling selector */
+.psp-substrate-check:has(input:checked) {
+  border-color: var(--psp-purple);
+  background: var(--psp-purple-light);
+}
+.psp-substrate-check:has(input:checked) .psp-substrate-tick {
+  background: var(--psp-purple);
+  border-color: var(--psp-purple);
+  color: #fff;
+}
+</style>
+
+{% endblock %}

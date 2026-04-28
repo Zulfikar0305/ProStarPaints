@@ -61,6 +61,14 @@
         </a>
       </li>
 
+      <li>
+        <a href="{% url 'quotation:quotation_list' %}"
+           class="psp-sidebar-link {% if request.resolver_match.app_name == 'quotation' %}active{% endif %}">
+          <i class="bi bi-file-earmark-text"></i>
+          <span>Quotations</span>
+        </a>
+      </li>
+
       {% if user.is_superuser or user.role == "ADMIN" %}
         <li>
           <a href="{% url 'users:user_list' %}"

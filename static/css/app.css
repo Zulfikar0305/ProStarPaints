@@ -1132,3 +1132,24 @@ body {
     font-size: 1.1rem;
   }
 }
+
+/* ── Interior Walls step badges ── */
+.psp-step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--psp-purple);
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-right: .3rem;
+  vertical-align: middle;
+}
+
+.psp-step-badge--blue {
+  background: var(--psp-blue);
+}

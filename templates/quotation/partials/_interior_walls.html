@@ -1,0 +1,382 @@
+﻿{#
+  Interior Walls configurator partial.
+  Included by quotation_builder.html for sections where subsection_key == "interior_walls".
+
+  Context vars injected via include...with:
+    quotation     – Quotation instance
+    section       – QuotationSection instance
+    iw_summary    – dict built by QuotationBuilderView._iw_context():
+                    configured (bool), meta (dict), line_count (int),
+                    saved_waterproofing (set), saved_primers (dict key->coats_str),
+                    saved_prep_work (set), saved_paint_keys (set),
+                    saved_paint_bases (dict gk->base), saved_paint_coats (dict gk->coats),
+                    saved_paint_bases_json (str), saved_paint_coats_json (str),
+                    saved_primers_json (str)
+
+  Context vars from the builder view (available to all includes):
+    wall_types, surface_conditions, finishes,
+    finish_map_json, all_paint_groups,
+    waterproofing_options, primer_options, other_prep_options,
+    moisture_threshold
+#}
+{% load i18n %}
+{% with meta=iw_summary.meta configured=iw_summary.configured %}
+
+<div class="card border-0 shadow-sm mb-3"
+     style="border-left:4px solid var(--psp-purple) !important;">
+
+  {# Card header #}
+  <div class="card-header bg-transparent py-3 d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-house-fill text-primary"></i>
+      <span class="fw-semibold">{{ section.display_name }}</span>
+      {% if configured %}
+        <span class="badge text-bg-success ms-1" style="font-size:.7rem;">
+          <i class="bi bi-check-lg me-1"></i>Configured
+        </span>
+      {% else %}
+        <span class="badge text-bg-warning text-dark ms-1" style="font-size:.7rem;">
+          <i class="bi bi-pencil me-1"></i>Needs configuration
+        </span>
+      {% endif %}
+    </div>
+    <button class="btn btn-sm btn-outline-secondary" type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#iwFormBody_{{ section.pk }}"
+            aria-expanded="{% if not configured %}true{% else %}false{% endif %}">
+      {% if configured %}Edit{% else %}Configure{% endif %}
+    </button>
+  </div>
+
+  {# Summary strip (visible when collapsed) #}
+  {% if configured %}
+    <div class="card-body py-2 border-top small">
+      <div class="row g-1">
+        <div class="col-auto text-muted">Wall:</div>
+        <div class="col-auto fw-semibold">{{ meta.wall_type_label|default:"-" }}</div>
+        <div class="col-auto text-muted ms-3">Finish:</div>
+        <div class="col-auto fw-semibold">{{ meta.finish_labels|join:", "|default:"-" }}</div>
+        {% if meta.area_sqm %}
+          <div class="col-auto text-muted ms-3">Area:</div>
+          <div class="col-auto">{{ meta.area_sqm }} m&sup2;</div>
+        {% endif %}
+        {% if meta.moisture_level %}
+          <div class="col-auto text-muted ms-3">Moisture:</div>
+          <div class="col-auto">{{ meta.moisture_level }}%
+            {% if meta.moisture_level > moisture_threshold %}
+              <span class="badge text-bg-danger ms-1" style="font-size:.65rem;">High</span>
+            {% endif %}
+          </div>
+        {% endif %}
+        <div class="col-auto text-muted ms-3">Items:</div>
+        <div class="col-auto">{{ iw_summary.line_count }}</div>
+      </div>
+    </div>
+  {% endif %}
+
+  {# Collapsible form #}
+  <div class="collapse {% if not configured %}show{% endif %}"
+       id="iwFormBody_{{ section.pk }}">
+    <form method="post"
+          action="{% url 'quotation:interior_walls_save' quotation.pk section.pk %}">
+      {% csrf_token %}
+      <div class="card-body">
+
+        {# Step 1: Wall Info #}
+        <h6 class="fw-bold text-uppercase text-muted small mb-3">
+          <span class="psp-step-badge">1</span> Wall Information
+        </h6>
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-sm-6 col-md-4">
+            <label class="form-label fw-semibold small">
+              Wall Type <span class="text-danger">*</span>
+            </label>
+            <select name="wall_type" class="form-select form-select-sm" required>
+              <option value="">-- Select --</option>
+              {% for val, label in wall_types %}
+                <option value="{{ val }}"
+                  {% if meta.wall_type == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12 col-sm-6 col-md-4">
+            <label class="form-label fw-semibold small">Area (m&sup2;)</label>
+            <input type="number" name="area_sqm" class="form-control form-control-sm"
+                   step="0.01" min="0" placeholder="e.g. 45.5"
+                   value="{{ meta.area_sqm|default:'' }}">
+          </div>
+          <div class="col-12 col-sm-6 col-md-4">
+            <label class="form-label fw-semibold small">
+              Moisture Level (%)
+              <i class="bi bi-info-circle text-muted" style="font-size:.8rem;"
+                 title="Warning shown above {{ moisture_threshold }}%"></i>
+            </label>
+            <input type="number" name="moisture_level"
+                   id="moistureInput_{{ section.pk }}"
+                   class="form-control form-control-sm"
+                   min="0" max="100" step="1" placeholder="0"
+                   value="{{ meta.moisture_level|default:'' }}"
+                   oninput="iwMoistureWarn(this.value,'{{ section.pk }}')">
+            <div id="moistureWarn_{{ section.pk }}"
+                 class="alert alert-warning py-1 px-2 mt-1 small mb-0"
+                 style="display:{% if meta.moisture_level and meta.moisture_level > moisture_threshold %}block{% else %}none{% endif %};">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              High moisture. Consider adding waterproofing.
+            </div>
+          </div>
+        </div>
+
+        {# Step 2: Surface Conditions #}
+        <h6 class="fw-bold text-uppercase text-muted small mb-3">
+          <span class="psp-step-badge">2</span>
+          Surface Conditions
+          <span class="text-muted fw-normal">(all that apply)</span>
+        </h6>
+        <div class="row g-2 mb-4">
+          {% for val, label in surface_conditions %}
+            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+              <label class="psp-substrate-check" for="sc_{{ section.pk }}_{{ val }}">
+                <input type="checkbox" id="sc_{{ section.pk }}_{{ val }}"
+                       name="surface_conditions" value="{{ val }}"
+                       {% if meta.surface_conditions and val in meta.surface_conditions %}checked{% endif %}>
+                <i class="bi bi-check2 psp-substrate-tick"></i>{{ label }}
+              </label>
+            </div>
+          {% endfor %}
+        </div>
+
+        {# Step 3: Finishes #}
+        <h6 class="fw-bold text-uppercase text-muted small mb-3">
+          <span class="psp-step-badge">3</span>
+          Finish Selection <span class="text-danger">*</span>
+          <span class="text-muted fw-normal">(one or more)</span>
+        </h6>
+        <div class="row g-2 mb-4">
+          {% for val, label in finishes %}
+            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+              <label class="psp-substrate-check {% if meta.finishes and val in meta.finishes %}checked{% endif %}"
+                     for="finish_{{ section.pk }}_{{ val }}">
+                <input type="checkbox"
+                       id="finish_{{ section.pk }}_{{ val }}"
+                       name="finishes" value="{{ val }}"
+                       data-finish="{{ val }}"
+                       data-section="{{ section.pk }}"
+                       {% if meta.finishes and val in meta.finishes %}checked{% endif %}
+                       onchange="iwSyncFinishes('{{ section.pk }}')">
+                <i class="bi bi-check2 psp-substrate-tick"></i>{{ label }}
+              </label>
+            </div>
+          {% endfor %}
+        </div>
+
+        {# Step 4: Paint Options (JS-driven visibility) #}
+        <h6 class="fw-bold text-uppercase text-muted small mb-3">
+          <span class="psp-step-badge">4</span>
+          Paint Options
+          <span class="text-muted fw-normal">(revealed by finish selection)</span>
+        </h6>
+        <div id="paintGroups_{{ section.pk }}" class="mb-4">
+          {% for pg in all_paint_groups %}
+            <div class="psp-paint-group border rounded p-3 mb-2"
+                 id="pg_{{ section.pk }}_{{ pg.key }}"
+                 data-group="{{ pg.key }}"
+                 data-section="{{ section.pk }}"
+                 style="display:none;background:#fafbff;">
+              <div class="d-flex align-items-start gap-3 flex-wrap">
+                <input type="checkbox"
+                       name="paint_selected_{{ pg.key }}"
+                       id="ps_{{ section.pk }}_{{ pg.key }}"
+                       value="1"
+                       class="form-check-input mt-1"
+                       style="width:1.15em;height:1.15em;flex-shrink:0;"
+                       {% if pg.key in iw_summary.saved_paint_keys %}checked{% endif %}>
+                <div class="flex-grow-1">
+                  <label for="ps_{{ section.pk }}_{{ pg.key }}"
+                         class="fw-semibold small mb-2 d-block">{{ pg.label }}</label>
+                  <div class="row g-2">
+                    {% if pg.bases %}
+                      <div class="col-auto">
+                        <label class="form-label small text-muted mb-1">Base / Colour</label>
+                        <select name="paint_base_{{ pg.key }}"
+                                class="form-select form-select-sm"
+                                style="min-width:150px;">
+                          {% for bval, blabel in pg.bases %}
+                            <option value="{{ bval }}">{{ blabel }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                    {% endif %}
+                    <div class="col-auto">
+                      <label class="form-label small text-muted mb-1">Coats</label>
+                      <select name="paint_coats_{{ pg.key }}"
+                              class="form-select form-select-sm"
+                              style="min-width:75px;">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+          <p id="paintGroupsEmpty_{{ section.pk }}" class="text-muted small mb-0">
+            <i class="bi bi-arrow-up me-1"></i>Select at least one finish to see paint options.
+          </p>
+        </div>
+
+        {# Step 5: Waterproofing #}
+        <h6 class="fw-bold text-uppercase text-muted small mb-3">
+          <span class="psp-step-badge psp-step-badge--blue">5</span>
+          Waterproofing <span class="text-muted fw-normal">(optional)</span>
+        </h6>
+        <div class="row g-2 mb-4">
+          {% for val, label in waterproofing_options %}
+            <div class="col-12 col-sm-6 col-md-4">
+              <label class="psp-substrate-check {% if val in iw_summary.saved_waterproofing %}checked{% endif %}"
+                     for="wp_{{ section.pk }}_{{ val }}">
+                <input type="checkbox" id="wp_{{ section.pk }}_{{ val }}"
+                       name="waterproofing" value="{{ val }}"
+                       {% if val in iw_summary.saved_waterproofing %}checked{% endif %}>
+                <i class="bi bi-check2 psp-substrate-tick"></i>{{ label }}
+              </label>
+            </div>
+          {% endfor %}
+        </div>
+
+        {# Step 6: Primer #}
+        <h6 class="fw-bold text-uppercase text-muted small mb-3">
+          <span class="psp-step-badge psp-step-badge--blue">6</span>
+          Primer <span class="text-muted fw-normal">(optional)</span>
+        </h6>
+        <div class="row g-2 mb-4">
+          {% for val, label in primer_options %}
+            <div class="col-12 col-sm-6 col-md-5">
+              <div class="d-flex align-items-center gap-2 p-2 border rounded"
+                   style="background:#f8fafc;">
+                <input type="checkbox"
+                       id="pr_{{ section.pk }}_{{ val }}"
+                       name="primers" value="{{ val }}"
+                       class="form-check-input"
+                       style="width:1.1em;height:1.1em;flex-shrink:0;"
+                       {% if val in iw_summary.saved_primers %}checked{% endif %}>
+                <label for="pr_{{ section.pk }}_{{ val }}"
+                       class="small fw-medium flex-grow-1 mb-0">{{ label }}</label>
+                <select name="primer_coats_{{ val }}"
+                        class="form-select form-select-sm"
+                        style="width:80px;flex-shrink:0;">
+                  <option value="1">1 coat</option>
+                  <option value="2">2 coats</option>
+                </select>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        {# Step 7: Other Prep Work #}
+        <h6 class="fw-bold text-uppercase text-muted small mb-3">
+          <span class="psp-step-badge psp-step-badge--blue">7</span>
+          Other Prep Work <span class="text-muted fw-normal">(optional)</span>
+        </h6>
+        <div class="row g-2 mb-4">
+          {% for val, label in other_prep_options %}
+            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+              <label class="psp-substrate-check {% if val in iw_summary.saved_prep_work %}checked{% endif %}"
+                     for="prep_{{ section.pk }}_{{ val }}">
+                <input type="checkbox"
+                       id="prep_{{ section.pk }}_{{ val }}"
+                       name="prep_work" value="{{ val }}"
+                       {% if val in iw_summary.saved_prep_work %}checked{% endif %}>
+                <i class="bi bi-check2 psp-substrate-tick"></i>{{ label }}
+              </label>
+            </div>
+          {% endfor %}
+        </div>
+
+        {# Notes #}
+        <div class="mb-4">
+          <label class="form-label fw-semibold small">Additional Notes (optional)</label>
+          <textarea name="notes" class="form-control form-control-sm"
+                    rows="2" placeholder="Any special notes...">{{ meta.notes|default:'' }}</textarea>
+        </div>
+
+        {# Actions #}
+        <div class="d-flex gap-2 flex-wrap">
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="bi bi-floppy me-1"></i>Save Interior Walls
+          </button>
+          <button type="button" class="btn btn-outline-secondary btn-sm"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#iwFormBody_{{ section.pk }}">
+            Cancel
+          </button>
+        </div>
+
+      </div>{# /card-body #}
+    </form>
+  </div>{# /collapse #}
+</div>{# /card #}
+
+{% endwith %}
+
+{# Per-section JS #}
+<script>
+(function () {
+  var SECTION_PK    = '{{ section.pk }}';
+  var FINISH_MAP    = {{ finish_map_json|safe }};
+  var THRESHOLD     = {{ moisture_threshold }};
+  var SAVED_BASES   = {{ iw_summary.saved_paint_bases_json|safe }};
+  var SAVED_COATS   = {{ iw_summary.saved_paint_coats_json|safe }};
+  var SAVED_PRIMERS = {{ iw_summary.saved_primers_json|safe }};
+
+  function iwSyncFinishes(sectionPk) {
+    if (sectionPk !== SECTION_PK) return;
+    var checked = Array.from(
+      document.querySelectorAll(
+        'input[data-finish][data-section="' + SECTION_PK + '"]:checked'
+      )
+    ).map(function (el) { return el.dataset.finish; });
+
+    var visible = new Set();
+    checked.forEach(function (fk) {
+      (FINISH_MAP[fk] || []).forEach(function (gk) { visible.add(gk); });
+    });
+
+    document.querySelectorAll(
+      '.psp-paint-group[data-section="' + SECTION_PK + '"]'
+    ).forEach(function (el) {
+      el.style.display = visible.has(el.dataset.group) ? '' : 'none';
+    });
+
+    var empty = document.getElementById('paintGroupsEmpty_' + SECTION_PK);
+    if (empty) empty.style.display = visible.size ? 'none' : '';
+  }
+
+  function iwMoistureWarn(val, sectionPk) {
+    if (sectionPk !== SECTION_PK) return;
+    var warn = document.getElementById('moistureWarn_' + SECTION_PK);
+    if (warn) warn.style.display = parseInt(val) > THRESHOLD ? 'block' : 'none';
+  }
+
+  /* Restore saved base/coat/primer-coat selections */
+  Object.keys(SAVED_BASES).forEach(function (gk) {
+    var sel = document.querySelector('[name="paint_base_' + gk + '"]');
+    if (sel) sel.value = SAVED_BASES[gk];
+  });
+  Object.keys(SAVED_COATS).forEach(function (gk) {
+    var sel = document.querySelector('[name="paint_coats_' + gk + '"]');
+    if (sel) sel.value = SAVED_COATS[gk];
+  });
+  Object.keys(SAVED_PRIMERS).forEach(function (pk) {
+    var sel = document.querySelector('[name="primer_coats_' + pk + '"]');
+    if (sel) sel.value = SAVED_PRIMERS[pk];
+  });
+
+  /* Initial sync on page load (restores visible paint groups for saved finishes) */
+  iwSyncFinishes(SECTION_PK);
+
+  /* Expose to inline handlers */
+  window.iwSyncFinishes = iwSyncFinishes;
+  window.iwMoistureWarn = iwMoistureWarn;
+}());
+</script>

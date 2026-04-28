@@ -46,6 +46,9 @@ urlpatterns = [
     # Invoices / spec sheets
     path("invoices/", include("invoices.urls", namespace="invoices")),
 
+    # Quotation builder
+    path("quotations/", include("quotation.urls", namespace="quotation")),
+
     # System Tools (admin-only)
     path("system-tools/", include("system_tools.urls", namespace="system_tools")),
 ]
