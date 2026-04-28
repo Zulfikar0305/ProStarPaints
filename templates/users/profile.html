@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Profile — ProStar Paints{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">{% trans "My Profile" %}</h4>
+    <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">
+      {% trans "Your account details and role information." %}
+    </p>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- Profile card -->
+  <div class="col-12 col-md-5 col-lg-4">
+    <div class="card">
+      <div class="card-body p-4 text-center">
+        <!-- Avatar -->
+        <div class="mx-auto mb-3 d-flex align-items-center justify-content-center"
+             style="width:80px;height:80px;background:var(--psp-grad-purple);border-radius:50%;font-size:2rem;font-weight:700;color:#fff;">
+          {{ profile_user.username|first|upper }}
+        </div>
+        <h5 class="fw-bold mb-0">{{ profile_user.get_full_name|default:profile_user.username }}</h5>
+        <p class="text-muted small mb-1">@{{ profile_user.username }}</p>
+        <span class="badge rounded-pill {% if profile_user.is_superuser %}bg-danger{% elif profile_user.role == 'ADMIN' %}bg-primary{% else %}bg-success{% endif %} mb-3">
+          {% if profile_user.is_superuser %}Superuser{% else %}{{ profile_user.role }}{% endif %}
+        </span>
+
+        <hr class="my-3">
+
+        <div class="text-start small">
+          <div class="d-flex align-items-center gap-2 mb-2 text-muted">
+            <i class="bi bi-envelope" style="width:16px;"></i>
+            {{ profile_user.email|default:"—" }}
+          </div>
+          <div class="d-flex align-items-center gap-2 mb-2 text-muted">
+            <i class="bi bi-person-check" style="width:16px;"></i>
+            {% if profile_user.is_active %}
+              <span class="text-success">{% trans "Active" %}</span>
+            {% else %}
+              <span class="text-danger">{% trans "Inactive" %}</span>
+            {% endif %}
+          </div>
+          <div class="d-flex align-items-center gap-2 text-muted">
+            <i class="bi bi-calendar3" style="width:16px;"></i>
+            {% trans "Joined" %}: {{ profile_user.date_joined|date:"d M Y" }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info -->
+  <div class="col-12 col-md-7 col-lg-8">
+    <div class="card">
+      <div class="card-header bg-transparent fw-semibold py-2">
+        <i class="bi bi-person-fill me-2 text-primary"></i>{% trans "Account Details" %}
+      </div>
+      <div class="card-body p-4">
+
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <div class="form-label fw-semibold small text-muted text-uppercase">{% trans "First Name" %}</div>
+            <div class="fw-semibold">{{ profile_user.first_name|default:"—" }}</div>
+          </div>
+          <div class="col-sm-6">
+            <div class="form-label fw-semibold small text-muted text-uppercase">{% trans "Last Name" %}</div>
+            <div class="fw-semibold">{{ profile_user.last_name|default:"—" }}</div>
+          </div>
+          <div class="col-sm-6">
+            <div class="form-label fw-semibold small text-muted text-uppercase">{% trans "Username" %}</div>
+            <div class="fw-semibold">{{ profile_user.username }}</div>
+          </div>
+          <div class="col-sm-6">
+            <div class="form-label fw-semibold small text-muted text-uppercase">{% trans "Email" %}</div>
+            <div class="fw-semibold">{{ profile_user.email|default:"—" }}</div>
+          </div>
+          <div class="col-sm-6">
+            <div class="form-label fw-semibold small text-muted text-uppercase">{% trans "Role" %}</div>
+            <div class="fw-semibold">
+              {% if profile_user.is_superuser %}Superuser{% else %}{{ profile_user.get_role_display|default:profile_user.role }}{% endif %}
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="form-label fw-semibold small text-muted text-uppercase">{% trans "Status" %}</div>
+            <div class="fw-semibold">
+              {% if profile_user.is_active %}<span class="text-success">{% trans "Active" %}</span>{% else %}<span class="text-danger">{% trans "Inactive" %}</span>{% endif %}
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="form-label fw-semibold small text-muted text-uppercase">{% trans "Date Joined" %}</div>
+            <div class="fw-semibold">{{ profile_user.date_joined|date:"d M Y, H:i" }}</div>
+          </div>
+          <div class="col-sm-6">
+            <div class="form-label fw-semibold small text-muted text-uppercase">{% trans "Last Login" %}</div>
+            <div class="fw-semibold">{{ profile_user.last_login|date:"d M Y, H:i"|default:"—" }}</div>
+          </div>
+        </div>
+
+        <hr class="my-4">
+
+        <div class="alert alert-info py-2 small">
+          <i class="bi bi-info-circle me-2"></i>
+          {% trans "To change your username, email, or password, please contact your system administrator." %}
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

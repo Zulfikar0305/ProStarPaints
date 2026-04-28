@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Paint Catalogue — ProStar Paints{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">{% trans "Paint Catalogue" %}</h4>
+    <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">{% trans "Manage paint products and colours" %}</p>
+  </div>
+  <a href="{% url 'paints:paint_create' %}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>{% trans "Add Paint" %}
+  </a>
+</div>
+
+<!-- Search & Filters -->
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <form method="get" class="row g-2 align-items-end">
+
+      <!-- Search box -->
+      <div class="col-12 col-sm-6 col-md-4">
+        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Search" %}</label>
+        <div class="input-group input-group-sm">
+          <input type="text" name="q" value="{{ q }}"
+                 class="form-control" placeholder="{% trans 'Name or colour…' %}">
+          <button class="btn btn-outline-secondary" type="submit">
+            <i class="bi bi-search"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Category filter -->
+      <div class="col-6 col-sm-3 col-md-2">
+        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Category" %}</label>
+        <select name="category" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="">{% trans "All" %}</option>
+          {% for value, label in category_choices %}
+            <option value="{{ value }}" {% if current_category == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Status filter -->
+      <div class="col-6 col-sm-3 col-md-2">
+        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Status" %}</label>
+        <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="active"   {% if current_status == "active"   %}selected{% endif %}>{% trans "Active" %}</option>
+          <option value="inactive" {% if current_status == "inactive" %}selected{% endif %}>{% trans "Inactive" %}</option>
+          <option value="all"      {% if current_status == "all"      %}selected{% endif %}>{% trans "All" %}</option>
+        </select>
+      </div>
+
+      {% if q or current_category or current_status != "active" %}
+        <div class="col-auto">
+          <a href="{% url 'paints:paint_list' %}" class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-x-lg me-1"></i>{% trans "Clear" %}
+          </a>
+        </div>
+      {% endif %}
+
+    </form>
+  </div>
+</div>
+
+<!-- Paint table -->
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width:56px;"></th>
+            <th>{% trans "Name" %}</th>
+            <th>{% trans "Category" %}</th>
+            <th>{% trans "Type" %}</th>
+            <th>{% trans "Base" %}</th>
+            <th>{% trans "Colour" %}</th>
+            <th class="text-end">{% trans "Excl. VAT" %}</th>
+            <th class="text-end">{% trans "Incl. VAT" %}</th>
+            <th>{% trans "Status" %}</th>
+            <th class="text-end">{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for paint in paints %}
+            <tr>
+              <!-- Thumbnail -->
+              <td class="ps-3">
+                {% if paint.image %}
+                  <img src="{{ paint.image.url }}" alt="{{ paint.name }}"
+                       class="rounded" style="width:40px;height:40px;object-fit:cover;">
+                {% else %}
+                  <div class="rounded bg-light d-flex align-items-center justify-content-center"
+                       style="width:40px;height:40px;">
+                    <i class="bi bi-image text-muted"></i>
+                  </div>
+                {% endif %}
+              </td>
+              <td class="fw-semibold">{{ paint.name }}</td>
+              <td>
+                <span class="badge text-bg-secondary">{{ paint.get_category_display }}</span>
+              </td>
+              <td class="text-muted small">{{ paint.get_paint_type_display }}</td>
+              <td class="text-muted small">{{ paint.get_base_type_display }}</td>
+              <td class="text-muted small">{{ paint.colour|default:"—" }}</td>
+              <td class="text-end">R {{ paint.price_excl_vat }}</td>
+              <td class="text-end fw-semibold">R {{ paint.price_incl_vat }}</td>
+              <td>
+                {% if paint.is_active %}
+                  <span class="badge badge-active text-white"><i class="bi bi-check-circle me-1"></i>{% trans "Active" %}</span>
+                {% else %}
+                  <span class="badge badge-inactive text-white"><i class="bi bi-x-circle me-1"></i>{% trans "Inactive" %}</span>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                <a href="{% url 'paints:paint_update' paint.pk %}"
+                   class="btn btn-sm btn-outline-secondary me-1" title="{% trans 'Edit' %}">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <a href="{% url 'paints:paint_deactivate' paint.pk %}"
+                   class="btn btn-sm {% if paint.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
+                   title="{% if paint.is_active %}{% trans 'Deactivate' %}{% else %}{% trans 'Activate' %}{% endif %}">
+                  <i class="bi bi-{% if paint.is_active %}slash-circle{% else %}check-circle{% endif %}"></i>
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="10" class="text-center text-muted py-5">
+                <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+                {% trans "No paints found." %}
+                {% if q or current_category %}
+                  <br><a href="{% url 'paints:paint_list' %}" class="text-decoration-none">{% trans "Clear filters" %}</a>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+  <nav class="mt-3" aria-label="{% trans 'Pagination' %}">
+    <ul class="pagination justify-content-center">
+      {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&category={{ current_category }}&status={{ current_status }}">&laquo;</a>
+        </li>
+      {% endif %}
+      <li class="page-item disabled">
+        <span class="page-link">
+          {% blocktrans with current=page_obj.number total=page_obj.paginator.num_pages %}Page {{ current }} of {{ total }}{% endblocktrans %}
+        </span>
+      </li>
+      {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}&category={{ current_category }}&status={{ current_status }}">&raquo;</a>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endif %}
+
+{% endblock %}

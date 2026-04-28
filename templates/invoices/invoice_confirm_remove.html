@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Remove {{ invoice.reference }} — ProStar Paints{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center mt-4">
+  <div class="col-12 col-sm-8 col-md-6 col-lg-5">
+    <div class="card border-danger">
+      <div class="card-header bg-danger text-white fw-semibold">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>{% trans "Remove Invoice" %}
+      </div>
+      <div class="card-body">
+
+        <p class="mb-2">
+          {% blocktrans with ref=invoice.reference %}
+            Are you sure you want to remove invoice <strong>{{ ref }}</strong>?
+          {% endblocktrans %}
+        </p>
+        <p class="small text-muted mb-3">
+          {% trans "The record will be soft-deleted and hidden from all views. This action is logged." %}
+        </p>
+
+        <dl class="row small mb-3">
+          <dt class="col-4 text-muted">{% trans "Reference" %}</dt>
+          <dd class="col-8 fw-semibold">{{ invoice.reference }}</dd>
+
+          <dt class="col-4 text-muted">{% trans "Customer" %}</dt>
+          <dd class="col-8">{{ invoice.customer_name }}</dd>
+
+          <dt class="col-4 text-muted">{% trans "Status" %}</dt>
+          <dd class="col-8">{{ invoice.get_status_display }}</dd>
+
+          <dt class="col-4 text-muted">{% trans "Total" %}</dt>
+          <dd class="col-8">R {{ invoice.total_incl_vat|floatformat:2 }}</dd>
+        </dl>
+
+        <form method="post" action="{% url 'invoices:invoice_remove' invoice.pk %}">
+          {% csrf_token %}
+          <div class="d-flex gap-2 justify-content-end">
+            <a href="{% url 'invoices:invoice_detail' invoice.pk %}"
+               class="btn btn-outline-secondary btn-sm">
+              {% trans "Cancel" %}
+            </a>
+            <button type="submit" class="btn btn-danger btn-sm">
+              <i class="bi bi-trash me-1"></i>{% trans "Yes, Remove" %}
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

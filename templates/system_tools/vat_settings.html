@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}VAT Settings — ProStar Paints{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4 gap-3">
+  <a href="{% url 'system_tools:dashboard' %}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <div>
+    <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">{% trans "VAT Settings" %}</h4>
+    <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">
+      {% trans "Manage the application-wide VAT rate used for all price calculations." %}
+    </p>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- Edit form -->
+  <div class="col-12 col-md-6 col-lg-5">
+    <div class="card">
+      <div class="card-header bg-transparent fw-semibold py-2">
+        <i class="bi bi-percent me-2 text-primary"></i>{% trans "Update VAT Rate" %}
+      </div>
+      <div class="card-body p-4">
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger py-2">
+              {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+            </div>
+          {% endif %}
+
+          <div class="mb-3">
+            <label for="{{ form.vat_rate.id_for_label }}" class="form-label fw-semibold">
+              {% trans "VAT Rate (%)" %} <span class="text-danger">*</span>
+            </label>
+            <div class="input-group">
+              {{ form.vat_rate }}
+              <span class="input-group-text">%</span>
+            </div>
+            {% if form.vat_rate.errors %}
+              <div class="invalid-feedback d-block">{{ form.vat_rate.errors|join:", " }}</div>
+            {% endif %}
+            <div class="form-text">{{ form.vat_rate.help_text }}</div>
+          </div>
+
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-lg me-1"></i>{% trans "Save VAT Rate" %}
+            </button>
+            <a href="{% url 'system_tools:dashboard' %}" class="btn btn-outline-secondary">
+              {% trans "Cancel" %}
+            </a>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Info panel -->
+  <div class="col-12 col-md-6 col-lg-5">
+    <div class="card h-100">
+      <div class="card-header bg-transparent fw-semibold py-2">
+        <i class="bi bi-info-circle me-2 text-info"></i>{% trans "Current Settings" %}
+      </div>
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center gap-3 mb-4">
+          <div style="width:56px;height:56px;background:var(--psp-grad-purple);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:#fff;font-weight:700;">
+            {{ current_rate|floatformat:0 }}%
+          </div>
+          <div>
+            <div class="fw-bold fs-5 mb-0">{{ current_rate }}%</div>
+            <div style="font-size:.82rem;color:var(--psp-text-soft);">{% trans "Active VAT Rate" %}</div>
+          </div>
+        </div>
+
+        <hr class="my-3">
+
+        <p class="small text-muted mb-2">{% trans "This VAT rate applies to:" %}</p>
+        <ul class="small text-muted ps-3 mb-0">
+          <li>{% trans "Paint price auto-calculation (excl ↔ incl VAT)" %}</li>
+          <li>{% trans "Invoice subtotal → VAT amount → total calculation" %}</li>
+          <li>{% trans "Live JavaScript calculations on forms" %}</li>
+        </ul>
+
+        <div class="alert alert-warning mt-3 py-2 small">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          {% trans "Changing the VAT rate does not retroactively update existing records." %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

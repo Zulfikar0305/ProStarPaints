@@ -1,0 +1,562 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Dashboard — ProStar Paints{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* chart-wrap keeps canvas proportional */
+  .chart-wrap { position: relative; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Page header ──────────────────────────────────────────── -->
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <div>
+    <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">
+      {% if is_admin %}{% trans "Platform Dashboard" %}{% else %}{% trans "My Dashboard" %}{% endif %}
+    </h4>
+    <p class="text-muted mb-0 mt-1" style="font-size:.82rem;">
+      {% if is_admin %}
+        {% trans "System-wide analytics and performance overview" %}
+      {% else %}
+        {% trans "Your personal activity and performance" %}
+      {% endif %}
+    </p>
+  </div>
+
+  <!-- Period filter -->
+  <div class="btn-group btn-group-sm" role="group" aria-label="{% trans 'Period filter' %}">
+    <a href="?period=all"
+       class="btn btn-outline-secondary period-btn {% if period == 'all' %}active-period{% endif %}">
+      <i class="bi bi-calendar3 me-1"></i>{% trans "All Time" %}
+    </a>
+    <a href="?period=this_month"
+       class="btn btn-outline-secondary period-btn {% if period == 'this_month' %}active-period{% endif %}">
+      {% trans "This Month" %}
+    </a>
+    <a href="?period=last_30_days"
+       class="btn btn-outline-secondary period-btn {% if period == 'last_30_days' %}active-period{% endif %}">
+      {% trans "Last 30 Days" %}
+    </a>
+  </div>
+</div>
+
+
+{% if is_admin %}
+{# ================================================================ #}
+{# ADMIN DASHBOARD                                                   #}
+{# ================================================================ #}
+
+<!-- Hero + quick stats -->
+<div class="row g-3 mb-4">
+
+  <!-- Hero stat card -->
+  <div class="col-12 col-md-4 col-xl-3">
+    <div class="card stat-hero h-100">
+      <div class="card-body p-4 d-flex flex-column justify-content-between" style="min-height:120px;">
+        <div class="section-label text-white mb-2" style="opacity:.6;">Total Actions</div>
+        <div>
+          <div class="fw-bold text-white mb-1" style="font-size:2.4rem;line-height:1;letter-spacing:-.04em;">{{ total_audit_actions }}</div>
+          <div class="text-white mt-2" style="font-size:.78rem;opacity:.6;">
+            {% if period != 'all' %}filtered period{% else %}all time{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI grid — remaining 3 stats -->
+  <div class="col-12 col-md-8 col-xl-9">
+    <div class="row g-3 h-100">
+
+      <div class="col-6 col-lg-4">
+        <div class="card h-100 kpi-card">
+          <div class="card-body d-flex align-items-center gap-3 py-3">
+            <div class="kpi-icon kpi-icon-purple">
+              <i class="bi bi-people-fill"></i>
+            </div>
+            <div>
+              <div class="fs-2 fw-bold lh-1 mb-1" style="letter-spacing:-.02em;">{{ total_active_reps }}</div>
+              <div class="section-label">Active Reps</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-6 col-lg-4">
+        <div class="card h-100 kpi-card">
+          <div class="card-body d-flex align-items-center gap-3 py-3">
+            <div class="kpi-icon kpi-icon-green">
+              <i class="bi bi-palette-fill"></i>
+            </div>
+            <div>
+              <div class="fs-2 fw-bold lh-1 mb-1" style="letter-spacing:-.02em;">{{ total_active_paints }}</div>
+              <div class="section-label">Active Paints</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-6 col-lg-4">
+        <div class="card h-100 kpi-card">
+          <div class="card-body d-flex align-items-center gap-3 py-3">
+            <div class="kpi-icon kpi-icon-blue">
+              <i class="bi bi-person-check-fill"></i>
+            </div>
+            <div>
+              <div class="fs-2 fw-bold lh-1 mb-1" style="letter-spacing:-.02em;">{{ total_users }}</div>
+              <div class="section-label">Total Users</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /Hero + quick stats -->
+
+<!-- Charts row 1: Trend + Module breakdown -->
+<div class="row g-3 mb-4">
+
+  <!-- Monthly Activity Trend -->
+  <div class="col-12 col-lg-8">
+    <div class="card h-100">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span class="fw-semibold" style="font-size:.9rem;">
+          <i class="bi bi-graph-up me-2 text-primary"></i>{% trans "Monthly Activity Trend" %}
+        </span>
+        <span class="badge text-bg-secondary fw-normal" style="font-size:.67rem;border-radius:50px;">{% trans "last 12 months" %}</span>
+      </div>
+      <div class="card-body pt-2">
+        <div class="chart-wrap" style="height:240px;">
+          <canvas id="adminTrendChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Module Breakdown -->
+  <div class="col-12 col-lg-4">
+    <div class="card h-100">
+      <div class="card-header">
+        <span class="fw-semibold" style="font-size:.9rem;">
+          <i class="bi bi-pie-chart-fill me-2 text-success"></i>{% trans "By Module" %}
+        </span>
+      </div>
+      <div class="card-body d-flex flex-column align-items-center justify-content-center py-3">
+        {% if module_breakdown %}
+          <div class="chart-wrap" style="height:190px;width:190px;">
+            <canvas id="adminModuleChart"></canvas>
+          </div>
+          <div class="mt-3 d-flex flex-wrap justify-content-center gap-2">
+            {% for row in module_breakdown %}
+              <span class="badge text-bg-secondary fw-normal">{{ row.module|capfirst }}: {{ row.count }}</span>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center text-muted py-4">
+            <i class="bi bi-inbox fs-3 d-block mb-2"></i>{% trans "No data yet" %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div><!-- /row 1 -->
+
+<!-- Charts row 2: Top Reps chart + Leaderboard -->
+<div class="row g-3 mb-2">
+
+  <!-- Horizontal bar chart -->
+  <div class="col-12 col-lg-6">
+    <div class="card h-100">
+      <div class="card-header d-flex align-items-center">
+        <span class="fw-semibold" style="font-size:.9rem;">
+          <i class="bi bi-bar-chart-fill me-2 text-warning"></i>{% trans "Top Reps by Activity" %}
+        </span>
+      </div>
+      <div class="card-body pt-2">
+        {% if top_reps %}
+          <div class="chart-wrap" style="height:260px;">
+            <canvas id="adminTopRepsChart"></canvas>
+          </div>
+        {% else %}
+          <div class="text-center text-muted py-5">
+            <i class="bi bi-inbox fs-3 d-block mb-2"></i>{% trans "No rep activity recorded" %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaderboard table -->
+  <div class="col-12 col-lg-6">
+    <div class="card h-100">
+      <div class="card-header d-flex align-items-center">
+        <span class="fw-semibold" style="font-size:.9rem;">
+          <i class="bi bi-trophy-fill me-2 text-warning"></i>{% trans "Rep Leaderboard" %}
+        </span>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3" style="width:40px;">#</th>
+                <th>{% trans "Rep" %}</th>
+                <th class="text-end pe-3">{% trans "Actions" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for rep in top_reps %}
+                <tr>
+                  <td class="ps-3 fw-bold" style="color:var(--psp-text-soft);">{{ forloop.counter }}</td>
+                  <td>
+                    {% with name=rep.user__first_name|add:" "|add:rep.user__last_name %}
+                      {% if name|striptags|length > 1 %}{{ name }}{% else %}{{ rep.user__username }}{% endif %}
+                    {% endwith %}
+                  </td>
+                  <td class="text-end pe-3">
+                    <span class="badge text-bg-primary">{{ rep.count }}</span>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="3" class="text-center text-muted py-4">
+                    {% trans "No rep activity yet" %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /row 2 -->
+
+
+{% else %}
+{# ================================================================ #}
+{# REP DASHBOARD                                                     #}
+{# ================================================================ #}
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+
+  <div class="col-6 col-sm-4">
+    <div class="card h-100 kpi-card">
+      <div class="card-body d-flex align-items-center gap-3 py-3">
+        <div class="kpi-icon kpi-icon-purple">
+          <i class="bi bi-activity"></i>
+        </div>
+        <div>
+          <div class="fs-2 fw-bold lh-1 mb-1" style="letter-spacing:-.02em;">{{ my_total_actions }}</div>
+          <div class="section-label">
+            My Actions
+            {% if period != 'all' %}<span class="fw-normal" style="text-transform:none;letter-spacing:0;">(filtered)</span>{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-sm-4">
+    <div class="card h-100 kpi-card">
+      <div class="card-body d-flex align-items-center gap-3 py-3">
+        <div class="kpi-icon kpi-icon-green">
+          <i class="bi bi-grid-fill"></i>
+        </div>
+        <div>
+          <div class="fs-2 fw-bold lh-1 mb-1" style="letter-spacing:-.02em;">{{ my_modules|length }}</div>
+          <div class="section-label">Modules Used</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-sm-4">
+    <div class="card h-100 kpi-card">
+      <div class="card-body d-flex align-items-center gap-3 py-3">
+        <div class="kpi-icon kpi-icon-blue">
+          <i class="bi bi-clock-history"></i>
+        </div>
+        <div>
+          <div class="fs-2 fw-bold lh-1 mb-1" style="letter-spacing:-.02em;">{{ recent_activity|length }}</div>
+          <div class="section-label">Recent Events</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /KPI Cards -->
+
+<!-- Charts -->
+<div class="row g-3 mb-4">
+
+  <!-- Monthly Trend -->
+  <div class="col-12 col-lg-8">
+    <div class="card h-100">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span class="fw-semibold" style="font-size:.9rem;">
+          <i class="bi bi-graph-up me-2 text-primary"></i>{% trans "My Monthly Activity" %}
+        </span>
+        <span class="badge text-bg-secondary fw-normal" style="font-size:.67rem;border-radius:50px;">{% trans "last 12 months" %}</span>
+      </div>
+      <div class="card-body pt-2">
+        <div class="chart-wrap" style="height:240px;">
+          <canvas id="repTrendChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Module Breakdown -->
+  <div class="col-12 col-lg-4">
+    <div class="card h-100">
+      <div class="card-header">
+        <span class="fw-semibold" style="font-size:.9rem;">
+          <i class="bi bi-pie-chart-fill me-2 text-success"></i>{% trans "By Module" %}
+        </span>
+      </div>
+      <div class="card-body d-flex flex-column align-items-center justify-content-center py-3">
+        {% if my_modules %}
+          <div class="chart-wrap" style="height:190px;width:190px;">
+            <canvas id="repModuleChart"></canvas>
+          </div>
+          <div class="mt-3 d-flex flex-wrap justify-content-center gap-2">
+            {% for row in my_modules %}
+              <span class="badge text-bg-secondary fw-normal">{{ row.module|capfirst }}: {{ row.count }}</span>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center text-muted py-4">
+            <i class="bi bi-inbox fs-3 d-block mb-2"></i>{% trans "No activity yet" %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div><!-- /charts -->
+
+<!-- Recent Activity Table -->
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex align-items-center">
+        <span class="fw-semibold" style="font-size:.9rem;">
+          <i class="bi bi-clock-history me-2 text-info"></i>{% trans "Recent Activity" %}
+        </span>
+        <span class="ms-2" style="font-size:.75rem;color:var(--psp-text-soft);">({% trans "latest 10" %})</span>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3">{% trans "Timestamp" %}</th>
+                <th>{% trans "Module" %}</th>
+                <th>{% trans "Action" %}</th>
+                <th>{% trans "Description" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for log in recent_activity %}
+                <tr>
+                  <td class="ps-3 text-nowrap text-muted">
+                    {{ log.created_at|date:"d M Y" }}<br>
+                    <span class="text-muted">{{ log.created_at|time:"H:i" }}</span>
+                  </td>
+                  <td>
+                    <span class="badge text-bg-{% if log.module == 'users' %}primary{% elif log.module == 'paints' %}success{% else %}secondary{% endif %}">
+                      {{ log.module|capfirst }}
+                    </span>
+                  </td>
+                  <td><code class="text-dark">{{ log.action }}</code></td>
+                  <td class="text-muted">{{ log.description|truncatechars:80|default:"—" }}</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="4" class="text-center text-muted py-5">
+                    <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                    {% trans "No activity recorded yet" %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /recent activity -->
+
+{% endif %}
+{% endblock %}
+
+
+{% block extra_js %}
+<!-- Chart.js 4.4.4 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"
+        crossorigin="anonymous"></script>
+
+<script>
+(function () {
+  'use strict';
+
+  Chart.defaults.font.family = "'Segoe UI', system-ui, -apple-system, sans-serif";
+  Chart.defaults.color = '#6c757d';
+
+  const PALETTE = [
+    '#0d6efd', '#198754', '#ffc107', '#dc3545',
+    '#0dcaf0', '#6f42c1', '#fd7e14', '#20c997'
+  ];
+
+  function makeLineChart(canvasId, labels, data, color) {
+    const el = document.getElementById(canvasId);
+    if (!el) return;
+    new Chart(el, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Actions',
+          data,
+          fill: true,
+          backgroundColor: color + '1a',
+          borderColor: color,
+          tension: 0.35,
+          pointRadius: 4,
+          pointBackgroundColor: color,
+          pointHoverRadius: 6,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { precision: 0 },
+            grid: { color: 'rgba(0,0,0,.05)' }
+          },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  function makeDoughnutChart(canvasId, labels, data) {
+    const el = document.getElementById(canvasId);
+    if (!el) return;
+    new Chart(el, {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [{
+          data,
+          backgroundColor: PALETTE,
+          borderWidth: 0,
+          hoverOffset: 8,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => ' ' + ctx.label + ': ' + ctx.parsed
+            }
+          }
+        }
+      }
+    });
+  }
+
+  function makeBarChart(canvasId, labels, data) {
+    const el = document.getElementById(canvasId);
+    if (!el) return;
+    new Chart(el, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Actions',
+          data,
+          backgroundColor: PALETTE,
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: { precision: 0 },
+            grid: { color: 'rgba(0,0,0,.05)' }
+          },
+          y: { grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  {% if is_admin %}
+
+  makeLineChart(
+    'adminTrendChart',
+    {{ trend_labels_json|safe }},
+    {{ trend_data_json|safe }},
+    '#0d6efd'
+  );
+
+  {% if module_breakdown %}
+  makeDoughnutChart(
+    'adminModuleChart',
+    {{ module_labels_json|safe }},
+    {{ module_data_json|safe }}
+  );
+  {% endif %}
+
+  {% if top_reps %}
+  makeBarChart(
+    'adminTopRepsChart',
+    {{ top_rep_labels_json|safe }},
+    {{ top_rep_data_json|safe }}
+  );
+  {% endif %}
+
+  {% else %}
+
+  makeLineChart(
+    'repTrendChart',
+    {{ trend_labels_json|safe }},
+    {{ trend_data_json|safe }},
+    '#198754'
+  );
+
+  {% if my_modules %}
+  makeDoughnutChart(
+    'repModuleChart',
+    {{ module_labels_json|safe }},
+    {{ module_data_json|safe }}
+  );
+  {% endif %}
+
+  {% endif %}
+
+})();
+</script>
+{% endblock %}

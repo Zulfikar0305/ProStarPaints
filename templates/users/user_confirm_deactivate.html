@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}
+  {% if target_user.is_active %}{% trans "Deactivate User" %}{% else %}{% trans "Activate User" %}{% endif %}
+   — ProStar Paints
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-6 col-lg-5">
+
+    <div class="d-flex align-items-center mb-4 gap-3">
+      <a href="{% url 'users:user_list' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <h4 class="fw-bold mb-0">
+        {% if target_user.is_active %}
+          {% trans "Deactivate User" %}
+        {% else %}
+          {% trans "Activate User" %}
+        {% endif %}
+      </h4>
+    </div>
+
+    <div class="card">
+      <div class="card-body p-4">
+
+        <div class="d-flex align-items-center gap-3 mb-4">
+          <div class="bg-light rounded-circle d-flex align-items-center justify-content-center"
+               style="width:52px;height:52px;flex-shrink:0;">
+            <i class="bi bi-person fs-4 text-secondary"></i>
+          </div>
+          <div>
+            <div class="fw-bold">{{ target_user.get_full_name|default:target_user.username }}</div>
+            <div class="text-muted small">{{ target_user.email }}</div>
+            <span class="badge {% if target_user.role == 'ADMIN' %}text-bg-primary{% else %}text-bg-secondary{% endif %} mt-1">
+              {{ target_user.get_role_display }}
+            </span>
+          </div>
+        </div>
+
+        {% if target_user.is_active %}
+          <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            {% blocktrans with name=target_user.get_full_name|default:target_user.username %}
+              Are you sure you want to <strong>deactivate</strong> {{ name }}?
+              They will no longer be able to sign in.
+            {% endblocktrans %}
+          </div>
+        {% else %}
+          <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            {% blocktrans with name=target_user.get_full_name|default:target_user.username %}
+              Are you sure you want to <strong>re-activate</strong> {{ name }}?
+              They will be able to sign in again.
+            {% endblocktrans %}
+          </div>
+        {% endif %}
+
+        <form method="post">
+          {% csrf_token %}
+          <div class="d-flex justify-content-between mt-3">
+            <a href="{% url 'users:user_list' %}" class="btn btn-outline-secondary">
+              {% trans "Cancel" %}
+            </a>
+            <button type="submit"
+                    class="btn {% if target_user.is_active %}btn-warning{% else %}btn-success{% endif %}">
+              <i class="bi bi-{% if target_user.is_active %}person-slash{% else %}person-check{% endif %} me-1"></i>
+              {% if target_user.is_active %}{% trans "Yes, Deactivate" %}{% else %}{% trans "Yes, Activate" %}{% endif %}
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

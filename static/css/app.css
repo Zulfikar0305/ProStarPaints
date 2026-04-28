@@ -1,0 +1,1134 @@
+/* ═══════════════════════════════════════════════════════════════
+   ProStar Paints — App Styles v2
+   Bootstrap 5.3.3 | Modern SaaS Dashboard Theme
+   ═══════════════════════════════════════════════════════════════ */
+
+
+/* ─── 1. Design Tokens ───────────────────────────────────────── */
+:root {
+  /* Brand */
+  --psp-purple:         #7c3aed;
+  --psp-purple-dark:    #6d28d9;
+  --psp-purple-light:   #ede9fe;
+  --psp-purple-rgb:     124, 58, 237;
+  --psp-green:          #059669;
+  --psp-green-light:    #d1fae5;
+  --psp-green-rgb:      5, 150, 105;
+  --psp-blue:           #3b82f6;
+  --psp-blue-rgb:       59, 130, 246;
+  --psp-amber:          #f59e0b;
+
+  /* Gradients */
+  --psp-grad-purple:    linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+  --psp-grad-green:     linear-gradient(135deg, #059669 0%, #0d9488 100%);
+  --psp-grad-blue:      linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+  --psp-grad-amber:     linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+
+  /* Surfaces */
+  --psp-bg:             #eef0f8;
+  --psp-navy:           #0f172a;
+  --psp-nav-bg:         #0f172a;
+  --psp-card-bg:        #ffffff;
+  --psp-border:         rgba(226, 232, 240, .8);
+
+  /* Navbar states */
+  --psp-nav-hover:      rgba(255, 255, 255, .07);
+  --psp-nav-active-bg:  rgba(255, 255, 255, .12);
+
+  /* Elevation */
+  --psp-radius:         16px;
+  --psp-radius-sm:      10px;
+  --psp-shadow:         0 2px 8px rgba(15, 23, 42, .05), 0 12px 32px rgba(15, 23, 42, .04);
+  --psp-shadow-md:      0 4px 24px rgba(15, 23, 42, .09), 0 1px 4px rgba(15, 23, 42, .04);
+  --psp-shadow-sm:      0 1px 4px rgba(15, 23, 42, .06);
+
+  /* Text */
+  --psp-text:           #1e293b;
+  --psp-text-muted:     #64748b;
+  --psp-text-soft:      #94a3b8;
+
+  /* Motion */
+  --psp-transition:     .18s ease;
+}
+
+
+/* ─── 2. Global Base ─────────────────────────────────────────── */
+body {
+  background-color: var(--psp-bg);
+  color: var(--psp-text);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.psp-main {
+  flex: 1;
+  min-height: 0;
+  padding: 1.5rem;
+}
+
+
+/* ─── 3. App Layout (Sidebar + Content) ─────────────────────── */
+.psp-body {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Fixed left sidebar */
+.psp-sidebar {
+  width: 240px;
+  min-width: 240px;
+  background: var(--psp-navy);
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 1040;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: transform .25s cubic-bezier(.4, 0, .2, 1);
+  border-right: 1px solid rgba(255, 255, 255, .05);
+}
+
+/* Main content right of sidebar */
+.psp-content-area {
+  margin-left: 240px;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--psp-bg);
+}
+
+/* No sidebar (login page etc.) */
+.psp-no-sidebar {
+  margin-left: 0 !important;
+}
+
+/* Mobile full-screen overlay */
+.psp-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .45);
+  z-index: 1039;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.psp-overlay.show {
+  display: block;
+}
+
+
+/* ─── 4. Sidebar Components ──────────────────────────────────── */
+
+/* Brand / Logo */
+.psp-sidebar-brand {
+  padding: 1.4rem 1.2rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, .07);
+  flex-shrink: 0;
+}
+
+.psp-sidebar-logo-link {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  text-decoration: none;
+  color: #fff;
+}
+
+.psp-sidebar-logo {
+  height: 30px;
+  width: auto;
+  max-width: 100px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+  flex-shrink: 0;
+}
+
+.psp-sidebar-logo-icon {
+  width: 34px;
+  height: 34px;
+  background: var(--psp-grad-purple);
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.psp-sidebar-brand-name {
+  font-size: .92rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.15;
+  letter-spacing: -.02em;
+}
+
+.psp-sidebar-brand-name span {
+  display: block;
+  font-size: .58rem;
+  font-weight: 400;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .28);
+  margin-top: 1px;
+}
+
+/* Nav area */
+.psp-sidebar-nav {
+  flex: 1;
+  padding: .7rem .7rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.psp-sidebar-menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.psp-sidebar-section-label {
+  font-size: .58rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .22);
+  padding: .75rem .5rem .2rem;
+  user-select: none;
+}
+
+.psp-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  padding: .6rem .75rem;
+  border-radius: 10px;
+  color: rgba(255, 255, 255, .48);
+  text-decoration: none;
+  font-size: .84rem;
+  font-weight: 500;
+  transition: background var(--psp-transition), color var(--psp-transition);
+  white-space: nowrap;
+}
+
+.psp-sidebar-link i {
+  font-size: 1.05rem;
+  flex-shrink: 0;
+  width: 1.1rem;
+  text-align: center;
+}
+
+.psp-sidebar-link:hover {
+  background: rgba(255, 255, 255, .07);
+  color: rgba(255, 255, 255, .85);
+}
+
+.psp-sidebar-link.active {
+  background: var(--psp-grad-purple);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(var(--psp-purple-rgb), .38);
+}
+
+/* Sidebar footer: user info + sign out */
+.psp-sidebar-footer {
+  padding: .85rem 1rem;
+  border-top: 1px solid rgba(255, 255, 255, .07);
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-shrink: 0;
+}
+
+.psp-sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.psp-sidebar-avatar {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  background: var(--psp-grad-purple);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .75rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.psp-sidebar-user-info {
+  min-width: 0;
+}
+
+.psp-sidebar-user-name {
+  font-size: .78rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, .85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.psp-sidebar-user-role {
+  font-size: .62rem;
+  color: rgba(255, 255, 255, .32);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.psp-sidebar-signout {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, .38);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .95rem;
+  cursor: pointer;
+  transition: all var(--psp-transition);
+  flex-shrink: 0;
+}
+
+.psp-sidebar-signout:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, .1);
+  border-color: rgba(255, 255, 255, .28);
+}
+
+
+/* ── Top header bar ──────────────────────────────────────────── */
+.psp-topbar {
+  height: 64px;
+  background: var(--psp-bg);
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+  gap: 1rem;
+  border-bottom: 1px solid var(--psp-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+.psp-topbar-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.psp-topbar-greeting {
+  font-size: .9rem;
+  color: var(--psp-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.psp-topbar-greeting strong {
+  color: var(--psp-text);
+  font-weight: 700;
+}
+
+.psp-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  flex-shrink: 0;
+}
+
+/* Search pill */
+.psp-search-wrap {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--psp-border);
+  border-radius: 50px;
+  padding: .3rem .9rem;
+  gap: .5rem;
+  width: 220px;
+  transition: border-color var(--psp-transition), box-shadow var(--psp-transition);
+}
+
+.psp-search-wrap:focus-within {
+  border-color: var(--psp-purple);
+  box-shadow: 0 0 0 3px rgba(var(--psp-purple-rgb), .08);
+}
+
+.psp-search-icon {
+  color: var(--psp-text-soft);
+  font-size: .85rem;
+  flex-shrink: 0;
+}
+
+.psp-search-input {
+  border: none;
+  background: transparent;
+  font-size: .83rem;
+  color: var(--psp-text);
+  width: 100%;
+  outline: none;
+}
+
+.psp-search-input::placeholder {
+  color: var(--psp-text-soft);
+}
+
+/* Icon buttons (bell, etc.) */
+.psp-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid var(--psp-border);
+  color: var(--psp-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .95rem;
+  cursor: pointer;
+  transition: all var(--psp-transition);
+  flex-shrink: 0;
+}
+
+.psp-icon-btn:hover {
+  background: var(--psp-purple-light);
+  border-color: var(--psp-purple);
+  color: var(--psp-purple);
+}
+
+/* Topbar user menu wrapper */
+.psp-user-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Topbar avatar (dropdown trigger) */
+.psp-topbar-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--psp-grad-purple);
+  border: none;
+  color: #fff;
+  font-size: .78rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: box-shadow var(--psp-transition);
+  letter-spacing: 0;
+  flex-shrink: 0;
+}
+
+.psp-topbar-avatar:hover,
+.psp-topbar-avatar:focus,
+.psp-topbar-avatar[aria-expanded="true"] {
+  box-shadow: 0 0 0 3px rgba(var(--psp-purple-rgb), .28);
+  outline: none;
+}
+
+/* Dropdown panel */
+.psp-user-menu-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 176px;
+  background: #fff;
+  border: 1px solid var(--psp-border);
+  border-radius: var(--psp-radius-sm);
+  box-shadow: var(--psp-shadow-md);
+  padding: .35rem;
+  list-style: none;
+  margin: 0;
+  z-index: 9999;
+}
+
+.psp-user-menu-dropdown.show {
+  display: block;
+}
+
+.psp-user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .5rem .75rem;
+  border-radius: 7px;
+  font-size: .875rem;
+  color: var(--psp-text);
+  text-decoration: none;
+  transition: background var(--psp-transition);
+  white-space: nowrap;
+}
+
+.psp-user-menu-item:hover {
+  background: #f1f5f9;
+  color: var(--psp-text);
+}
+
+.psp-user-menu-item i {
+  font-size: .95rem;
+  color: var(--psp-text-muted);
+  flex-shrink: 0;
+}
+
+/* Mobile hamburger */
+.psp-hamburger {
+  background: transparent;
+  border: 1px solid var(--psp-border);
+  border-radius: 8px;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: var(--psp-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--psp-transition);
+}
+
+.psp-hamburger:hover {
+  background: var(--psp-purple-light);
+  border-color: var(--psp-purple);
+  color: var(--psp-purple);
+}
+
+
+/* ── Responsive (sidebar) ────────────────────────────────────── */
+@media (max-width: 991.98px) {
+  .psp-sidebar {
+    transform: translateX(-100%);
+  }
+
+  .psp-sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 40px rgba(15, 23, 42, .25);
+  }
+
+  .psp-content-area {
+    margin-left: 0;
+  }
+
+  .psp-topbar {
+    padding: 0 1rem;
+  }
+}
+
+@media (min-width: 992px) {
+  .psp-hamburger {
+    display: none !important;
+  }
+}
+
+
+
+/* ─── 5. Flash Alerts ────────────────────────────────────────── */
+.psp-alerts {
+  padding: 0;
+}
+
+.psp-alert {
+  border-radius: var(--psp-radius-sm);
+  border: none;
+  font-size: .875rem;
+  padding: .75rem 1rem;
+  box-shadow: var(--psp-shadow-sm);
+}
+
+.alert {
+  border-radius: var(--psp-radius-sm);
+  font-size: .875rem;
+}
+
+
+/* ─── 5. Cards ───────────────────────────────────────────────── */
+.card {
+  border: 1px solid var(--psp-border) !important;
+  border-radius: var(--psp-radius) !important;
+  box-shadow: var(--psp-shadow) !important;
+  background-color: var(--psp-card-bg) !important;
+}
+
+.card-header {
+  border-bottom: 1px solid var(--psp-border) !important;
+  border-radius: var(--psp-radius) var(--psp-radius) 0 0 !important;
+  background-color: #fff !important;
+  padding: .85rem 1.25rem;
+}
+
+.card-body {
+  padding: 1.25rem;
+}
+
+/* Danger card header */
+.card-header.bg-danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  border: none !important;
+  color: #fff !important;
+}
+
+/* Gradient hero cards */
+.card-gradient-purple {
+  background: var(--psp-grad-purple) !important;
+  border: none !important;
+  color: #fff !important;
+}
+
+.card-gradient-green {
+  background: var(--psp-grad-green) !important;
+  border: none !important;
+  color: #fff !important;
+}
+
+
+/* ─── 6. Buttons ─────────────────────────────────────────────── */
+.btn {
+  border-radius: 50px;
+  font-size: .875rem;
+  font-weight: 600;
+  letter-spacing: .01em;
+  transition: all var(--psp-transition);
+  padding-left: 1.1rem;
+  padding-right: 1.1rem;
+}
+
+.btn-sm {
+  border-radius: 50px;
+  padding-left: .85rem;
+  padding-right: .85rem;
+}
+
+.btn-lg {
+  border-radius: 50px;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+/* Primary + Dark → purple gradient pill */
+.btn-primary,
+.btn-dark {
+  --bs-btn-color:               #fff;
+  --bs-btn-bg:                  var(--psp-purple);
+  --bs-btn-border-color:        transparent;
+  --bs-btn-hover-color:         #fff;
+  --bs-btn-hover-bg:            var(--psp-purple-dark);
+  --bs-btn-hover-border-color:  transparent;
+  --bs-btn-focus-shadow-rgb:    var(--psp-purple-rgb);
+  --bs-btn-active-bg:           var(--psp-purple-dark);
+  --bs-btn-active-border-color: transparent;
+  --bs-btn-disabled-bg:         var(--psp-purple);
+  --bs-btn-disabled-border-color: transparent;
+  background: var(--psp-grad-purple) !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 14px rgba(var(--psp-purple-rgb), .32);
+}
+
+.btn-primary:hover,
+.btn-dark:hover {
+  box-shadow: 0 6px 20px rgba(var(--psp-purple-rgb), .45);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active,
+.btn-dark:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(var(--psp-purple-rgb), .28);
+}
+
+.btn-outline-primary {
+  --bs-btn-color:               var(--psp-purple);
+  --bs-btn-border-color:        var(--psp-purple);
+  --bs-btn-hover-color:         #fff;
+  --bs-btn-hover-bg:            var(--psp-purple);
+  --bs-btn-hover-border-color:  var(--psp-purple);
+  --bs-btn-focus-shadow-rgb:    var(--psp-purple-rgb);
+  --bs-btn-active-color:        #fff;
+  --bs-btn-active-bg:           var(--psp-purple);
+  --bs-btn-active-border-color: var(--psp-purple);
+}
+
+.btn-outline-secondary {
+  --bs-btn-border-color: #cbd5e1;
+  --bs-btn-color: var(--psp-text-muted);
+  --bs-btn-hover-bg: #f1f5f9;
+  --bs-btn-hover-border-color: #94a3b8;
+  --bs-btn-hover-color: var(--psp-text);
+}
+
+/* Dashboard period filter active */
+.active-period {
+  background: var(--psp-grad-purple) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+  box-shadow: 0 2px 8px rgba(var(--psp-purple-rgb), .28);
+}
+
+/* Bootstrap colour overrides */
+.text-primary { color: var(--psp-purple) !important; }
+.bg-primary    { background-color: var(--psp-purple) !important; }
+.bg-primary.bg-opacity-10 { background-color: var(--psp-purple-light) !important; }
+
+
+/* ─── 7. Badges ──────────────────────────────────────────────── */
+.badge {
+  border-radius: 50px;
+  font-size: .69rem;
+  font-weight: 600;
+  letter-spacing: .03em;
+  padding: .3em .7em;
+}
+
+.badge-active   { background-color: var(--psp-green) !important; }
+.badge-inactive { background-color: #94a3b8 !important; }
+
+
+/* ─── 8. Tables ──────────────────────────────────────────────── */
+.table {
+  font-size: .875rem;
+}
+
+.table > :not(caption) > * > * {
+  padding: .75rem 1rem;
+  border-color: var(--psp-border);
+}
+
+.table thead th {
+  font-size: .67rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--psp-text-soft);
+  border-bottom: none !important;
+  background-color: #f8fafc !important;
+  padding-top: .85rem;
+  padding-bottom: .85rem;
+}
+
+.table-light {
+  --bs-table-bg: #f8fafc;
+}
+
+.table-hover > tbody > tr:hover > * {
+  background-color: #f5f3ff;
+  transition: background-color var(--psp-transition);
+}
+
+/* Rounded bottom on card tables */
+.card > .table-responsive:last-child,
+.card > .table-responsive:last-child .table,
+.card > .p-0 .table-responsive:last-child {
+  border-radius: 0 0 var(--psp-radius) var(--psp-radius);
+  overflow: hidden;
+}
+
+
+/* ─── 9. Forms ───────────────────────────────────────────────── */
+.form-control,
+.form-select {
+  border-color: #e2e8f0;
+  border-radius: 10px;
+  font-size: .875rem;
+  background-color: #f8fafc;
+  transition: border-color var(--psp-transition), box-shadow var(--psp-transition), background-color var(--psp-transition);
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--psp-purple);
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(var(--psp-purple-rgb), .1);
+}
+
+.form-control-sm,
+.form-select-sm {
+  border-radius: 8px;
+}
+
+.input-group-text {
+  border-color: #e2e8f0;
+  border-radius: 10px;
+  background-color: #f1f5f9;
+  color: var(--psp-text-muted);
+  font-size: .875rem;
+}
+
+.form-label {
+  font-size: .77rem;
+  font-weight: 700;
+  color: var(--psp-text);
+  margin-bottom: .3rem;
+  letter-spacing: .01em;
+}
+
+.form-text {
+  font-size: .75rem;
+  color: var(--psp-text-soft);
+}
+
+.invalid-feedback.d-block {
+  font-size: .775rem;
+}
+
+
+/* ─── 10. Breadcrumb ─────────────────────────────────────────── */
+.breadcrumb {
+  font-size: .78rem;
+  margin-bottom: 0;
+}
+
+.breadcrumb-item a {
+  color: var(--psp-purple);
+  text-decoration: none;
+}
+
+.breadcrumb-item a:hover {
+  text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+  color: var(--psp-text-muted);
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+  color: #cbd5e1;
+}
+
+
+/* ─── 11. Pagination ─────────────────────────────────────────── */
+.page-link {
+  border-radius: 8px !important;
+  margin: 0 2px;
+  color: var(--psp-purple);
+  border-color: #e2e8f0;
+  font-size: .875rem;
+  padding: .4rem .7rem;
+}
+
+.page-link:hover {
+  background-color: var(--psp-purple-light);
+  border-color: var(--psp-purple-light);
+  color: var(--psp-purple-dark);
+}
+
+.page-item.active .page-link {
+  background-color: var(--psp-purple);
+  border-color: var(--psp-purple);
+}
+
+.page-item.disabled .page-link {
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
+  color: var(--psp-text-soft);
+}
+
+
+/* ─── 12. Dropdowns (generic) ────────────────────────────────── */
+.dropdown-menu {
+  border: 1px solid var(--psp-border);
+  border-radius: var(--psp-radius-sm);
+  box-shadow: var(--psp-shadow-md);
+}
+
+.dropdown-item {
+  font-size: .875rem;
+  border-radius: 6px;
+  padding: .45rem .75rem;
+}
+
+.dropdown-item:hover {
+  background-color: #f1f5f9;
+  color: var(--psp-text);
+}
+
+.dropdown-item.text-danger:hover {
+  background-color: #fef2f2;
+  color: #dc3545 !important;
+}
+
+
+/* ─── 13. Status badge helpers ───────────────────────────────── */
+.badge-active   { background-color: var(--psp-green) !important; }
+.badge-inactive { background-color: #94a3b8 !important; }
+
+
+/* ─── 14. Section label ──────────────────────────────────────── */
+.section-label {
+  font-size: .67rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--psp-text-soft);
+}
+
+
+/* ─── 15. KPI cards ──────────────────────────────────────────── */
+.kpi-card {
+  transition: transform .18s, box-shadow .18s;
+}
+
+.kpi-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--psp-shadow-md) !important;
+}
+
+.kpi-icon {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+/* Gradient icon backgrounds */
+.kpi-icon-purple { background: var(--psp-grad-purple); color: #fff !important; }
+.kpi-icon-green  { background: var(--psp-grad-green);  color: #fff !important; }
+.kpi-icon-blue   { background: var(--psp-grad-blue);   color: #fff !important; }
+.kpi-icon-amber  { background: var(--psp-grad-amber);  color: #fff !important; }
+
+
+/* ─── 16. Hero stat card ─────────────────────────────────────── */
+.stat-hero {
+  background: var(--psp-grad-purple) !important;
+  border: none !important;
+  color: #fff !important;
+  border-radius: var(--psp-radius) !important;
+  overflow: hidden;
+  position: relative;
+}
+
+.stat-hero::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 130px;
+  height: 130px;
+  background: rgba(255, 255, 255, .06);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.stat-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -45px;
+  right: 10px;
+  width: 90px;
+  height: 90px;
+  background: rgba(255, 255, 255, .04);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.stat-hero .card-body {
+  position: relative;
+  z-index: 1;
+}
+
+
+/* ─── 17. Tool cards (system tools) ─────────────────────────── */
+.tool-card {
+  transition: transform .18s, box-shadow .18s;
+  cursor: pointer;
+}
+
+.tool-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--psp-shadow-md) !important;
+}
+
+.tool-icon {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+
+/* ─── 18. Page header ────────────────────────────────────────── */
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.page-header h4,
+.page-header h5 {
+  font-weight: 700;
+  letter-spacing: -.02em;
+  color: var(--psp-text);
+  margin-bottom: .2rem;
+}
+
+.page-header p.text-muted {
+  font-size: .82rem;
+  color: var(--psp-text-soft) !important;
+}
+
+
+/* ─── 19. Login page ─────────────────────────────────────────── */
+/* Kept for backward compat, replaced by psp-login-* below */
+.login-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--psp-bg);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+}
+
+/* New branded login layout */
+.psp-login-wrap {
+  min-height: calc(100vh - 160px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.psp-login-card {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 8px 40px rgba(15, 23, 42, .10), 0 2px 10px rgba(15, 23, 42, .04);
+  padding: 2.5rem 2.5rem 2rem;
+}
+
+@media (max-width: 480px) {
+  .psp-login-card { padding: 2rem 1.5rem 1.5rem; border-radius: 18px; }
+}
+
+.psp-login-logo {
+  height: 70px;
+  width: auto;
+  max-width: 220px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+
+
+/* ─── 20. Watermark ──────────────────────────────────────────── */
+.psp-watermark {
+  position: fixed;
+  top: 50%;
+  left: calc(50% + 120px); /* offset right of the 240 px sidebar */
+  transform: translate(-50%, -50%);
+  width: 500px;
+  height: 310px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  opacity: .08;
+  pointer-events: none;
+  z-index: 0;
+  user-select: none;
+}
+
+@media (max-width: 768px) {
+  .psp-watermark {
+    left: 50%;
+    width: 300px;
+    height: 190px;
+  }
+}
+
+/* ─── 21. (Sidebar logo defined in Section 4: .psp-sidebar-logo) ── */
+
+
+/* ─── 22. Compact tables ─────────────────────────────────────── */
+.table-compact > :not(caption) > * > * {
+  padding: .4rem .75rem;
+}
+
+.table-compact thead th {
+  font-size: .65rem;
+}
+
+.table-compact td {
+  font-size: .82rem;
+}
+
+
+/* ─── 23. Bootstrap 5.3 badge bg-primary-subtle fallback ──── */
+.bg-primary-subtle {
+  background-color: var(--psp-purple-light) !important;
+}
+
+.text-primary-emphasis {
+  color: var(--psp-purple-dark) !important;
+}
+
+
+/* ─── 24. Alert variant icon spacing ────────────────────────── */
+.alert {
+  border-radius: var(--psp-radius-sm);
+  font-size: .875rem;
+}
+
+
+/* ─── 25. Mobile ─────────────────────────────────────────────── */
+@media (max-width: 575.98px) {
+  .psp-main {
+    padding: .9rem !important;
+  }
+
+  .psp-topbar {
+    padding: 0 .75rem;
+    gap: .5rem;
+  }
+
+  .psp-topbar-greeting {
+    font-size: .82rem;
+  }
+
+  .card-body {
+    padding: 1rem;
+  }
+
+  h4.fw-bold {
+    font-size: 1.05rem;
+  }
+
+  .kpi-icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    font-size: 1.1rem;
+  }
+}

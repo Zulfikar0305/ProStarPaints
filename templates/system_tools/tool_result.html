@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ run.tool_name }} Result — ProStar Paints{% endblock %}
+
+{% block content %}
+
+<!-- Breadcrumb -->
+<div class="row mb-3 align-items-center">
+  <div class="col">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-0 small">
+        <li class="breadcrumb-item">
+          <a href="{% url 'system_tools:dashboard' %}" class="text-decoration-none">{% trans "System Tools" %}</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">{{ run.tool_name }}</li>
+      </ol>
+    </nav>
+    <h4 class="fw-bold mb-0 mt-1">
+      <i class="bi bi-clipboard2-pulse me-2"></i>{{ run.tool_name }}
+    </h4>
+  </div>
+  <div class="col-auto">
+    <a href="{% url 'system_tools:dashboard' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>{% trans "Back to System Tools" %}
+    </a>
+  </div>
+</div>
+
+<!-- Result header card -->
+<div class="card mb-4
+  {% if run.status == 'SUCCESS' %}border-success
+  {% elif run.status == 'WARNING' %}border-warning
+  {% else %}border-danger{% endif %}">
+  <div class="card-body py-3">
+    <div class="d-flex align-items-center gap-3">
+      <div>
+        {% if run.status == "SUCCESS" %}
+          <i class="bi bi-check-circle-fill text-success fs-2"></i>
+        {% elif run.status == "WARNING" %}
+          <i class="bi bi-exclamation-triangle-fill text-warning fs-2"></i>
+        {% else %}
+          <i class="bi bi-x-circle-fill text-danger fs-2"></i>
+        {% endif %}
+      </div>
+      <div class="flex-grow-1">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          {% if run.status == "SUCCESS" %}
+            <span class="badge text-bg-success fs-6 fw-normal px-3 py-2">{{ run.status }}</span>
+          {% elif run.status == "WARNING" %}
+            <span class="badge text-bg-warning text-dark fs-6 fw-normal px-3 py-2">{{ run.status }}</span>
+          {% else %}
+            <span class="badge text-bg-danger fs-6 fw-normal px-3 py-2">{{ run.status }}</span>
+          {% endif %}
+        </div>
+        <p class="mb-0 fw-semibold">{{ run.summary }}</p>
+      </div>
+      <div class="text-muted small text-end text-nowrap">
+        <i class="bi bi-clock me-1"></i>{{ run.created_at|date:"d M Y, H:i:s" }}<br>
+        <i class="bi bi-person me-1"></i>{{ run.run_by.get_full_name|default:run.run_by.username|default:"Unknown" }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Checks table -->
+<div class="card">
+  <div class="card-header bg-transparent fw-semibold py-2">
+    <i class="bi bi-list-check me-2 text-primary"></i>{% trans "Check Results" %}
+    <span class="badge text-bg-secondary fw-normal ms-2" style="font-size:.7rem;">
+      {{ checks|length }} {% trans "checks" %}
+    </span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 small">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3" style="width:32px;"></th>
+            <th>{% trans "Check" %}</th>
+            <th class="text-end" style="width:120px;">{% trans "Value" %}</th>
+            <th>{% trans "Note" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for check in checks %}
+            <tr class="{% if check.flag %}table-warning{% endif %}">
+              <td class="ps-3">
+                {% if check.flag %}
+                  <i class="bi bi-exclamation-triangle-fill text-warning" title="{% trans 'Needs attention' %}"></i>
+                {% else %}
+                  <i class="bi bi-check-circle-fill text-success" title="{% trans 'OK' %}"></i>
+                {% endif %}
+              </td>
+              <td class="{% if check.flag %}fw-semibold{% endif %}">{{ check.label }}</td>
+              <td class="text-end {% if check.flag %}fw-bold text-warning{% else %}text-muted{% endif %}">
+                {{ check.value }}
+              </td>
+              <td class="text-muted fst-italic">{{ check.note|default:"" }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4" class="text-center text-muted py-4">
+                {% trans "No check data available." %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% if checks %}
+  <div class="mt-3 d-flex gap-2 align-items-center">
+    {% with flag_count=checks|length %}
+      {% for c in checks %}{% if c.flag %}<span></span>{% endif %}{% endfor %}
+    {% endwith %}
+    <a href="{% url 'system_tools:dashboard' %}" class="btn btn-sm btn-outline-secondary ms-auto">
+      <i class="bi bi-arrow-left me-1"></i>{% trans "Back to System Tools" %}
+    </a>
+  </div>
+{% endif %}
+
+{% endblock %}

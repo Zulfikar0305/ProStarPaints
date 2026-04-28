@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Invoices — ProStar Paints{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">{% trans "Invoices / Spec Sheets" %}</h4>
+    <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">{% trans "View and manage invoice records" %}</p>
+  </div>
+  <a href="{% url 'invoices:invoice_create' %}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>{% trans "New Invoice" %}
+  </a>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <form method="get" class="row g-2 align-items-end">
+
+      <div class="col-12 col-sm-6 col-md-3">
+        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Search" %}</label>
+        <div class="input-group input-group-sm">
+          <input type="text" name="q" value="{{ q }}"
+                 class="form-control" placeholder="{% trans 'Reference or customer…' %}">
+          <button class="btn btn-outline-secondary" type="submit">
+            <i class="bi bi-search"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="col-6 col-sm-3 col-md-2">
+        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Status" %}</label>
+        <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="">{% trans "All" %}</option>
+          {% for val, label in status_choices %}
+            <option value="{{ val }}" {% if current_status == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      {% if is_admin %}
+        <div class="col-6 col-sm-3 col-md-2">
+          <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Rep" %}</label>
+          <select name="rep" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">{% trans "All Reps" %}</option>
+            {% for rep in reps %}
+              <option value="{{ rep.pk }}" {% if current_rep == rep.pk|stringformat:"s" %}selected{% endif %}>
+                {{ rep.get_full_name|default:rep.username }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+      {% endif %}
+
+      {% if q or current_status or current_rep %}
+        <div class="col-auto align-self-end">
+          <a href="{% url 'invoices:invoice_list' %}" class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-x-lg me-1"></i>{% trans "Clear" %}
+          </a>
+        </div>
+      {% endif %}
+
+    </form>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 small">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3">{% trans "Reference" %}</th>
+            <th>{% trans "Customer" %}</th>
+            {% if is_admin %}<th>{% trans "Rep" %}</th>{% endif %}
+            <th>{% trans "Project" %}</th>
+            <th>{% trans "Status" %}</th>
+            <th class="text-end">{% trans "Total (incl. VAT)" %}</th>
+            <th>{% trans "Created" %}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for inv in invoices %}
+            <tr>
+              <td class="ps-3 fw-semibold text-nowrap">
+                <a href="{% url 'invoices:invoice_detail' inv.pk %}" class="text-decoration-none text-dark">
+                  {{ inv.reference }}
+                </a>
+              </td>
+              <td>{{ inv.customer_name }}</td>
+              {% if is_admin %}
+                <td class="text-muted">{{ inv.created_by.get_full_name|default:inv.created_by.username }}</td>
+              {% endif %}
+              <td class="text-muted">{{ inv.project_name|default:"—" }}</td>
+              <td>
+                {% if inv.status == "COMPLETED" %}
+                  <span class="badge text-bg-success">{{ inv.get_status_display }}</span>
+                {% elif inv.status == "CANCELLED" %}
+                  <span class="badge text-bg-secondary">{{ inv.get_status_display }}</span>
+                {% else %}
+                  <span class="badge text-bg-warning text-dark">{{ inv.get_status_display }}</span>
+                {% endif %}
+              </td>
+              <td class="text-end fw-semibold">R {{ inv.total_incl_vat|floatformat:2 }}</td>
+              <td class="text-muted text-nowrap">{{ inv.created_at|date:"d M Y" }}</td>
+              <td class="text-end pe-3">
+                <a href="{% url 'invoices:invoice_detail' inv.pk %}"
+                   class="btn btn-sm btn-outline-secondary me-1" title="{% trans 'View' %}">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <a href="{% url 'invoices:invoice_update' inv.pk %}"
+                   class="btn btn-sm btn-outline-primary me-1" title="{% trans 'Edit' %}">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                {% if is_admin %}
+                  <a href="{% url 'invoices:invoice_confirm_remove' %}?pk={{ inv.pk }}"
+                     class="btn btn-sm btn-outline-danger" title="{% trans 'Remove' %}">
+                    <i class="bi bi-trash"></i>
+                  </a>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="{% if is_admin %}8{% else %}7{% endif %}"
+                  class="text-center text-muted py-5">
+                <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+                {% trans "No invoices found." %}
+                {% if q or current_status or current_rep %}
+                  <br><a href="{% url 'invoices:invoice_list' %}" class="text-decoration-none">{% trans "Clear filters" %}</a>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+  <nav class="mt-3" aria-label="{% trans 'Pagination' %}">
+    <ul class="pagination justify-content-center">
+      {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&status={{ current_status }}&rep={{ current_rep }}">&laquo;</a>
+        </li>
+      {% endif %}
+      <li class="page-item disabled">
+        <span class="page-link">
+          {% blocktrans with current=page_obj.number total=page_obj.paginator.num_pages %}
+            Page {{ current }} of {{ total }}
+          {% endblocktrans %}
+        </span>
+      </li>
+      {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}&status={{ current_status }}&rep={{ current_rep }}">&raquo;</a>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endif %}
+
+{% endblock %}

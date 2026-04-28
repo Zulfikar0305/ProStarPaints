@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}User Management — ProStar Paints{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">{% trans "User Management" %}</h4>
+    <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">{% trans "Manage system users and roles" %}</p>
+  </div>
+  <a href="{% url 'users:user_create' %}" class="btn btn-primary btn-sm">
+    <i class="bi bi-person-plus me-1"></i>{% trans "Create User" %}
+  </a>
+</div>
+
+<!-- Role filter -->
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
+      <label class="form-label mb-0 me-1 fw-semibold small text-muted text-uppercase">{% trans "Filter by role:" %}</label>
+      <a href="{% url 'users:user_list' %}"
+         class="btn btn-sm {% if not current_role_filter %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+        {% trans "All" %}
+      </a>
+      {% for value, label in role_choices %}
+        <a href="?role={{ value }}"
+           class="btn btn-sm {% if current_role_filter == value %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+          {{ label }}
+        </a>
+      {% endfor %}
+    </form>
+  </div>
+</div>
+
+<!-- User table -->
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>{% trans "Name" %}</th>
+            <th>{% trans "Username" %}</th>
+            <th>{% trans "Email" %}</th>
+            <th>{% trans "Phone" %}</th>
+            <th>{% trans "Role" %}</th>
+            <th>{% trans "Status" %}</th>
+            <th>{% trans "Created" %}</th>
+            <th class="text-end">{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+            <tr>
+              <td class="fw-semibold">{{ u.get_full_name|default:"—" }}</td>
+              <td class="text-muted">{{ u.username }}</td>
+              <td>{{ u.email }}</td>
+              <td>{{ u.phone_number|default:"—" }}</td>
+              <td>
+                {% if u.role == "ADMIN" %}
+                  <span class="badge text-bg-primary">{{ u.get_role_display }}</span>
+                {% else %}
+                  <span class="badge text-bg-secondary">{{ u.get_role_display }}</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if u.is_active %}
+                  <span class="badge badge-active text-white"><i class="bi bi-check-circle me-1"></i>{% trans "Active" %}</span>
+                {% else %}
+                  <span class="badge badge-inactive text-white"><i class="bi bi-x-circle me-1"></i>{% trans "Inactive" %}</span>
+                {% endif %}
+              </td>
+              <td class="text-muted small">{{ u.created_at|date:"d M Y" }}</td>
+              <td class="text-end">
+                <a href="{% url 'users:user_update' u.pk %}"
+                   class="btn btn-sm btn-outline-secondary me-1" title="{% trans 'Edit' %}">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                {% if u != request.user %}
+                  <a href="{% url 'users:user_deactivate' u.pk %}"
+                     class="btn btn-sm {% if u.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
+                     title="{% if u.is_active %}{% trans 'Deactivate' %}{% else %}{% trans 'Activate' %}{% endif %}">
+                    <i class="bi bi-{% if u.is_active %}person-slash{% else %}person-check{% endif %}"></i>
+                  </a>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="8" class="text-center text-muted py-4">
+                <i class="bi bi-inbox me-2"></i>{% trans "No users found." %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+  <nav class="mt-3" aria-label="{% trans 'Pagination' %}">
+    <ul class="pagination justify-content-center">
+      {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_role_filter %}&role={{ current_role_filter }}{% endif %}">
+            &laquo;
+          </a>
+        </li>
+      {% endif %}
+      <li class="page-item disabled">
+        <span class="page-link">
+          {% blocktrans with current=page_obj.number total=page_obj.paginator.num_pages %}
+            Page {{ current }} of {{ total }}
+          {% endblocktrans %}
+        </span>
+      </li>
+      {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_role_filter %}&role={{ current_role_filter }}{% endif %}">
+            &raquo;
+          </a>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load static i18n %}
+
+{% block title %}Sign In — ProStar Paints{% endblock %}
+
+{% block content %}
+<div class="psp-login-wrap">
+  <div class="psp-login-card">
+
+    <!-- Logo -->
+    <div class="text-center mb-4">
+      <img src="{% static "images/prostar-logo.png" %}"
+           alt="ProStar Paints"
+           class="psp-login-logo"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex';" />
+      <div class="psp-login-logo-fallback d-inline-flex align-items-center justify-content-center"
+           style="display:none !important;width:72px;height:72px;background:var(--psp-grad-purple);border-radius:18px;">
+        <i class="bi bi-paint-bucket text-white fs-3"></i>
+      </div>
+      <h4 class="fw-bold mt-3 mb-0" style="letter-spacing:-.03em;">ProStar Paints</h4>
+      <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">{% trans "Sign in to your account" %}</p>
+    </div>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {% if form.errors %}
+        <div class="alert alert-danger py-2 small">
+          <i class="bi bi-exclamation-circle-fill me-2"></i>{% trans "Invalid username or password." %}
+        </div>
+      {% endif %}
+
+      <div class="mb-3">
+        <label for="id_username" class="form-label fw-semibold">{% trans "Username" %}</label>
+        <input type="text" name="username" id="id_username"
+               class="form-control {% if form.username.errors %}is-invalid{% endif %}"
+               autofocus autocomplete="username" required />
+      </div>
+
+      <div class="mb-3">
+        <label for="id_password" class="form-label fw-semibold">{% trans "Password" %}</label>
+        <input type="password" name="password" id="id_password"
+               class="form-control {% if form.password.errors %}is-invalid{% endif %}"
+               autocomplete="current-password" required />
+      </div>
+
+      <input type="hidden" name="next" value="{{ next }}" />
+      <div class="d-grid mt-4">
+        <button type="submit" class="btn btn-primary btn-lg">{% trans "Sign In" %}</button>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}
