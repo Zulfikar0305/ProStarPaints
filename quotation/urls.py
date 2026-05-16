@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    GenericInteriorSectionSaveView,
     InteriorWallsSaveView,
     QuotationBuilderView,
     QuotationDetailView,
@@ -22,4 +23,6 @@ urlpatterns = [
     # Section-specific save endpoints
     path("<int:pk>/sections/<int:section_pk>/interior-walls/save/",
          InteriorWallsSaveView.as_view(), name="interior_walls_save"),
+    path("<int:pk>/sections/<int:section_pk>/interior-section/save/",
+         GenericInteriorSectionSaveView.as_view(), name="interior_section_save"),
 ]

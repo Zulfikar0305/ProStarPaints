@@ -15,6 +15,7 @@ from paints.models import Paint
 from .config import (
     FINISH_TO_PAINT_GROUPS,
     FINISHES,
+    INTERIOR_SECTION_CONFIGS,
     MOISTURE_WARNING_THRESHOLD,
     OTHER_PREP_OPTIONS,
     PAINT_GROUPS,
@@ -263,50 +264,124 @@ class QuotationBuilderView(QuotationAccessMixin, View):
 
     @staticmethod
     def _generic_section_context(section: QuotationSection) -> dict:
-        """Minimal configured-flag context for non-interior-walls sections."""
-        line_count = section.line_items.count()
+        """
+        Build saved-state dict for any generic interior section
+        (ceilings, floors, doors_trims_skirtings, window_frames).
+        Reads existing line items so the form can be pre-populated on re-open.
+        """
+        line_items = list(section.line_items.select_related("paint").all())
+
+        note_item = next(
+            (li for li in line_items if li.item_type == QuotationLineItem.ItemType.NOTE),
+            None,
+        )
+        meta = note_item.metadata if note_item else {}
+
+        saved_waterproofing: set  = set()
+        saved_primers:       dict = {}
+        saved_prep_work:     set  = set()
+        saved_paint_keys:    set  = set()
+        saved_paint_bases:   dict = {}
+        saved_paint_coats:   dict = {}
+
+        for li in line_items:
+            if li.item_type == QuotationLineItem.ItemType.WATERPROOFING:
+                saved_waterproofing.add(li.metadata.get("key", ""))
+            elif li.item_type == QuotationLineItem.ItemType.PRIMER:
+                k = li.metadata.get("key", "")
+                saved_primers[k] = str(li.coats)
+            elif li.item_type == QuotationLineItem.ItemType.PREP_WORK:
+                saved_prep_work.add(li.metadata.get("key", ""))
+            elif li.item_type == QuotationLineItem.ItemType.PAINT:
+                gk = li.metadata.get("paint_group", "")
+                if gk:
+                    saved_paint_keys.add(gk)
+                    saved_paint_bases[gk] = li.metadata.get("base", "WHITE")
+                    saved_paint_coats[gk] = str(li.coats)
+
         return {
-            "configured": line_count > 0,
-            "meta":        {},
-            "line_count":  line_count,
+            "configured":          note_item is not None,
+            "meta":                meta,
+            "line_count":          len(line_items),
+            "saved_waterproofing": saved_waterproofing,
+            "saved_primers":       saved_primers,
+            "saved_prep_work":     saved_prep_work,
+            "saved_paint_keys":    saved_paint_keys,
+            "saved_paint_bases":   saved_paint_bases,
+            "saved_paint_coats":   saved_paint_coats,
+            # JSON strings for JS restoration
+            "saved_paint_bases_json": json.dumps(saved_paint_bases),
+            "saved_paint_coats_json": json.dumps(saved_paint_coats),
+            "saved_primers_json":     json.dumps(saved_primers),
         }
 
     def get(self, request, pk, *args, **kwargs):
-        quotation    = get_object_or_404(self.get_base_qs(), pk=pk)
-        all_sections = list(quotation.sections.order_by("sort_order"))
+        quotation     = get_object_or_404(self.get_base_qs(), pk=pk)
+        all_sections  = list(quotation.sections.order_by("sort_order"))
         interior_secs = [s for s in all_sections if s.substrate_type == "INTERIOR"]
         exterior_secs = [s for s in all_sections if s.substrate_type == "EXTERIOR"]
 
-        # Per-section summaries keyed by section pk
-        section_summaries: dict[int, dict] = {}
-        for sec in all_sections:
+        # Build enriched list for interior sections.
+        # Each entry carries the section object, its saved-state summary, the
+        # config (if generic) and flags so the template can branch cleanly.
+        interior_sections_data: list[dict] = []
+        for sec in interior_secs:
             if sec.subsection_key == "interior_walls":
-                section_summaries[sec.pk] = self._iw_context(sec)
+                summary    = self._iw_context(sec)
+                cfg        = None
+                is_walls   = True
+                is_generic = False
+            elif sec.subsection_key in INTERIOR_SECTION_CONFIGS:
+                summary    = self._generic_section_context(sec)
+                cfg        = INTERIOR_SECTION_CONFIGS[sec.subsection_key]
+                is_walls   = False
+                is_generic = True
             else:
-                section_summaries[sec.pk] = self._generic_section_context(sec)
+                summary    = {"configured": False, "meta": {}, "line_count": 0}
+                cfg        = None
+                is_walls   = False
+                is_generic = False
+            interior_sections_data.append({
+                "section":    sec,
+                "summary":    summary,
+                "config":     cfg,
+                "is_walls":   is_walls,
+                "is_generic": is_generic,
+            })
 
-        any_configured = any(v["configured"] for v in section_summaries.values())
+        # Flat pk-keyed summaries dict still used by exterior cards
+        section_summaries: dict[int, dict] = {
+            entry["section"].pk: entry["summary"]
+            for entry in interior_sections_data
+        }
+        for sec in exterior_secs:
+            section_summaries[sec.pk] = {
+                "configured": sec.line_items.exists(),
+                "meta":       {},
+                "line_count": sec.line_items.count(),
+            }
 
-        # Finish → group JSON for the JS branching logic
+        any_configured  = any(v.get("configured", False) for v in section_summaries.values())
         finish_map_json = json.dumps(FINISH_TO_PAINT_GROUPS)
 
         return render(request, self.template_name, {
-            "quotation":           quotation,
-            "interior_secs":       interior_secs,
-            "exterior_secs":       exterior_secs,
-            "section_summaries":   section_summaries,
-            "any_configured":      any_configured,
-            "is_admin":            self._is_admin(),
-            # interior walls config (passed through for the partial)
-            "wall_types":          WALL_TYPES,
-            "surface_conditions":  SURFACE_CONDITIONS,
-            "finishes":            FINISHES,
-            "finish_map_json":     finish_map_json,
-            "all_paint_groups":    list(PAINT_GROUPS.values()),
-            "waterproofing_options": WATERPROOFING_OPTIONS,
-            "primer_options":      PRIMER_OPTIONS,
-            "other_prep_options":  OTHER_PREP_OPTIONS,
-            "moisture_threshold":  MOISTURE_WARNING_THRESHOLD,
+            "quotation":              quotation,
+            "interior_sections_data": interior_sections_data,
+            "interior_secs":          interior_secs,
+            "exterior_secs":          exterior_secs,
+            "section_summaries":      section_summaries,
+            "any_configured":         any_configured,
+            "is_admin":               self._is_admin(),
+            # shared config passed through to all partials
+            "wall_types":             WALL_TYPES,
+            "surface_conditions":     SURFACE_CONDITIONS,
+            "finishes":               FINISHES,
+            "finish_map_json":        finish_map_json,
+            "all_paint_groups":       list(PAINT_GROUPS.values()),
+            "waterproofing_options":  WATERPROOFING_OPTIONS,
+            "primer_options":         PRIMER_OPTIONS,
+            "other_prep_options":     OTHER_PREP_OPTIONS,
+            "moisture_threshold":     MOISTURE_WARNING_THRESHOLD,
         })
 
 
@@ -530,6 +605,229 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
         )
 
         messages.success(request, "Interior Walls saved successfully.")
+        return redirect("quotation:quotation_builder", pk=pk)
+
+
+# ---------------------------------------------------------------------------
+# Generic Interior Section – save handler
+# ---------------------------------------------------------------------------
+
+class GenericInteriorSectionSaveView(QuotationAccessMixin, View):
+    """
+    POST-only view that saves any supported generic interior section
+    (ceilings, floors, doors_trims_skirtings, window_frames).
+
+    Deletes existing line items for the section and recreates them from POST
+    data.  The InteriorSectionConfig drives validation and labelling so there
+    is no per-section branching here.
+    """
+
+    _GENERIC_KEYS = frozenset(INTERIOR_SECTION_CONFIGS.keys())
+
+    def _get_section(self, request, pk, section_pk):
+        quotation = get_object_or_404(self.get_base_qs(), pk=pk)
+        return get_object_or_404(
+            QuotationSection,
+            pk=section_pk,
+            quotation=quotation,
+            subsection_key__in=self._GENERIC_KEYS,
+        )
+
+    def post(self, request, pk, section_pk, *args, **kwargs):
+        section   = self._get_section(request, pk, section_pk)
+        quotation = section.quotation
+        cfg       = INTERIOR_SECTION_CONFIGS.get(section.subsection_key)
+
+        if not cfg:
+            messages.error(request, "Unknown section configuration.")
+            return redirect("quotation:quotation_builder", pk=pk)
+
+        POST = request.POST
+
+        # ── Collect and validate ─────────────────────────────────────────────
+        valid_types   = {k for k, _ in cfg.types}
+        valid_finishes = {k for k, _ in cfg.finishes}
+        valid_conds   = {k for k, _ in cfg.surface_conditions}
+
+        selected_types = [t for t in POST.getlist("types")              if t in valid_types]
+        surface_conds  = [c for c in POST.getlist("surface_conditions") if c in valid_conds]
+        finishes       = [f for f in POST.getlist("finishes")           if f in valid_finishes]
+
+        if not selected_types:
+            messages.error(
+                request,
+                f"Please select at least one {cfg.type_label.lower()}.",
+            )
+            return redirect("quotation:quotation_builder", pk=pk)
+
+        if not finishes:
+            messages.error(request, "Please select at least one finish.")
+            return redirect("quotation:quotation_builder", pk=pk)
+
+        area_sqm_raw = POST.get("area_sqm", "").strip()
+        try:
+            area_sqm = Decimal(area_sqm_raw) if area_sqm_raw else None
+            if area_sqm is not None and area_sqm < 0:
+                raise ValueError
+        except (ValueError, Exception):
+            messages.error(request, "Please enter a valid area (m\u00b2).")
+            return redirect("quotation:quotation_builder", pk=pk)
+
+        moisture_raw = POST.get("moisture_level", "").strip()
+        try:
+            moisture = int(moisture_raw) if moisture_raw else 0
+            moisture = max(0, min(moisture, 100))
+        except ValueError:
+            moisture = 0
+
+        notes = POST.get("notes", "").strip()
+
+        # ── Wipe and rebuild line items ──────────────────────────────────────
+        section.line_items.all().delete()
+        section.is_placeholder = False
+        section.save(update_fields=["is_placeholder"])
+
+        type_labels   = [dict(cfg.types).get(t, t)                  for t in selected_types]
+        finish_labels = [dict(cfg.finishes).get(f, f)              for f in finishes]
+        cond_labels   = [dict(cfg.surface_conditions).get(c, c)    for c in surface_conds]
+
+        # ── 1. NOTE (section summary metadata) ──────────────────────────────
+        QuotationLineItem.objects.create(
+            quotation   = quotation,
+            section     = section,
+            item_type   = QuotationLineItem.ItemType.NOTE,
+            description = (
+                f"{cfg.display_name} \u2014 {', '.join(type_labels)} | "
+                f"Finishes: {', '.join(finish_labels)} | "
+                f"Area: {area_sqm or 'TBC'} m\u00b2"
+            ),
+            area_sqm    = area_sqm,
+            metadata    = {
+                "section_key":         cfg.key,
+                "section_name":        cfg.display_name,
+                "types":               selected_types,
+                "type_labels":         type_labels,
+                "surface_conditions":  surface_conds,
+                "surface_cond_labels": cond_labels,
+                "finishes":            finishes,
+                "finish_labels":       finish_labels,
+                "moisture_level":      moisture,
+                "area_sqm":            str(area_sqm) if area_sqm else None,
+                "notes":               notes,
+            },
+        )
+
+        # ── 2. WATERPROOFING items ───────────────────────────────────────────
+        wp_labels = dict(WATERPROOFING_OPTIONS)
+        for wp_key in POST.getlist("waterproofing"):
+            if wp_key not in wp_labels:
+                continue
+            QuotationLineItem.objects.create(
+                quotation   = quotation,
+                section     = section,
+                item_type   = QuotationLineItem.ItemType.WATERPROOFING,
+                description = wp_labels[wp_key],
+                area_sqm    = area_sqm,
+                metadata    = {"key": wp_key},
+            )
+
+        # ── 3. PRIMER items ─────────────────────────────────────────────────
+        primer_labels = dict(PRIMER_OPTIONS)
+        for pr_key in POST.getlist("primers"):
+            if pr_key not in primer_labels:
+                continue
+            try:
+                coats = int(POST.get(f"primer_coats_{pr_key}", "1"))
+                coats = max(1, min(coats, 2))
+            except ValueError:
+                coats = 1
+            QuotationLineItem.objects.create(
+                quotation   = quotation,
+                section     = section,
+                item_type   = QuotationLineItem.ItemType.PRIMER,
+                description = primer_labels[pr_key],
+                coats       = coats,
+                area_sqm    = area_sqm,
+                metadata    = {"key": pr_key},
+            )
+
+        # ── 4. PREP_WORK items ───────────────────────────────────────────────
+        prep_labels = dict(OTHER_PREP_OPTIONS)
+        for prep_key in POST.getlist("prep_work"):
+            if prep_key not in prep_labels:
+                continue
+            QuotationLineItem.objects.create(
+                quotation   = quotation,
+                section     = section,
+                item_type   = QuotationLineItem.ItemType.PREP_WORK,
+                description = prep_labels[prep_key],
+                metadata    = {"key": prep_key},
+            )
+
+        # ── 5. PAINT items ───────────────────────────────────────────────────
+        active_groups = get_paint_groups_for_finishes(finishes)
+        for pg in active_groups:
+            if not POST.get(f"paint_selected_{pg.key}"):
+                continue
+            try:
+                coats = int(POST.get(f"paint_coats_{pg.key}", "1"))
+                coats = max(1, min(coats, 2))
+            except ValueError:
+                coats = 1
+
+            base_val   = POST.get(f"paint_base_{pg.key}", "WHITE").strip()
+            base_label = dict(pg.bases).get(base_val, base_val) if pg.bases else ""
+
+            matched_paint  = _try_match_paint(pg.paint_name, base_val) if base_val else None
+            price_excl     = matched_paint.price_excl_vat if matched_paint else Decimal("0")
+            price_incl     = matched_paint.price_incl_vat if matched_paint else Decimal("0")
+
+            description = pg.label
+            if base_label:
+                description += f" \u2014 {base_label}"
+
+            QuotationLineItem.objects.create(
+                quotation      = quotation,
+                section        = section,
+                item_type      = QuotationLineItem.ItemType.PAINT,
+                description    = description,
+                paint          = matched_paint,
+                coats          = coats,
+                area_sqm       = area_sqm,
+                price_excl_vat = price_excl,
+                price_incl_vat = price_incl,
+                metadata       = {
+                    "paint_group":   pg.key,
+                    "paint_name":    pg.paint_name,
+                    "base":          base_val,
+                    "base_label":    base_label,
+                    "paint_matched": matched_paint is not None,
+                },
+            )
+
+        # ── Audit log ────────────────────────────────────────────────────────
+        action_key = f"SECTION_SAVED_{cfg.key.upper()}"
+        log_action(
+            user        = request.user,
+            action      = action_key,
+            module      = "quotation",
+            description = (
+                f"{cfg.display_name} configured for {quotation.reference}: "
+                f"{', '.join(type_labels)}, {', '.join(finish_labels)}, "
+                f"{area_sqm or 'TBC'} m\u00b2"
+            ),
+            metadata    = {
+                "quotation_id": quotation.pk,
+                "section_id":   section.pk,
+                "section_key":  cfg.key,
+                "types":        selected_types,
+                "finishes":     finishes,
+                "area_sqm":     str(area_sqm) if area_sqm else None,
+            },
+            request = request,
+        )
+
+        messages.success(request, f"{cfg.display_name} saved successfully.")
         return redirect("quotation:quotation_builder", pk=pk)
 
 

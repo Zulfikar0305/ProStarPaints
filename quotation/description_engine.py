@@ -147,12 +147,25 @@ def _describe_note(line_item: "QuotationLineItem") -> str:
     """
     meta: dict = line_item.metadata or {}
 
-    # Wall type
-    wall_label = (
-        meta.get("wall_type_label")
-        or _WALL_TYPE_LABELS.get(meta.get("wall_type", ""), "")
-        or "walls"
-    )
+    # ------------------------------------------------------------------
+    # Opening line.
+    # Generic sections (ceilings, floors, etc.) store "section_name" and
+    # "type_labels" in metadata.
+    # Legacy interior_walls uses "wall_type" / "wall_type_label".
+    # ------------------------------------------------------------------
+    _section_name: str = meta.get("section_name", "")
+    if _section_name:
+        _type_labels: list[str] = meta.get("type_labels") or []
+        _type_str = _format_list(_type_labels)
+        _opening  = f"{_section_name} ({_type_str})." if _type_str else f"{_section_name}."
+    else:
+        # Legacy interior walls
+        wall_label = (
+            meta.get("wall_type_label")
+            or _WALL_TYPE_LABELS.get(meta.get("wall_type", ""), "")
+            or "walls"
+        )
+        _opening = f"Interior walls ({wall_label})."
 
     # Surface conditions
     cond_labels: list[str] = meta.get("surface_cond_labels") or []
@@ -183,8 +196,7 @@ def _describe_note(line_item: "QuotationLineItem") -> str:
     # Build sentence
     parts: list[str] = []
 
-    # Opening: "Interior walls (Brick)."
-    parts.append(f"Interior walls ({wall_label}).")
+    parts.append(_opening)
 
     # Surface conditions
     cond_str = _format_list(cond_labels)

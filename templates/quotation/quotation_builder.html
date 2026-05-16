@@ -67,46 +67,34 @@
       <i class="bi bi-house me-1"></i>{% trans "Interior Surfaces" %}
     </h6>
 
-    {% for section in interior_secs %}
-      {% if section.subsection_key == "interior_walls" %}
-        {# Full dynamic Interior Walls configurator.
-           section_summaries is keyed by section.pk (int).
-           We iterate to find the matching entry because Django templates
-           cannot do dict[variable] lookups natively. #}
-        {% for sec_pk, sec_data in section_summaries.items %}
-          {% if sec_pk == section.pk %}
-            {% include "quotation/partials/_interior_walls.html" with iw_summary=sec_data %}
-          {% endif %}
-        {% endfor %}
-      {% else %}
-        {# Placeholder for future subsections #}
-        <div class="card border-0 shadow-sm mb-3"
-             style="border-left: 4px solid var(--psp-purple) !important;">
-          <div class="card-body">
-            <div class="d-flex align-items-start justify-content-between mb-1">
-              <span class="fw-semibold">{{ section.display_name }}</span>
-              <span class="badge rounded-pill"
-                    style="background:var(--psp-purple-light);color:var(--psp-purple);font-size:.7rem;">
-                {% trans "Interior" %}
+    {% for entry in interior_sections_data %}
+      {% with section=entry.section %}
+        {% if entry.is_walls %}
+          {# Interior Walls keeps its own dedicated partial. #}
+          {% include "quotation/partials/_interior_walls.html" with iw_summary=entry.summary %}
+        {% elif entry.is_generic %}
+          {# All other interior sections use the reusable generic partial. #}
+          {% include "quotation/partials/_generic_surface_section.html" with gs_summary=entry.summary section_config=entry.config %}
+        {% else %}
+          {# Unknown / unsupported interior section – placeholder #}
+          <div class="card border-0 shadow-sm mb-3"
+               style="border-left: 4px solid var(--psp-purple) !important;">
+            <div class="card-body">
+              <div class="d-flex align-items-start justify-content-between mb-1">
+                <span class="fw-semibold">{{ section.display_name }}</span>
+                <span class="badge rounded-pill"
+                      style="background:var(--psp-purple-light);color:var(--psp-purple);font-size:.7rem;">
+                  {% trans "Interior" %}
+                </span>
+              </div>
+              <span class="badge text-bg-secondary mb-1" style="font-size:.7rem;">
+                <i class="bi bi-clock me-1"></i>{% trans "Not configured" %}
               </span>
+              <p class="small text-muted mb-0 mt-1">{% trans "Configuration coming soon." %}</p>
             </div>
-            {% for sec_pk, sec_data in section_summaries.items %}
-              {% if sec_pk == section.pk %}
-                {% if sec_data.configured %}
-                  <span class="badge text-bg-success mb-1" style="font-size:.7rem;">
-                    <i class="bi bi-check-lg me-1"></i>{% trans "Configured" %}
-                  </span>
-                {% else %}
-                  <span class="badge text-bg-secondary mb-1" style="font-size:.7rem;">
-                    <i class="bi bi-clock me-1"></i>{% trans "Not configured" %}
-                  </span>
-                {% endif %}
-              {% endif %}
-            {% endfor %}
-            <p class="small text-muted mb-0 mt-1">{% trans "Configuration coming soon." %}</p>
           </div>
-        </div>
-      {% endif %}
+        {% endif %}
+      {% endwith %}
     {% endfor %}
   {% endif %}
 

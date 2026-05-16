@@ -301,3 +301,136 @@ def get_paint_groups_for_finishes(finish_keys: list[str]) -> list[PaintGroup]:
                 seen.add(group_key)
                 result.append(PAINT_GROUPS[group_key])
     return result
+
+
+# ---------------------------------------------------------------------------
+# Generic interior surface conditions
+# ---------------------------------------------------------------------------
+
+# Full set – used by ceilings, doors_trims_skirtings, window_frames
+GENERIC_SURFACE_CONDITIONS_FULL: list[tuple[str, str]] = [
+    ("prev_painted_good",   "Previously painted \u2013 good condition"),
+    ("prev_painted_poor",   "Previously painted \u2013 poor condition"),
+    ("prev_painted_chalky", "Previously painted \u2013 chalky surface"),
+    ("prev_painted_mouldy", "Previously painted \u2013 mouldy surface"),
+    ("unpainted",           "Unpainted"),
+]
+
+# Floors only (no chalky)
+GENERIC_SURFACE_CONDITIONS_FLOORS: list[tuple[str, str]] = [
+    ("prev_painted_good",   "Previously painted \u2013 good condition"),
+    ("prev_painted_poor",   "Previously painted \u2013 poor condition"),
+    ("prev_painted_mouldy", "Previously painted \u2013 mouldy surface"),
+    ("unpainted",           "Unpainted"),
+]
+
+
+# ---------------------------------------------------------------------------
+# Interior section configuration dataclass
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class InteriorSectionConfig:
+    """
+    Configuration for a single interior surface section in the builder.
+
+    Attributes
+    ----------
+    key               : matches QuotationSection.subsection_key
+    display_name      : human-readable section title shown in the UI
+    type_label        : label for the surface-type field, e.g. "Ceiling type"
+    types             : list of (value, label) surface-type choices
+    surface_conditions: list of (value, label) applicable surface conditions
+    finishes          : list of (value, label) finishes available for this section
+    """
+    key: str
+    display_name: str
+    type_label: str
+    types: list[tuple[str, str]]
+    surface_conditions: list[tuple[str, str]]
+    finishes: list[tuple[str, str]]
+
+
+# ---------------------------------------------------------------------------
+# Finish-list helpers (shared across section configs)
+# ---------------------------------------------------------------------------
+
+_ALL_FIVE_FINISHES: list[tuple[str, str]] = [
+    ("smooth_matte",   "Smooth Matte"),
+    ("smooth_sheen",   "Smooth Sheen"),
+    ("deco_plast",     "Deco-plast"),
+    ("fine_texture",   "Fine Texture"),
+    ("coarse_texture", "Coarse Texture"),
+]
+
+_TWO_SMOOTH_FINISHES: list[tuple[str, str]] = [
+    ("smooth_matte", "Smooth Matte"),
+    ("smooth_sheen", "Smooth Sheen"),
+]
+
+_FOUR_NO_DECO_FINISHES: list[tuple[str, str]] = [
+    ("smooth_matte",   "Smooth Matte"),
+    ("smooth_sheen",   "Smooth Sheen"),
+    ("fine_texture",   "Fine Texture"),
+    ("coarse_texture", "Coarse Texture"),
+]
+
+
+# ---------------------------------------------------------------------------
+# INTERIOR_SECTION_CONFIGS
+#
+# Config for every generic interior section (i.e. all interior sections
+# EXCEPT interior_walls which has its own dedicated partial and save view).
+# The builder view uses this dict to determine which template and save logic
+# to apply for each QuotationSection.subsection_key.
+# ---------------------------------------------------------------------------
+
+INTERIOR_SECTION_CONFIGS: dict[str, "InteriorSectionConfig"] = {
+    "ceilings": InteriorSectionConfig(
+        key="ceilings",
+        display_name="Ceilings",
+        type_label="Ceiling type",
+        types=[
+            ("concrete_socket", "Concrete socket"),
+            ("gypsum_boards",   "Gypsum boards"),
+        ],
+        surface_conditions=GENERIC_SURFACE_CONDITIONS_FULL,
+        finishes=_ALL_FIVE_FINISHES,
+    ),
+    "floors": InteriorSectionConfig(
+        key="floors",
+        display_name="Floors",
+        type_label="Floor type",
+        types=[
+            ("concrete",  "Concrete"),
+            ("soft_wood", "Soft wood"),
+            ("hardwood",  "Hardwood"),
+        ],
+        surface_conditions=GENERIC_SURFACE_CONDITIONS_FLOORS,
+        finishes=_TWO_SMOOTH_FINISHES,
+    ),
+    "doors_trims_skirtings": InteriorSectionConfig(
+        key="doors_trims_skirtings",
+        display_name="Doors, trims and skirtings",
+        type_label="Surface type",
+        types=[
+            ("hardwood",  "Hardwood"),
+            ("soft_wood", "Soft wood"),
+            ("metal",     "Metal"),
+        ],
+        surface_conditions=GENERIC_SURFACE_CONDITIONS_FULL,
+        finishes=_FOUR_NO_DECO_FINISHES,
+    ),
+    "window_frames": InteriorSectionConfig(
+        key="window_frames",
+        display_name="Window frames",
+        type_label="Frame type",
+        types=[
+            ("metal",     "Metal"),
+            ("wood",      "Wood"),
+            ("aluminium", "Aluminium"),
+        ],
+        surface_conditions=GENERIC_SURFACE_CONDITIONS_FULL,
+        finishes=_TWO_SMOOTH_FINISHES,
+    ),
+}

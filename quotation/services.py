@@ -32,6 +32,7 @@ INTERIOR_SUBSECTIONS: list[SubsectionConfig] = [
     SubsectionConfig("ceilings",                "Ceilings",                  "INTERIOR", 1),
     SubsectionConfig("floors",                  "Floors",                    "INTERIOR", 2),
     SubsectionConfig("doors_trims_skirtings",   "Doors, Trims & Skirtings",  "INTERIOR", 3),
+    SubsectionConfig("window_frames",           "Window Frames",             "INTERIOR", 4),
 ]
 
 # ---------------------------------------------------------------------------
