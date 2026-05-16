@@ -29,6 +29,10 @@
        class="btn btn-sm btn-outline-secondary">
       <i class="bi bi-grid me-1"></i>{% trans "Edit Surfaces" %}
     </a>
+    <a href="{% url 'quotation:pdf_select' quotation.pk %}"
+       class="btn btn-sm btn-success">
+      <i class="bi bi-file-earmark-pdf me-1"></i>{% trans "Generate PDF" %}
+    </a>
   </div>
 </div>
 
@@ -182,5 +186,59 @@
   {% endif %}
 
 </div>
+
+<!-- PDF Export History -->
+{% if pdf_exports %}
+<div class="mt-4">
+  <div class="card">
+    <div class="card-header bg-transparent py-2 d-flex align-items-center justify-content-between">
+      <span class="fw-semibold">
+        <i class="bi bi-file-earmark-pdf-fill me-2" style="color:var(--psp-purple);"></i>{% trans "PDF Export History" %}
+      </span>
+      <a href="{% url 'quotation:pdf_select' quotation.pk %}" class="btn btn-sm btn-outline-success">
+        <i class="bi bi-plus me-1"></i>{% trans "Generate New" %}
+      </a>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm mb-0" style="font-size:.82rem;">
+        <thead>
+          <tr style="color:var(--psp-text-muted,#6b7280);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;">
+            <th class="px-3 py-2">{% trans "Template" %}</th>
+            <th class="px-3 py-2">{% trans "Status" %}</th>
+            <th class="px-3 py-2">{% trans "Generated" %}</th>
+            <th class="px-3 py-2">{% trans "By" %}</th>
+            <th class="px-3 py-2"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for export in pdf_exports %}
+          <tr>
+            <td class="px-3 py-2 fw-semibold">{{ export.template_key }}</td>
+            <td class="px-3 py-2">
+              {% if export.status == "GENERATED" %}
+                <span class="badge text-bg-success" style="font-size:.7rem;">{% trans "Ready" %}</span>
+              {% else %}
+                <span class="badge text-bg-danger" style="font-size:.7rem;">{% trans "Failed" %}</span>
+              {% endif %}
+            </td>
+            <td class="px-3 py-2 text-muted">{{ export.created_at|date:"d M Y, H:i" }}</td>
+            <td class="px-3 py-2 text-muted">{{ export.generated_by.get_full_name|default:export.generated_by.username }}</td>
+            <td class="px-3 py-2 text-end">
+              {% if export.status == "GENERATED" and export.file %}
+                <a href="{% url 'quotation:pdf_download' export.pk %}"
+                   class="btn btn-xs btn-outline-secondary"
+                   style="font-size:.72rem;padding:.1rem .5rem;">
+                  <i class="bi bi-download me-1"></i>{% trans "Download" %}
+                </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 {% endblock %}

@@ -27,7 +27,7 @@ from .config import (
 )
 from .description_engine import generate_line_item_description
 from .forms import QuotationStartForm
-from .models import Quotation, QuotationLineItem, QuotationSection
+from .models import Quotation, QuotationLineItem, QuotationSection, QuotationPdfExport
 from .services import (
     ALL_SUBSECTIONS,
     EXTERIOR_SUBSECTIONS,
@@ -938,5 +938,155 @@ class QuotationDetailView(QuotationAccessMixin, DetailView):
         ctx = super().get_context_data(**kwargs)
         ctx["is_admin"] = self._is_admin()
         ctx["sections"] = self.object.sections.order_by("substrate_type", "sort_order")
+        ctx["pdf_exports"] = (
+            self.object.pdf_exports
+            .select_related("generated_by")
+            .order_by("-created_at")[:10]
+        )
         return ctx
+
+
+# ---------------------------------------------------------------------------
+# PDF Template Selection
+# ---------------------------------------------------------------------------
+
+class QuotationPdfTemplateSelectView(QuotationAccessMixin, View):
+    """
+    GET  /quotations/<pk>/pdf/
+    Show a card for each available PDF template and let the user choose one.
+    """
+
+    template_name = "quotation/pdf_template_select.html"
+
+    def get(self, request, pk):
+        quotation = get_object_or_404(self.get_base_qs(), pk=pk)
+        from .pdf_templates import PDF_TEMPLATES
+        templates = [
+            {"key": k, **v}
+            for k, v in PDF_TEMPLATES.items()
+        ]
+        recent_exports = (
+            quotation.pdf_exports
+            .select_related("generated_by")
+            .order_by("-created_at")[:5]
+        )
+        return render(request, self.template_name, {
+            "quotation":      quotation,
+            "pdf_templates":  templates,
+            "recent_exports": recent_exports,
+        })
+
+
+# ---------------------------------------------------------------------------
+# PDF Generate
+# ---------------------------------------------------------------------------
+
+class QuotationPdfGenerateView(QuotationAccessMixin, View):
+    """
+    POST /quotations/<pk>/pdf/generate/
+    Validates the template_key, calls the PDF service, audits, and redirects.
+    """
+
+    def post(self, request, pk):
+        from .pdf_service import render_quotation_pdf
+        from .pdf_templates import PDF_TEMPLATES
+
+        quotation = get_object_or_404(self.get_base_qs(), pk=pk)
+        template_key = request.POST.get("template_key", "").strip()
+
+        # Validate against registry — never accept arbitrary paths
+        if template_key not in PDF_TEMPLATES:
+            messages.error(request, _("Invalid template selection. Please choose a valid template."))
+            return redirect("quotation:pdf_select", pk=pk)
+
+        export = render_quotation_pdf(
+            quotation=quotation,
+            template_key=template_key,
+            generated_by=request.user,
+            request=request,
+        )
+
+        if export.status == QuotationPdfExport.Status.GENERATED:
+            log_action(
+                user=request.user,
+                action="QUOTATION_PDF_GENERATED",
+                module="quotation",
+                description=(
+                    f"PDF generated for quotation {quotation.reference} "
+                    f"using template '{template_key}'."
+                ),
+                metadata={
+                    "quotation_reference": quotation.reference,
+                    "quotation_id":        quotation.pk,
+                    "template_key":        template_key,
+                    "export_id":           export.pk,
+                },
+                request=request,
+            )
+            messages.success(
+                request,
+                _("PDF generated successfully. You can download it below."),
+            )
+            return redirect("quotation:pdf_download", export_id=export.pk)
+        else:
+            log_action(
+                user=request.user,
+                action="QUOTATION_PDF_GENERATION_FAILED",
+                module="quotation",
+                description=(
+                    f"PDF generation failed for {quotation.reference} "
+                    f"(template '{template_key}'): {export.error_message[:200]}"
+                ),
+                metadata={
+                    "quotation_reference": quotation.reference,
+                    "quotation_id":        quotation.pk,
+                    "template_key":        template_key,
+                    "export_id":           export.pk,
+                },
+                request=request,
+            )
+            messages.error(
+                request,
+                _("PDF generation failed. Please try again or contact support."),
+            )
+            return redirect("quotation:pdf_select", pk=pk)
+
+
+# ---------------------------------------------------------------------------
+# PDF Download
+# ---------------------------------------------------------------------------
+
+class QuotationPdfDownloadView(QuotationAccessMixin, View):
+    """
+    GET /quotations/pdf/<export_id>/download/
+    Stream the generated PDF to the browser.
+    """
+
+    def get(self, request, export_id):
+        from django.http import FileResponse, Http404
+
+        # Access-control: admin sees all; rep sees only own exports
+        qs = QuotationPdfExport.objects.select_related("quotation", "generated_by")
+        if not self._is_admin():
+            qs = qs.filter(quotation__created_by=request.user)
+
+        export = get_object_or_404(qs, pk=export_id)
+
+        if export.status != QuotationPdfExport.Status.GENERATED or not export.file:
+            messages.error(request, _("This PDF export is not available for download."))
+            return redirect("quotation:quotation_detail", pk=export.quotation_id)
+
+        try:
+            response = FileResponse(
+                export.file.open("rb"),
+                content_type="application/pdf",
+            )
+            safe_name = export.file.name.split("/")[-1]
+            response["Content-Disposition"] = (
+                f'attachment; filename="{safe_name}"'
+            )
+            return response
+        except (FileNotFoundError, OSError):
+            messages.error(request, _("PDF file could not be found. Please regenerate."))
+            return redirect("quotation:pdf_select", pk=export.quotation_id)
 

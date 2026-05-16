@@ -128,6 +128,26 @@ class UserDeactivateView(AdminRequiredMixin, View):
             messages.error(request, _("You cannot deactivate your own account."))
             return redirect("users:user_list")
 
+        user.is_active = not user.is_active
+        user.save(update_fields=["is_active"])
+
+        action_word = "activated" if user.is_active else "deactivated"
+        audit_action = "USER_ACTIVATED" if user.is_active else "USER_DEACTIVATED"
+        name = user.get_full_name() or user.username
+        messages.success(
+            request,
+            _("User %(name)s has been %(action)s.") % {"name": name, "action": _(action_word)},
+        )
+        log_action(
+            user=request.user,
+            action=audit_action,
+            module="users",
+            description=f"User '{name}' ({user.email}) was {action_word}.",
+            metadata={"target_user_id": user.pk, "is_active": user.is_active},
+            request=request,
+        )
+        return redirect("users:user_list")
+
 
 # ---------------------------------------------------------------------------
 # Profile
@@ -225,22 +245,3 @@ class AppSettingsView(LoginRequiredMixin, View):
             "form":     form,
             "settings": settings_obj,
         })
-        user.is_active = not user.is_active
-        user.save(update_fields=["is_active"])
-
-        action_word = "activated" if user.is_active else "deactivated"
-        audit_action = "USER_ACTIVATED" if user.is_active else "USER_DEACTIVATED"
-        name = user.get_full_name() or user.username
-        messages.success(
-            request,
-            _("User %(name)s has been %(action)s.") % {"name": name, "action": _(action_word)},
-        )
-        log_action(
-            user=request.user,
-            action=audit_action,
-            module="users",
-            description=f"User '{name}' ({user.email}) was {action_word}.",
-            metadata={"target_user_id": user.pk, "is_active": user.is_active},
-            request=request,
-        )
-        return redirect("users:user_list")

@@ -139,11 +139,11 @@ class SalesRepProfile(models.Model):
         profile_fields = [
             self.bio,
             self.job_title,
+            self.department,
             self.branch_location,
             self.company_phone,
+            self.business_email,
             self.sales_region,
-            self.employee_code,
-            self.specialities,
             self.signature_name,
         ]
         filled = sum(1 for v in profile_fields if v)

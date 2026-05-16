@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Estimate {{ quotation.reference }} — ProStar Paints</title>
+<style>
+@page {
+  size: A4;
+  margin: 15mm 18mm 18mm 18mm;
+  @bottom-right {
+    content: "Page " counter(page);
+    font-size: 7.5pt;
+    color: #94a3b8;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 9pt;
+  color: #1e293b;
+  line-height: 1.5;
+  background: #fff;
+}
+.text-muted { color: #64748b; }
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 3px solid #059669;
+  padding-bottom: 8pt;
+  margin-bottom: 10pt;
+}
+.logo-area .logo { height: 34pt; }
+.logo-area .brand { font-size: 14pt; font-weight: 700; color: #059669; }
+.doc-area { text-align: right; }
+.doc-area .doc-label {
+  font-size: 11pt;
+  font-weight: 700;
+  color: #0f172a;
+}
+.doc-area .ref-pill {
+  display: inline-block;
+  background: #059669;
+  color: #fff;
+  font-size: 7.5pt;
+  font-weight: 700;
+  padding: 2pt 8pt;
+  border-radius: 20pt;
+  margin-top: 3pt;
+}
+.doc-area .date-line { font-size: 7.5pt; color: #64748b; margin-top: 3pt; }
+
+/* Info row */
+.info-row-block {
+  display: table;
+  width: 100%;
+  font-size: 8pt;
+  border: 1px solid #e2e8f0;
+  border-radius: 5pt;
+  overflow: hidden;
+  margin-bottom: 10pt;
+}
+.info-cell {
+  display: table-cell;
+  padding: 7pt 10pt;
+  border-right: 1px solid #e2e8f0;
+  vertical-align: top;
+}
+.info-cell:last-child { border-right: none; }
+.info-cell .lbl { font-size: 6.5pt; text-transform: uppercase; letter-spacing: .07em; color: #94a3b8; font-weight: 700; }
+.info-cell .val { font-weight: 600; color: #0f172a; margin-top: 2pt; }
+
+/* Summary table */
+.main-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8.5pt;
+  margin-bottom: 10pt;
+}
+.main-table th {
+  background: #059669;
+  color: #fff;
+  font-size: 7pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  padding: 5pt 9pt;
+  text-align: left;
+}
+.main-table th.right { text-align: right; }
+.main-table td {
+  padding: 5.5pt 9pt;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: top;
+}
+.main-table tr:nth-child(even) td { background: #f0fdf4; }
+.main-table tr:last-child td { border-bottom: none; }
+.main-table td.right { text-align: right; }
+.main-table .section-row td {
+  background: #dcfce7;
+  font-weight: 700;
+  font-size: 8pt;
+  color: #14532d;
+  padding: 4pt 9pt;
+  border-bottom: 1px solid #bbf7d0;
+}
+.type-tag {
+  display: inline-block;
+  font-size: 6pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 1pt 4pt;
+  border-radius: 2pt;
+  background: #d1fae5;
+  color: #065f46;
+  margin-right: 4pt;
+}
+.type-tag.prep   { background: #fef3c7; color: #92400e; }
+.type-tag.primer { background: #dbeafe; color: #1d4ed8; }
+.tbc { color: #6b7280; font-style: italic; font-size: 8pt; }
+
+/* Totals */
+.totals-compact {
+  float: right;
+  width: 40%;
+  margin-bottom: 10pt;
+}
+.totals-compact table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8pt;
+  border: 1px solid #e2e8f0;
+}
+.totals-compact td { padding: 4pt 8pt; border-bottom: 1px solid #f1f5f9; }
+.totals-compact tr:last-child td { border-bottom: none; background: #059669; color: #fff; font-weight: 700; }
+.totals-compact .lbl { color: #64748b; }
+.totals-compact .val { text-align: right; }
+.clearfix::after { content: ""; display: table; clear: both; }
+
+/* Notes condensed */
+.notes-line {
+  font-size: 8pt;
+  color: #64748b;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 6pt;
+  margin-top: 6pt;
+}
+
+/* Footer */
+.footer {
+  border-top: 2px solid #059669;
+  margin-top: 12pt;
+  padding-top: 5pt;
+  display: flex;
+  justify-content: space-between;
+  font-size: 7pt;
+  color: #94a3b8;
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo-area">
+    {% if logo_data_uri %}
+      <img class="logo" src="{{ logo_data_uri }}" alt="ProStar Paints">
+    {% else %}
+      <div class="brand">ProStar Paints</div>
+    {% endif %}
+  </div>
+  <div class="doc-area">
+    <div class="doc-label">Compact Estimate</div>
+    <div><span class="ref-pill">{{ quotation.reference }}</span></div>
+    <div class="date-line">{{ generated_at|date:"d F Y" }}</div>
+  </div>
+</div>
+
+<!-- INFO ROW -->
+<div class="info-row-block">
+  <div class="info-cell" style="width:28%;">
+    <div class="lbl">Client</div>
+    <div class="val">{{ customer_name|default:"—" }}</div>
+    {% if customer_phone %}<div style="font-size:7.5pt;color:#64748b;">{{ customer_phone }}</div>{% endif %}
+  </div>
+  <div class="info-cell" style="width:28%;">
+    <div class="lbl">Project</div>
+    <div class="val">{{ project_name|default:"—" }}</div>
+    {% if project_location %}<div style="font-size:7.5pt;color:#64748b;">{{ project_location }}</div>{% endif %}
+  </div>
+  <div class="info-cell" style="width:22%;">
+    <div class="lbl">Sections</div>
+    <div class="val">{{ sections|length }}</div>
+  </div>
+  <div class="info-cell" style="width:22%;">
+    <div class="lbl">Prepared By</div>
+    <div class="val">{{ sales_profile.signature_name|default:created_by.get_full_name }}</div>
+    {% if sales_profile and sales_profile.company_phone %}
+      <div style="font-size:7.5pt;color:#64748b;">{{ sales_profile.company_phone }}</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- SCOPE TABLE -->
+<table class="main-table">
+  <thead>
+    <tr>
+      <th style="width:35%;">Item Description</th>
+      <th style="width:20%;">Section</th>
+      <th style="width:15%;">Paint / Material</th>
+      <th style="width:8%;">Coats</th>
+      <th style="width:12%;">Area / Qty</th>
+      <th class="right" style="width:10%;">Price</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for sec_data in sections %}
+      {% if sec_data.line_items %}
+        {% for li in sec_data.line_items %}
+        <tr>
+          <td>
+            <span class="type-tag {% if li.item.item_type == 'PREP_WORK' %}prep{% elif li.item.item_type == 'PRIMER' %}primer{% endif %}">
+              {{ li.item.get_item_type_display }}
+            </span>
+            {{ li.description }}
+          </td>
+          <td style="color:#64748b;font-size:8pt;">{{ sec_data.section.display_name }}</td>
+          <td>{% if li.item.paint %}{{ li.item.paint.name }}{% else %}—{% endif %}</td>
+          <td>{% if li.item.coats %}{{ li.item.coats }}{% else %}—{% endif %}</td>
+          <td>
+            {% if li.item.area_sqm %}{{ li.item.area_sqm }} m²
+            {% elif li.item.quantity %}{{ li.item.quantity }} {{ li.item.unit }}
+            {% else %}—{% endif %}
+          </td>
+          <td class="right tbc">TBC</td>
+        </tr>
+        {% endfor %}
+      {% endif %}
+    {% empty %}
+      <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:12pt;">No items configured.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- TOTALS -->
+<div class="clearfix">
+  <div class="totals-compact">
+    <table>
+      <tr><td class="lbl">Subtotal (excl. VAT)</td><td class="val tbc">TBC</td></tr>
+      <tr><td class="lbl">VAT</td><td class="val tbc">TBC</td></tr>
+      <tr><td>Total (incl. VAT)</td><td class="val">TBC — Pending</td></tr>
+    </table>
+  </div>
+</div>
+
+{% if notes %}
+<div class="notes-line"><strong>Notes:</strong> {{ notes }}</div>
+{% endif %}
+
+<!-- FOOTER -->
+<div class="footer">
+  <span>ProStar Paints — Compact Estimate</span>
+  <span>{{ quotation.reference }}</span>
+  <span>Pricing TBC · Generated {{ generated_at|date:"d M Y" }}</span>
+</div>
+
+</body>
+</html>

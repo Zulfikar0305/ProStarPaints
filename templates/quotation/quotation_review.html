@@ -41,6 +41,10 @@
        class="btn btn-outline-primary btn-sm">
       <i class="bi bi-eye me-1"></i>{% trans "View Detail" %}
     </a>
+    <a href="{% url 'quotation:pdf_select' quotation.pk %}"
+       class="btn btn-success btn-sm">
+      <i class="bi bi-file-earmark-pdf me-1"></i>{% trans "Generate PDF" %}
+    </a>
     <span class="badge text-bg-warning text-dark px-3 py-2 align-self-center">
       {{ quotation.get_status_display }}
     </span>

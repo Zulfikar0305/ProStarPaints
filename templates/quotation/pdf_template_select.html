@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Choose PDF Template" %} — {{ quotation.reference }} — ProStar Paints{% endblock %}
+
+{% block content %}
+
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb mb-0 small">
+    <li class="breadcrumb-item">
+      <a href="{% url 'quotation:quotation_list' %}" class="text-decoration-none">{% trans "Quotations" %}</a>
+    </li>
+    <li class="breadcrumb-item">
+      <a href="{% url 'quotation:quotation_detail' quotation.pk %}" class="text-decoration-none">{{ quotation.reference }}</a>
+    </li>
+    <li class="breadcrumb-item">
+      <a href="{% url 'quotation:quotation_review' quotation.pk %}" class="text-decoration-none">{% trans "Review" %}</a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">{% trans "Generate PDF" %}</li>
+  </ol>
+</nav>
+
+<!-- Header -->
+<div class="d-flex align-items-start justify-content-between mb-4 gap-2 flex-wrap">
+  <div>
+    <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">
+      <i class="bi bi-file-earmark-pdf-fill me-2" style="color:var(--psp-purple);"></i>{% trans "Generate PDF" %}
+    </h4>
+    <p class="mb-0 mt-1 small" style="color:var(--psp-text-soft);">
+      {% trans "Choose a layout for" %} <strong>{{ quotation.reference }}</strong>
+      {% if quotation.customer_name %} &mdash; {{ quotation.customer_name }}{% endif %}
+    </p>
+  </div>
+  <a href="{% url 'quotation:quotation_review' quotation.pk %}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>{% trans "Back to Review" %}
+  </a>
+</div>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show mb-3" role="alert">
+      {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<!-- Pricing notice -->
+<div class="alert alert-warning d-flex align-items-center gap-2 py-2 mb-4" style="font-size:.85rem;">
+  <i class="bi bi-clock-history fs-5"></i>
+  <div>
+    <strong>{% trans "Pricing pending" %}</strong> —
+    {% trans "Generated PDFs display descriptions and specifications. Pricing is shown as TBC until the pricing engine is activated." %}
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- ── Template cards ── -->
+  {% for tpl in pdf_templates %}
+  <div class="col-12 col-md-4">
+    <form method="post" action="{% url 'quotation:pdf_generate' quotation.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="template_key" value="{{ tpl.key }}">
+      <div class="card h-100 psp-pdf-tpl-card"
+           style="border: 2px solid var(--psp-border); border-radius: 10px; transition: border-color .15s, box-shadow .15s; cursor: pointer;"
+           onclick="this.closest('form').submit();">
+
+        <!-- Coloured top bar -->
+        <div style="height: 5px; border-radius: 8px 8px 0 0; background: {{ tpl.preview_color }};"></div>
+
+        <div class="card-body p-4">
+          <div class="d-flex align-items-start gap-3 mb-3">
+            <div class="d-flex align-items-center justify-content-center flex-shrink-0"
+                 style="width:44px;height:44px;border-radius:10px;background:{{ tpl.preview_color }}1a;">
+              <i class="bi {{ tpl.preview_icon }} fs-4" style="color:{{ tpl.preview_color }};"></i>
+            </div>
+            <div class="flex-grow-1 min-width-0">
+              <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                <h6 class="fw-bold mb-0">{{ tpl.name }}</h6>
+                <span class="badge rounded-pill px-2"
+                      style="font-size:.7rem;background:{{ tpl.preview_color }}22;color:{{ tpl.preview_color }};">
+                  {{ tpl.preview_label }}
+                </span>
+              </div>
+              <p class="mb-0 small" style="color:var(--psp-text-soft);">{{ tpl.description }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-footer bg-transparent border-0 pt-0 pb-3 px-4">
+          <button type="submit" class="btn btn-sm w-100 fw-semibold"
+                  style="background:{{ tpl.preview_color }};color:#fff;border:none;">
+            <i class="bi bi-file-earmark-pdf-fill me-1"></i>{% trans "Generate this PDF" %}
+          </button>
+        </div>
+
+      </div>
+    </form>
+  </div>
+  {% empty %}
+  <div class="col-12">
+    <div class="alert alert-warning">{% trans "No PDF templates are configured." %}</div>
+  </div>
+  {% endfor %}
+
+</div>
+
+<!-- Recent exports -->
+{% if recent_exports %}
+<div class="mt-5">
+  <h6 class="fw-semibold mb-3" style="font-size:.85rem;color:var(--psp-text-soft);text-transform:uppercase;letter-spacing:.04em;">
+    <i class="bi bi-clock-history me-2"></i>{% trans "Recent Exports" %}
+  </h6>
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-sm mb-0" style="font-size:.82rem;">
+        <thead>
+          <tr style="color:var(--psp-text-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;">
+            <th class="px-3 py-2">{% trans "Template" %}</th>
+            <th class="px-3 py-2">{% trans "Status" %}</th>
+            <th class="px-3 py-2">{% trans "Generated" %}</th>
+            <th class="px-3 py-2">{% trans "By" %}</th>
+            <th class="px-3 py-2"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for export in recent_exports %}
+          <tr>
+            <td class="px-3 py-2 fw-semibold">{{ export.template_key }}</td>
+            <td class="px-3 py-2">
+              {% if export.status == "GENERATED" %}
+                <span class="badge text-bg-success" style="font-size:.7rem;">{% trans "Ready" %}</span>
+              {% else %}
+                <span class="badge text-bg-danger" style="font-size:.7rem;">{% trans "Failed" %}</span>
+              {% endif %}
+            </td>
+            <td class="px-3 py-2 text-muted">{{ export.created_at|date:"d M Y, H:i" }}</td>
+            <td class="px-3 py-2 text-muted">{{ export.generated_by.get_full_name|default:export.generated_by.username }}</td>
+            <td class="px-3 py-2 text-end">
+              {% if export.status == "GENERATED" and export.file %}
+                <a href="{% url 'quotation:pdf_download' export.pk %}"
+                   class="btn btn-xs btn-outline-secondary"
+                   style="font-size:.72rem;padding:.1rem .5rem;">
+                  <i class="bi bi-download me-1"></i>{% trans "Download" %}
+                </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.psp-pdf-tpl-card:hover {
+  border-color: var(--psp-purple) !important;
+  box-shadow: 0 4px 16px rgba(124,58,237,.15);
+}
+</style>
+{% endblock %}
