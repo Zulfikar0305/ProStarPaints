@@ -1,0 +1,210 @@
+{#
+  Reusable quotation summary panel partial.
+  Used in:
+    - Desktop sticky right column  (quotation_builder.html)
+    - Mobile offcanvas drawer       (quotation_builder.html)
+
+  Context required (inherited from builder view):
+    quotation          – Quotation instance
+    quotation_summary  – dict from get_quotation_summary()
+#}
+{% load i18n %}
+
+<div class="psp-summary-panel">
+
+  {# ── Header: customer + project ── #}
+  <div class="psp-summary-header">
+    <div class="d-flex align-items-start justify-content-between gap-2 mb-1">
+      <div class="min-width-0">
+        <div class="fw-bold text-truncate" style="font-size:.9rem;max-width:180px;">
+          {{ quotation_summary.customer_name }}
+        </div>
+        {% if quotation_summary.project_name %}
+          <div class="text-muted text-truncate" style="font-size:.75rem;max-width:180px;">
+            {{ quotation_summary.project_name }}
+          </div>
+        {% endif %}
+      </div>
+      <span class="badge text-bg-warning text-dark flex-shrink-0" style="font-size:.65rem;">
+        {{ quotation.get_status_display }}
+      </span>
+    </div>
+    <div class="text-muted" style="font-size:.73rem;">{{ quotation.reference }}</div>
+  </div>
+
+  {# ── Progress ── #}
+  <div class="psp-summary-section">
+    <div class="d-flex justify-content-between align-items-center mb-1">
+      <span class="psp-summary-label">{% trans "Progress" %}</span>
+      <span class="small fw-semibold">
+        {{ quotation_summary.configured_count }}&thinsp;/&thinsp;{{ quotation_summary.total_sections }}
+        <span class="text-muted fw-normal">{% trans "configured" %}</span>
+      </span>
+    </div>
+    <div class="progress mb-1" style="height:5px;border-radius:50px;">
+      <div class="progress-bar bg-success"
+           role="progressbar"
+           style="width:{{ quotation_summary.progress_pct }}%;"
+           aria-valuenow="{{ quotation_summary.configured_count }}"
+           aria-valuemin="0"
+           aria-valuemax="{{ quotation_summary.total_sections }}">
+      </div>
+    </div>
+    {% if quotation_summary.unconfigured_count > 0 %}
+      <div class="text-muted" style="font-size:.72rem;">
+        {{ quotation_summary.unconfigured_count }}
+        section{{ quotation_summary.unconfigured_count|pluralize }}
+        still need configuration
+      </div>
+    {% else %}
+      <div class="text-success" style="font-size:.72rem;">
+        <i class="bi bi-check-circle-fill me-1"></i>{% trans "All sections configured" %}
+      </div>
+    {% endif %}
+  </div>
+
+  {# ── Moisture warnings ── #}
+  {% if quotation_summary.moisture_warnings %}
+    <div class="psp-summary-section psp-summary-warnings">
+      <div class="psp-summary-label mb-2">
+        <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>{% trans "Moisture Warnings" %}
+      </div>
+      {% for w in quotation_summary.moisture_warnings %}
+        <div class="d-flex justify-content-between align-items-center small mb-1">
+          <span class="text-muted text-truncate me-2">{{ w.section_name }}</span>
+          <span class="badge text-bg-danger flex-shrink-0" style="font-size:.62rem;">
+            {{ w.moisture_value }}%
+          </span>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {# ── Section list ── #}
+  {% if quotation_summary.section_summaries %}
+    <div class="psp-summary-section">
+      <div class="psp-summary-label mb-2">{% trans "Sections" %}</div>
+      {% for sec in quotation_summary.section_summaries %}
+        <div class="psp-summary-section-row">
+          <div class="d-flex align-items-center gap-1 overflow-hidden">
+            {% if sec.substrate_type == "EXTERIOR" %}
+              <i class="bi bi-sun-fill psp-summary-icon psp-summary-icon--ext flex-shrink-0"></i>
+            {% else %}
+              <i class="bi bi-house-fill psp-summary-icon psp-summary-icon--int flex-shrink-0"></i>
+            {% endif %}
+            <span class="psp-summary-section-name text-truncate">{{ sec.section_name }}</span>
+            {% if sec.has_moisture_warning %}
+              <i class="bi bi-exclamation-triangle-fill text-warning flex-shrink-0"
+                 style="font-size:.68rem;"
+                 title="High moisture: {{ sec.moisture_level }}%"></i>
+            {% endif %}
+          </div>
+          <div class="flex-shrink-0">
+            {% if sec.configured %}
+              <span class="badge text-bg-success psp-summary-badge">
+                <i class="bi bi-check-lg"></i> {{ sec.line_item_count }}
+              </span>
+            {% else %}
+              <span class="badge text-bg-secondary psp-summary-badge">{% trans "Pending" %}</span>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {# ── Item counts ── #}
+  {% if quotation_summary.item_counts.total > 0 %}
+    <div class="psp-summary-section">
+      <div class="psp-summary-label mb-2">{% trans "Line Items" %}</div>
+      <div class="row g-1">
+        {% if quotation_summary.item_counts.paint %}
+          <div class="col-6">
+            <div class="psp-summary-count-tile">
+              <i class="bi bi-palette" style="color:var(--psp-purple);"></i>
+              <div>
+                <div class="psp-summary-count-num">{{ quotation_summary.item_counts.paint }}</div>
+                <div class="psp-summary-count-lbl">{% trans "Paints" %}</div>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        {% if quotation_summary.item_counts.primer %}
+          <div class="col-6">
+            <div class="psp-summary-count-tile">
+              <i class="bi bi-layers text-secondary"></i>
+              <div>
+                <div class="psp-summary-count-num">{{ quotation_summary.item_counts.primer }}</div>
+                <div class="psp-summary-count-lbl">{% trans "Primers" %}</div>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        {% if quotation_summary.item_counts.waterproofing %}
+          <div class="col-6">
+            <div class="psp-summary-count-tile">
+              <i class="bi bi-droplet" style="color:var(--psp-blue);"></i>
+              <div>
+                <div class="psp-summary-count-num">{{ quotation_summary.item_counts.waterproofing }}</div>
+                <div class="psp-summary-count-lbl">{% trans "Waterproof." %}</div>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        {% if quotation_summary.item_counts.prep_work %}
+          <div class="col-6">
+            <div class="psp-summary-count-tile">
+              <i class="bi bi-tools text-secondary"></i>
+              <div>
+                <div class="psp-summary-count-num">{{ quotation_summary.item_counts.prep_work }}</div>
+                <div class="psp-summary-count-lbl">{% trans "Prep Work" %}</div>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
+  {# ── Pricing (pending) ── #}
+  <div class="psp-summary-section psp-summary-pricing">
+    <div class="psp-summary-label mb-2">
+      <i class="bi bi-calculator me-1"></i>{% trans "Pricing" %}
+    </div>
+    <div class="d-flex justify-content-between small py-1">
+      <span class="text-muted">{% trans "Subtotal (excl. VAT)" %}</span>
+      <span class="text-muted fw-semibold">{% trans "TBC" %}</span>
+    </div>
+    <div class="d-flex justify-content-between small py-1">
+      <span class="text-muted">{% trans "VAT (15%)" %}</span>
+      <span class="text-muted">{% trans "TBC" %}</span>
+    </div>
+    <div class="d-flex justify-content-between small py-2 border-top mt-1">
+      <span class="fw-bold small">{% trans "Total (incl. VAT)" %}</span>
+      <span class="fw-bold text-primary small">{% trans "TBC" %}</span>
+    </div>
+    <p class="psp-summary-pricing-note mb-0">
+      <i class="bi bi-info-circle me-1"></i>
+      {% trans "Pricing pending — totals will be calculated once pricing rules are configured." %}
+    </p>
+  </div>
+
+  {# ── CTA ── #}
+  <div class="psp-summary-section pb-1">
+    {% if quotation_summary.configured_count > 0 %}
+      <a href="{% url 'quotation:quotation_review' quotation.pk %}"
+         class="btn btn-success btn-sm w-100">
+        <i class="bi bi-arrow-right-circle me-1"></i>{% trans "Continue to Review" %}
+      </a>
+    {% else %}
+      <button class="btn btn-success btn-sm w-100" disabled>
+        <i class="bi bi-arrow-right-circle me-1"></i>{% trans "Continue to Review" %}
+      </button>
+      <p class="text-center text-muted mt-2 mb-0" style="font-size:.72rem;">
+        <i class="bi bi-info-circle me-1"></i>
+        {% trans "Configure at least one section to proceed." %}
+      </p>
+    {% endif %}
+  </div>
+
+</div>{# /.psp-summary-panel #}

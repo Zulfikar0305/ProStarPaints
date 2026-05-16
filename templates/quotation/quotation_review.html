@@ -118,10 +118,41 @@
         </h6>
       </div>
       <div class="card-body">
+        {# Progress bar — driven by quotation_summary from the view #}
+        {% if quotation_summary.total_sections %}
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="psp-summary-label">{% trans "Configuration" %}</span>
+              <span class="small text-muted">
+                {{ quotation_summary.configured_count }}&thinsp;/&thinsp;{{ quotation_summary.total_sections }}
+                section{{ quotation_summary.total_sections|pluralize }}
+              </span>
+            </div>
+            <div class="progress mb-1" style="height:5px;border-radius:50px;">
+              <div class="progress-bar bg-success"
+                   role="progressbar"
+                   style="width:{{ quotation_summary.progress_pct }}%;"
+                   aria-valuenow="{{ quotation_summary.configured_count }}"
+                   aria-valuemin="0"
+                   aria-valuemax="{{ quotation_summary.total_sections }}"></div>
+            </div>
+            {% if quotation_summary.unconfigured_count > 0 %}
+              <div class="text-muted" style="font-size:.72rem;">
+                {{ quotation_summary.unconfigured_count }}
+                section{{ quotation_summary.unconfigured_count|pluralize }}
+                still need configuration
+              </div>
+            {% else %}
+              <div class="text-success" style="font-size:.72rem;">
+                <i class="bi bi-check-circle-fill me-1"></i>{% trans "All sections configured" %}
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
         <div class="d-flex justify-content-between small py-1 border-bottom">
           <span class="text-muted">{% trans "Subtotal (excl. VAT)" %}</span>
           <span class="fw-semibold">
-            {% if subtotal %}R {{ subtotal|floatformat:2 }}{% else %}<span class="text-muted">TBC</span>{% endif %}
+            {% if subtotal %}R {{ subtotal|floatformat:2 }}{% else %}<span class="text-muted">{% trans "TBC" %}</span>{% endif %}
           </span>
         </div>
         <div class="d-flex justify-content-between small py-1 border-bottom text-muted">
@@ -151,19 +182,22 @@
                style="border-left: 4px solid {% if section.substrate_type == 'INTERIOR' %}var(--psp-purple){% else %}var(--psp-green){% endif %} !important;">
 
             <div class="card-header bg-transparent py-3 d-flex align-items-center justify-content-between">
-              <div class="d-flex align-items-center gap-2">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
                 {% if section.substrate_type == "INTERIOR" %}
-                  <i class="bi bi-house text-primary"></i>
+                  <i class="bi bi-house-fill text-primary"></i>
                 {% else %}
-                  <i class="bi bi-sun" style="color:var(--psp-green);"></i>
+                  <i class="bi bi-sun-fill" style="color:var(--psp-green);"></i>
                 {% endif %}
                 <span class="fw-semibold">{{ section.display_name }}</span>
+                <span class="badge psp-substrate-badge {% if section.substrate_type == 'INTERIOR' %}psp-substrate-badge--int{% else %}psp-substrate-badge--ext{% endif %}">
+                  {% if section.substrate_type == "INTERIOR" %}{% trans "Interior" %}{% else %}{% trans "Exterior" %}{% endif %}
+                </span>
                 {% if entry.configured %}
-                  <span class="badge text-bg-success ms-1" style="font-size:.7rem;">
+                  <span class="badge text-bg-success" style="font-size:.7rem;">
                     <i class="bi bi-check-lg me-1"></i>{% trans "Configured" %}
                   </span>
                 {% else %}
-                  <span class="badge text-bg-warning text-dark ms-1" style="font-size:.7rem;">
+                  <span class="badge text-bg-warning text-dark" style="font-size:.7rem;">
                     <i class="bi bi-clock me-1"></i>{% trans "Not configured" %}
                   </span>
                 {% endif %}

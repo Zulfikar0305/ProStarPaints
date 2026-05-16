@@ -23,22 +23,37 @@
 {% with meta=gs_summary.meta configured=gs_summary.configured %}
 
 <div class="card border-0 shadow-sm mb-3"
-     style="border-left:4px solid {% if section_config.substrate_type == 'EXTERIOR' %}var(--psp-green){% else %}var(--psp-purple){% endif %} !important;">
+     style="border-left:4px solid {% if section_config.substrate_type == 'EXTERIOR' %}var(--psp-green){% else %}var(--psp-purple){% endif %} !important;"
+     data-section-pk="{{ section.pk }}">
 
   {# ── Card header ── #}
   <div class="card-header bg-transparent py-3 d-flex align-items-center justify-content-between">
-    <div class="d-flex align-items-center gap-2">
-      <i class="bi bi-layers text-primary"></i>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      {% if section_config.substrate_type == "EXTERIOR" %}
+        <i class="bi bi-sun-fill" style="color:var(--psp-green);"></i>
+      {% else %}
+        <i class="bi bi-house-fill text-primary"></i>
+      {% endif %}
       <span class="fw-semibold">{{ section.display_name }}</span>
+      <span class="badge psp-substrate-badge {% if section_config.substrate_type == 'EXTERIOR' %}psp-substrate-badge--ext{% else %}psp-substrate-badge--int{% endif %}">
+        {% if section_config.substrate_type == "EXTERIOR" %}{% trans "Exterior" %}{% else %}{% trans "Interior" %}{% endif %}
+      </span>
       {% if configured %}
-        <span class="badge text-bg-success ms-1" style="font-size:.7rem;">
-          <i class="bi bi-check-lg me-1"></i>Configured
+        <span class="badge text-bg-success" style="font-size:.7rem;">
+          <i class="bi bi-check-lg me-1"></i>{% trans "Configured" %}
         </span>
       {% else %}
-        <span class="badge text-bg-warning text-dark ms-1" style="font-size:.7rem;">
-          <i class="bi bi-pencil me-1"></i>Needs configuration
+        <span class="badge text-bg-warning text-dark" style="font-size:.7rem;">
+          <i class="bi bi-pencil me-1"></i>{% trans "Needs configuration" %}
         </span>
       {% endif %}
+      <span class="badge text-bg-danger psp-moisture-badge"
+            style="font-size:.65rem;{% if not configured or not meta.moisture_level or meta.moisture_level <= moisture_threshold %}display:none;{% endif %}">
+        <i class="bi bi-exclamation-triangle me-1"></i><span class="psp-moisture-val">{{ meta.moisture_level|default:0 }}</span>{% trans "% moisture" %}
+      </span>
+      <span class="badge text-bg-warning text-dark psp-unsaved-badge" style="font-size:.65rem;display:none;">
+        <i class="bi bi-dot me-1"></i>{% trans "Unsaved" %}
+      </span>
     </div>
     <button class="btn btn-sm btn-outline-secondary" type="button"
             data-bs-toggle="collapse"

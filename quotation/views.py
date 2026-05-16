@@ -28,7 +28,12 @@ from .config import (
 from .description_engine import generate_line_item_description
 from .forms import QuotationStartForm
 from .models import Quotation, QuotationLineItem, QuotationSection
-from .services import ALL_SUBSECTIONS, EXTERIOR_SUBSECTIONS, INTERIOR_SUBSECTIONS
+from .services import (
+    ALL_SUBSECTIONS,
+    EXTERIOR_SUBSECTIONS,
+    INTERIOR_SUBSECTIONS,
+    get_quotation_summary,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -389,6 +394,7 @@ class QuotationBuilderView(QuotationAccessMixin, View):
             "exterior_secs":          exterior_secs,
             "section_summaries":      section_summaries,
             "any_configured":         any_configured,
+            "quotation_summary":      get_quotation_summary(quotation),
             "is_admin":               self._is_admin(),
             # shared config passed through to all partials
             "wall_types":             WALL_TYPES,
@@ -909,10 +915,11 @@ class QuotationReviewView(QuotationAccessMixin, View):
         )
 
         return render(request, self.template_name, {
-            "quotation":    quotation,
-            "section_data": section_data,
-            "subtotal":     subtotal,
-            "is_admin":     self._is_admin(),
+            "quotation":         quotation,
+            "section_data":      section_data,
+            "subtotal":          subtotal,
+            "is_admin":          self._is_admin(),
+            "quotation_summary": get_quotation_summary(quotation),
         })
 
 

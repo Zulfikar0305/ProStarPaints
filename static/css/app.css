@@ -1153,3 +1153,321 @@ body {
 .psp-step-badge--blue {
   background: var(--psp-blue);
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   26. Quotation Builder UX — Guided Builder with Live Summary
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Substrate section labels ── */
+.psp-builder-substrate-label {
+  font-size: .67rem;
+  font-weight: 700;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--psp-text-soft);
+  margin-bottom: .75rem;
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+}
+
+/* ── Bottom flow bar (Back / Continue) ── */
+.psp-builder-flow-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--psp-border);
+}
+
+/* ── Substrate badge on section card headers ── */
+.psp-substrate-badge {
+  font-size: .62rem !important;
+  font-weight: 700;
+  letter-spacing: .04em;
+  padding: .22em .6em;
+  border-radius: 50px;
+}
+
+.psp-substrate-badge--int {
+  background: var(--psp-purple-light);
+  color: var(--psp-purple);
+}
+
+.psp-substrate-badge--ext {
+  background: var(--psp-green-light);
+  color: var(--psp-green);
+}
+
+
+/* ── Sticky summary column (desktop) ── */
+.psp-builder-summary-sticky {
+  position: sticky;
+  top: 80px;          /* 64 px topbar + 16 px breathing room */
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+  /* Thin custom scrollbar so it doesn't look bulky */
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.psp-builder-summary-sticky::-webkit-scrollbar {
+  width: 4px;
+}
+
+.psp-builder-summary-sticky::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.psp-builder-summary-sticky::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+
+/* ── Summary panel card ── */
+.psp-summary-panel {
+  background: var(--psp-card-bg);
+  border: 1px solid var(--psp-border);
+  border-radius: var(--psp-radius);
+  box-shadow: var(--psp-shadow);
+  overflow: hidden;
+}
+
+.psp-summary-header {
+  background: linear-gradient(135deg, #f8f5ff 0%, #f0fdf4 100%);
+  padding: .85rem 1rem .75rem;
+  border-bottom: 1px solid var(--psp-border);
+}
+
+.psp-summary-section {
+  padding: .75rem 1rem;
+  border-bottom: 1px solid var(--psp-border);
+}
+
+.psp-summary-section:last-child {
+  border-bottom: none;
+}
+
+.psp-summary-label {
+  font-size: .63rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--psp-text-soft);
+  display: flex;
+  align-items: center;
+  gap: .25rem;
+}
+
+/* Section list rows */
+.psp-summary-section-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  padding: .3rem 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: .8rem;
+}
+
+.psp-summary-section-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.psp-summary-section-name {
+  flex: 1;
+  min-width: 0;
+  font-size: .8rem;
+  color: var(--psp-text);
+}
+
+.psp-summary-icon {
+  font-size: .75rem;
+}
+
+.psp-summary-icon--int {
+  color: var(--psp-purple);
+}
+
+.psp-summary-icon--ext {
+  color: var(--psp-green);
+}
+
+.psp-summary-badge {
+  font-size: .62rem !important;
+  padding: .18em .5em;
+}
+
+/* Item count tiles */
+.psp-summary-count-tile {
+  background: #f8fafc;
+  border: 1px solid var(--psp-border);
+  border-radius: 9px;
+  padding: .45rem .6rem;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .75rem;
+}
+
+.psp-summary-count-tile i {
+  font-size: .95rem;
+  flex-shrink: 0;
+}
+
+.psp-summary-count-num {
+  font-weight: 700;
+  font-size: .88rem;
+  line-height: 1.1;
+  color: var(--psp-text);
+}
+
+.psp-summary-count-lbl {
+  font-size: .65rem;
+  color: var(--psp-text-muted);
+  line-height: 1;
+}
+
+/* Warnings section */
+.psp-summary-warnings {
+  background: #fffbeb;
+}
+
+/* Pricing section */
+.psp-summary-pricing {
+  background: #f8fafc;
+}
+
+.psp-summary-pricing-note {
+  font-size: .72rem;
+  color: var(--psp-text-muted);
+  margin-top: .4rem;
+  line-height: 1.4;
+}
+
+
+/* ── Mobile offcanvas summary drawer ── */
+.psp-summary-offcanvas {
+  height: 78vh !important;
+  max-height: 78vh !important;
+  border-radius: 20px 20px 0 0 !important;
+  overflow: hidden;
+}
+
+.psp-summary-offcanvas .offcanvas-header {
+  background: var(--psp-card-bg);
+  padding: .85rem 1.25rem .75rem;
+}
+
+.psp-summary-offcanvas .offcanvas-body {
+  overflow-y: auto;
+  padding: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+/* No inner card border in offcanvas — it sits inside the drawer */
+.psp-summary-offcanvas .psp-summary-panel {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+
+/* ── Mobile bottom sticky bar ── */
+.psp-bottom-summary-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  /* Sits right of sidebar on tablet — override with margin at lg+ */
+  background: rgba(255, 255, 255, .96);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-top: 1px solid var(--psp-border);
+  padding: .65rem 1rem;
+  z-index: 200;
+  box-shadow: 0 -4px 20px rgba(15, 23, 42, .08);
+}
+
+@media (min-width: 992px) {
+  /* On desktop the bar is hidden (d-lg-none in template),
+     but also shift it past the sidebar just in case */
+  .psp-bottom-summary-bar {
+    left: 240px;
+  }
+}
+
+@media (max-width: 991.98px) {
+  /* Sidebar is hidden on mobile, so full width */
+  .psp-bottom-summary-bar {
+    left: 0;
+  }
+}
+
+
+/* ── Card header badge spacing in builder ── */
+.card-header .psp-moisture-badge {
+  display: inline-flex;
+  align-items: center;
+}
+
+.card-header .psp-unsaved-badge {
+  display: inline-flex;
+  align-items: center;
+  animation: psp-pulse .8s ease infinite alternate;
+}
+
+@keyframes psp-pulse {
+  from { opacity: .7; }
+  to   { opacity: 1; }
+}
+
+
+/* ── Builder card spacing improvements ── */
+.col-lg-8 .card {
+  transition: box-shadow .18s;
+}
+
+.col-lg-8 .card:hover {
+  box-shadow: var(--psp-shadow-md) !important;
+}
+
+
+/* ── Tablet tweaks ── */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .psp-builder-summary-sticky {
+    top: 76px;
+  }
+
+  #pspBuilderMain .card-body {
+    padding: 1rem;
+  }
+}
+
+
+/* ── Small mobile tweaks ── */
+@media (max-width: 575.98px) {
+  .psp-builder-flow-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .psp-builder-flow-bar .btn,
+  .psp-builder-flow-bar .text-end {
+    width: 100%;
+  }
+
+  .psp-builder-flow-bar .text-end .btn {
+    width: 100%;
+  }
+
+  .psp-bottom-summary-bar {
+    padding: .55rem .85rem;
+  }
+}
+
