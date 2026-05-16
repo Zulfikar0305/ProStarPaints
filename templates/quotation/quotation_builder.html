@@ -103,20 +103,23 @@
     <h6 class="text-uppercase fw-bold text-muted small mb-3 {% if interior_secs %}mt-3{% endif %}">
       <i class="bi bi-sun me-1"></i>{% trans "Exterior Surfaces" %}
     </h6>
-    {% for section in exterior_secs %}
-      <div class="card border-0 shadow-sm mb-3"
-           style="border-left: 4px solid var(--psp-green) !important;">
-        <div class="card-body">
-          <div class="d-flex align-items-start justify-content-between mb-1">
-            <span class="fw-semibold">{{ section.display_name }}</span>
-            <span class="badge rounded-pill"
-                  style="background:#d1fae5;color:var(--psp-green);font-size:.7rem;">
-              {% trans "Exterior" %}
-            </span>
-          </div>
-          {% for sec_pk, sec_data in section_summaries.items %}
-            {% if sec_pk == section.pk %}
-              {% if sec_data.configured %}
+    {% for entry in exterior_sections_data %}
+      {% with section=entry.section %}
+        {% if entry.is_generic %}
+          {% include "quotation/partials/_generic_surface_section.html" with gs_summary=entry.summary section_config=entry.config %}
+        {% else %}
+          {# Placeholder card for sections without a generic config (e.g. exterior_doors_trims_skirtings) #}
+          <div class="card border-0 shadow-sm mb-3"
+               style="border-left: 4px solid var(--psp-green) !important;">
+            <div class="card-body">
+              <div class="d-flex align-items-start justify-content-between mb-1">
+                <span class="fw-semibold">{{ section.display_name }}</span>
+                <span class="badge rounded-pill"
+                      style="background:#d1fae5;color:var(--psp-green);font-size:.7rem;">
+                  {% trans "Exterior" %}
+                </span>
+              </div>
+              {% if entry.summary.configured %}
                 <span class="badge text-bg-success mb-1" style="font-size:.7rem;">
                   <i class="bi bi-check-lg me-1"></i>{% trans "Configured" %}
                 </span>
@@ -125,11 +128,11 @@
                   <i class="bi bi-clock me-1"></i>{% trans "Not configured" %}
                 </span>
               {% endif %}
-            {% endif %}
-          {% endfor %}
-          <p class="small text-muted mb-0 mt-1">{% trans "Configuration coming soon." %}</p>
-        </div>
-      </div>
+              <p class="small text-muted mb-0 mt-1">{% trans "Configuration coming soon." %}</p>
+            </div>
+          </div>
+        {% endif %}
+      {% endwith %}
     {% endfor %}
   {% endif %}
 

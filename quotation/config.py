@@ -332,7 +332,8 @@ GENERIC_SURFACE_CONDITIONS_FLOORS: list[tuple[str, str]] = [
 @dataclass(frozen=True)
 class InteriorSectionConfig:
     """
-    Configuration for a single interior surface section in the builder.
+    Configuration for a single surface section in the builder.
+    Used for both interior and exterior generic sections.
 
     Attributes
     ----------
@@ -342,6 +343,7 @@ class InteriorSectionConfig:
     types             : list of (value, label) surface-type choices
     surface_conditions: list of (value, label) applicable surface conditions
     finishes          : list of (value, label) finishes available for this section
+    substrate_type    : "INTERIOR" or "EXTERIOR" – stored in metadata and audit log
     """
     key: str
     display_name: str
@@ -349,6 +351,7 @@ class InteriorSectionConfig:
     types: list[tuple[str, str]]
     surface_conditions: list[tuple[str, str]]
     finishes: list[tuple[str, str]]
+    substrate_type: str = "INTERIOR"
 
 
 # ---------------------------------------------------------------------------
@@ -411,7 +414,7 @@ INTERIOR_SECTION_CONFIGS: dict[str, "InteriorSectionConfig"] = {
     ),
     "doors_trims_skirtings": InteriorSectionConfig(
         key="doors_trims_skirtings",
-        display_name="Doors, trims and skirtings",
+        display_name="Doors, Trims & Skirtings",
         type_label="Surface type",
         types=[
             ("hardwood",  "Hardwood"),
@@ -423,7 +426,7 @@ INTERIOR_SECTION_CONFIGS: dict[str, "InteriorSectionConfig"] = {
     ),
     "window_frames": InteriorSectionConfig(
         key="window_frames",
-        display_name="Window frames",
+        display_name="Window Frames",
         type_label="Frame type",
         types=[
             ("metal",     "Metal"),
@@ -433,4 +436,150 @@ INTERIOR_SECTION_CONFIGS: dict[str, "InteriorSectionConfig"] = {
         surface_conditions=GENERIC_SURFACE_CONDITIONS_FULL,
         finishes=_TWO_SMOOTH_FINISHES,
     ),
+}
+
+
+# Finish-list helper: single-finish sections (e.g. Pavings)
+_ONE_SMOOTH_MATTE_FINISH: list[tuple[str, str]] = [
+    ("smooth_matte", "Smooth Matte"),
+]
+
+
+# ---------------------------------------------------------------------------
+# EXTERIOR_SECTION_CONFIGS
+#
+# Config for every supported exterior section.  Reuses the same
+# InteriorSectionConfig dataclass with substrate_type="EXTERIOR".
+# ---------------------------------------------------------------------------
+
+EXTERIOR_SECTION_CONFIGS: dict[str, "InteriorSectionConfig"] = {
+    "exterior_walls": InteriorSectionConfig(
+        key="exterior_walls",
+        display_name="Exterior Walls",
+        type_label="Wall type",
+        types=[
+            ("brick",  "Brick"),
+            ("block",  "Block"),
+        ],
+        surface_conditions=GENERIC_SURFACE_CONDITIONS_FULL,
+        finishes=_ALL_FIVE_FINISHES,
+        substrate_type="EXTERIOR",
+    ),
+    "roof": InteriorSectionConfig(
+        key="roof",
+        display_name="Roof",
+        type_label="Roof type",
+        types=[
+            ("steel",    "Steel"),
+            ("concrete", "Concrete"),
+        ],
+        surface_conditions=GENERIC_SURFACE_CONDITIONS_FULL,
+        finishes=_TWO_SMOOTH_FINISHES,
+        substrate_type="EXTERIOR",
+    ),
+    "soffits_fascia": InteriorSectionConfig(
+        key="soffits_fascia",
+        display_name="Soffits / Fascia",
+        type_label="Surface type",
+        types=[
+            ("concrete", "Concrete"),
+            ("pvc",      "PVC"),
+            ("metal",    "Metal"),
+            ("wood",     "Wood"),
+        ],
+        surface_conditions=GENERIC_SURFACE_CONDITIONS_FULL,
+        finishes=_FOUR_NO_DECO_FINISHES,
+        substrate_type="EXTERIOR",
+    ),
+    "gutter": InteriorSectionConfig(
+        key="gutter",
+        display_name="Gutter",
+        type_label="Gutter type",
+        types=[
+            ("concrete", "Concrete"),
+            ("pvc",      "PVC"),
+            ("metal",    "Metal"),
+        ],
+        surface_conditions=GENERIC_SURFACE_CONDITIONS_FULL,
+        finishes=_FOUR_NO_DECO_FINISHES,
+        substrate_type="EXTERIOR",
+    ),
+    "deck_patio": InteriorSectionConfig(
+        key="deck_patio",
+        display_name="Deck / Patio",
+        type_label="Surface type",
+        types=[
+            ("brick",     "Brick"),
+            ("block",     "Block"),
+            ("soft_wood", "Soft wood"),
+            ("hardwood",  "Hardwood"),
+        ],
+        surface_conditions=GENERIC_SURFACE_CONDITIONS_FULL,
+        finishes=_ALL_FIVE_FINISHES,
+        substrate_type="EXTERIOR",
+    ),
+    "fencing": InteriorSectionConfig(
+        key="fencing",
+        display_name="Fencing",
+        type_label="Fence type",
+        types=[
+            ("concrete",  "Concrete"),
+            ("soft_wood", "Soft wood"),
+            ("hardwood",  "Hardwood"),
+            ("metal",     "Metal"),
+        ],
+        surface_conditions=GENERIC_SURFACE_CONDITIONS_FULL,
+        finishes=_FOUR_NO_DECO_FINISHES,
+        substrate_type="EXTERIOR",
+    ),
+    "garage_door": InteriorSectionConfig(
+        key="garage_door",
+        display_name="Garage Door",
+        type_label="Door type",
+        types=[
+            ("hardwood",  "Hardwood"),
+            ("soft_wood", "Soft wood"),
+            ("metal",     "Metal"),
+        ],
+        surface_conditions=GENERIC_SURFACE_CONDITIONS_FULL,
+        finishes=_FOUR_NO_DECO_FINISHES,
+        substrate_type="EXTERIOR",
+    ),
+    "pavings": InteriorSectionConfig(
+        key="pavings",
+        display_name="Pavings",
+        type_label="Paving type",
+        types=[
+            ("tar",      "Tar"),
+            ("brick",    "Brick"),
+            ("concrete", "Concrete"),
+        ],
+        surface_conditions=GENERIC_SURFACE_CONDITIONS_FLOORS,
+        finishes=_ONE_SMOOTH_MATTE_FINISH,
+        substrate_type="EXTERIOR",
+    ),
+    "exterior_window_frames": InteriorSectionConfig(
+        key="exterior_window_frames",
+        display_name="Exterior Window Frames",
+        type_label="Frame type",
+        types=[
+            ("metal",     "Metal"),
+            ("wood",      "Wood"),
+            ("aluminium", "Aluminium"),
+        ],
+        surface_conditions=GENERIC_SURFACE_CONDITIONS_FULL,
+        finishes=_TWO_SMOOTH_FINISHES,
+        substrate_type="EXTERIOR",
+    ),
+}
+
+
+# ---------------------------------------------------------------------------
+# Combined lookup: all generic sections (interior + exterior).
+# Used by the generic save view and builder to handle any configured section.
+# ---------------------------------------------------------------------------
+
+ALL_GENERIC_SECTION_CONFIGS: dict[str, "InteriorSectionConfig"] = {
+    **INTERIOR_SECTION_CONFIGS,
+    **EXTERIOR_SECTION_CONFIGS,
 }

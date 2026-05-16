@@ -13,9 +13,9 @@ from audit.services import log_action
 from paints.models import Paint
 
 from .config import (
+    ALL_GENERIC_SECTION_CONFIGS,
     FINISH_TO_PAINT_GROUPS,
     FINISHES,
-    INTERIOR_SECTION_CONFIGS,
     MOISTURE_WARNING_THRESHOLD,
     OTHER_PREP_OPTIONS,
     PAINT_GROUPS,
@@ -331,9 +331,9 @@ class QuotationBuilderView(QuotationAccessMixin, View):
                 cfg        = None
                 is_walls   = True
                 is_generic = False
-            elif sec.subsection_key in INTERIOR_SECTION_CONFIGS:
+            elif sec.subsection_key in ALL_GENERIC_SECTION_CONFIGS:
                 summary    = self._generic_section_context(sec)
-                cfg        = INTERIOR_SECTION_CONFIGS[sec.subsection_key]
+                cfg        = ALL_GENERIC_SECTION_CONFIGS[sec.subsection_key]
                 is_walls   = False
                 is_generic = True
             else:
@@ -349,17 +349,34 @@ class QuotationBuilderView(QuotationAccessMixin, View):
                 "is_generic": is_generic,
             })
 
-        # Flat pk-keyed summaries dict still used by exterior cards
+        # Flat pk-keyed summaries dict (kept for backward compat)
         section_summaries: dict[int, dict] = {
             entry["section"].pk: entry["summary"]
             for entry in interior_sections_data
         }
+
+        # Build enriched list for exterior sections.
+        exterior_sections_data: list[dict] = []
         for sec in exterior_secs:
-            section_summaries[sec.pk] = {
-                "configured": sec.line_items.exists(),
-                "meta":       {},
-                "line_count": sec.line_items.count(),
-            }
+            if sec.subsection_key in ALL_GENERIC_SECTION_CONFIGS:
+                summary    = self._generic_section_context(sec)
+                cfg        = ALL_GENERIC_SECTION_CONFIGS[sec.subsection_key]
+                is_generic = True
+            else:
+                summary    = {
+                    "configured": sec.line_items.exists(),
+                    "meta":       {},
+                    "line_count": sec.line_items.count(),
+                }
+                cfg        = None
+                is_generic = False
+            exterior_sections_data.append({
+                "section":    sec,
+                "summary":    summary,
+                "config":     cfg,
+                "is_generic": is_generic,
+            })
+            section_summaries[sec.pk] = summary
 
         any_configured  = any(v.get("configured", False) for v in section_summaries.values())
         finish_map_json = json.dumps(FINISH_TO_PAINT_GROUPS)
@@ -367,6 +384,7 @@ class QuotationBuilderView(QuotationAccessMixin, View):
         return render(request, self.template_name, {
             "quotation":              quotation,
             "interior_sections_data": interior_sections_data,
+            "exterior_sections_data": exterior_sections_data,
             "interior_secs":          interior_secs,
             "exterior_secs":          exterior_secs,
             "section_summaries":      section_summaries,
@@ -612,17 +630,17 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
 # Generic Interior Section – save handler
 # ---------------------------------------------------------------------------
 
-class GenericInteriorSectionSaveView(QuotationAccessMixin, View):
+class GenericSectionSaveView(QuotationAccessMixin, View):
     """
-    POST-only view that saves any supported generic interior section
-    (ceilings, floors, doors_trims_skirtings, window_frames).
+    POST-only view that saves any supported generic section
+    (all interior non-walls sections + all supported exterior sections).
 
     Deletes existing line items for the section and recreates them from POST
     data.  The InteriorSectionConfig drives validation and labelling so there
     is no per-section branching here.
     """
 
-    _GENERIC_KEYS = frozenset(INTERIOR_SECTION_CONFIGS.keys())
+    _GENERIC_KEYS = frozenset(ALL_GENERIC_SECTION_CONFIGS.keys())
 
     def _get_section(self, request, pk, section_pk):
         quotation = get_object_or_404(self.get_base_qs(), pk=pk)
@@ -636,7 +654,7 @@ class GenericInteriorSectionSaveView(QuotationAccessMixin, View):
     def post(self, request, pk, section_pk, *args, **kwargs):
         section   = self._get_section(request, pk, section_pk)
         quotation = section.quotation
-        cfg       = INTERIOR_SECTION_CONFIGS.get(section.subsection_key)
+        cfg       = ALL_GENERIC_SECTION_CONFIGS.get(section.subsection_key)
 
         if not cfg:
             messages.error(request, "Unknown section configuration.")
@@ -705,6 +723,7 @@ class GenericInteriorSectionSaveView(QuotationAccessMixin, View):
             metadata    = {
                 "section_key":         cfg.key,
                 "section_name":        cfg.display_name,
+                "substrate_type":      cfg.substrate_type,
                 "types":               selected_types,
                 "type_labels":         type_labels,
                 "surface_conditions":  surface_conds,
@@ -817,12 +836,14 @@ class GenericInteriorSectionSaveView(QuotationAccessMixin, View):
                 f"{area_sqm or 'TBC'} m\u00b2"
             ),
             metadata    = {
-                "quotation_id": quotation.pk,
-                "section_id":   section.pk,
-                "section_key":  cfg.key,
-                "types":        selected_types,
-                "finishes":     finishes,
-                "area_sqm":     str(area_sqm) if area_sqm else None,
+                "quotation_id":   quotation.pk,
+                "section_id":     section.pk,
+                "section_key":    cfg.key,
+                "section_name":   cfg.display_name,
+                "substrate_type": cfg.substrate_type,
+                "types":          selected_types,
+                "finishes":       finishes,
+                "area_sqm":       str(area_sqm) if area_sqm else None,
             },
             request = request,
         )

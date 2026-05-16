@@ -23,7 +23,7 @@
 {% with meta=gs_summary.meta configured=gs_summary.configured %}
 
 <div class="card border-0 shadow-sm mb-3"
-     style="border-left:4px solid var(--psp-purple) !important;">
+     style="border-left:4px solid {% if section_config.substrate_type == 'EXTERIOR' %}var(--psp-green){% else %}var(--psp-purple){% endif %} !important;">
 
   {# ── Card header ── #}
   <div class="card-header bg-transparent py-3 d-flex align-items-center justify-content-between">
@@ -82,7 +82,7 @@
   <div class="collapse {% if not configured %}show{% endif %}"
        id="gsFormBody_{{ section.pk }}">
     <form method="post"
-          action="{% url 'quotation:interior_section_save' quotation.pk section.pk %}">
+          action="{% url 'quotation:section_save' quotation.pk section.pk %}">
       {% csrf_token %}
       <div class="card-body">
 
@@ -379,17 +379,18 @@
     if (warnEl) warnEl.style.display = parseInt(val, 10) > THRESHOLD ? 'block' : 'none';
   }
 
-  /* Restore saved base/coat selections */
+  /* Restore saved base/coat selections (scoped to this section's form) */
+  var gsContainer = document.getElementById('gsFormBody_' + SECTION_PK);
   Object.keys(SAVED_BASES).forEach(function (gk) {
-    var sel = document.querySelector('[name="paint_base_' + gk + '"]');
+    var sel = gsContainer && gsContainer.querySelector('[name="paint_base_' + gk + '"]');
     if (sel) sel.value = SAVED_BASES[gk];
   });
   Object.keys(SAVED_COATS).forEach(function (gk) {
-    var sel = document.querySelector('[name="paint_coats_' + gk + '"]');
+    var sel = gsContainer && gsContainer.querySelector('[name="paint_coats_' + gk + '"]');
     if (sel) sel.value = SAVED_COATS[gk];
   });
   Object.keys(SAVED_PRIMERS).forEach(function (pk) {
-    var sel = document.querySelector('[name="primer_coats_' + pk + '"]');
+    var sel = gsContainer && gsContainer.querySelector('[name="primer_coats_' + pk + '"]');
     if (sel) sel.value = SAVED_PRIMERS[pk];
   });
 

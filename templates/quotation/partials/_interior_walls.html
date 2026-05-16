@@ -358,17 +358,18 @@
     if (warn) warn.style.display = parseInt(val) > THRESHOLD ? 'block' : 'none';
   }
 
-  /* Restore saved base/coat/primer-coat selections */
+  /* Restore saved base/coat/primer-coat selections (scoped to this section's form) */
+  var iwContainer = document.getElementById('iwFormBody_' + SECTION_PK);
   Object.keys(SAVED_BASES).forEach(function (gk) {
-    var sel = document.querySelector('[name="paint_base_' + gk + '"]');
+    var sel = iwContainer && iwContainer.querySelector('[name="paint_base_' + gk + '"]');
     if (sel) sel.value = SAVED_BASES[gk];
   });
   Object.keys(SAVED_COATS).forEach(function (gk) {
-    var sel = document.querySelector('[name="paint_coats_' + gk + '"]');
+    var sel = iwContainer && iwContainer.querySelector('[name="paint_coats_' + gk + '"]');
     if (sel) sel.value = SAVED_COATS[gk];
   });
   Object.keys(SAVED_PRIMERS).forEach(function (pk) {
-    var sel = document.querySelector('[name="primer_coats_' + pk + '"]');
+    var sel = iwContainer && iwContainer.querySelector('[name="primer_coats_' + pk + '"]');
     if (sel) sel.value = SAVED_PRIMERS[pk];
   });
 

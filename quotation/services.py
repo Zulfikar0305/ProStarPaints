@@ -43,12 +43,13 @@ EXTERIOR_SUBSECTIONS: list[SubsectionConfig] = [
     SubsectionConfig("exterior_walls",               "Exterior Walls",                  "EXTERIOR", 0),
     SubsectionConfig("exterior_doors_trims_skirtings","Exterior Doors, Trims & Skirtings","EXTERIOR", 1),
     SubsectionConfig("roof",                         "Roof",                            "EXTERIOR", 2),
-    SubsectionConfig("soffits_fascia",               "Soffits & Fascia",                "EXTERIOR", 3),
+    SubsectionConfig("soffits_fascia",               "Soffits / Fascia",                "EXTERIOR", 3),
     SubsectionConfig("gutter",                       "Gutter",                          "EXTERIOR", 4),
     SubsectionConfig("deck_patio",                   "Deck / Patio",                    "EXTERIOR", 5),
     SubsectionConfig("fencing",                      "Fencing",                         "EXTERIOR", 6),
     SubsectionConfig("garage_door",                  "Garage Door",                     "EXTERIOR", 7),
     SubsectionConfig("pavings",                      "Pavings",                         "EXTERIOR", 8),
+    SubsectionConfig("exterior_window_frames",       "Exterior Window Frames",          "EXTERIOR", 9),
 ]
 
 # Flat lookup: key → SubsectionConfig
