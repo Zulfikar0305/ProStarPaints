@@ -23,7 +23,11 @@
 
   {% block extra_css %}{% endblock %}
 </head>
-<body class="psp-body">
+<body class="psp-body"
+      data-theme="{{ user_app_settings.appearance }}"
+      data-density="{{ user_app_settings.table_density }}"
+      data-accent="{{ user_app_settings.accent_style }}"
+      data-reduce-motion="{{ user_app_settings.reduce_animations|yesno:'true,false' }}">
 
 <!-- Mobile sidebar overlay -->
 {% if user.is_authenticated %}<div class="psp-overlay" id="pspOverlay"></div>{% endif %}
@@ -127,7 +131,13 @@
   {% if user.is_authenticated %}
   <div class="psp-sidebar-footer">
     <div class="psp-sidebar-user">
-      <div class="psp-sidebar-avatar">{{ user.username|first|upper }}</div>
+      <div class="psp-sidebar-avatar">
+      {% if user.profile_image %}
+        <img src="{{ user.profile_image.url }}" alt="" class="psp-sidebar-avatar-img">
+      {% else %}
+        {{ user.first_name|first|upper|default:user.username|first|upper }}
+      {% endif %}
+    </div>
       <div class="psp-sidebar-user-info">
         <div class="psp-sidebar-user-name">{{ user.get_full_name|default:user.username }}</div>
         <div class="psp-sidebar-user-role">{% if user.is_superuser %}Superuser{% else %}{{ user.role }}{% endif %}</div>
@@ -183,7 +193,11 @@
                 type="button"
                 aria-label="User menu"
                 aria-expanded="false">
-          {{ user.username|first|upper }}
+          {% if user.profile_image %}
+            <img src="{{ user.profile_image.url }}" alt="" style="width:34px;height:34px;border-radius:50%;object-fit:cover;">
+          {% else %}
+            {{ user.first_name|first|upper|default:user.username|first|upper }}
+          {% endif %}
         </button>
         <ul class="psp-user-menu-dropdown" id="pspUserMenuDropdown" role="menu">
           <li>
@@ -192,9 +206,18 @@
             </a>
           </li>
           <li>
-            <a class="psp-user-menu-item" href="{% url 'system_tools:app_settings' %}">
+            <a class="psp-user-menu-item" href="{% url 'users:app_settings' %}">
               <i class="bi bi-gear"></i>App Settings
             </a>
+          </li>
+          <li role="separator" style="border-top:1px solid var(--psp-border);margin:.25rem 0;"></li>
+          <li>
+            <form method="post" action="{% url 'logout' %}" style="margin:0;">
+              {% csrf_token %}
+              <button type="submit" class="psp-user-menu-item" style="width:100%;background:none;border:none;text-align:left;color:var(--psp-danger,#dc2626);cursor:pointer;">
+                <i class="bi bi-box-arrow-right"></i>Sign out
+              </button>
+            </form>
           </li>
         </ul>
       </div>
@@ -207,8 +230,10 @@
   {% endif %}
 
   <!-- Subtle watermark -->
+  {% if user_app_settings.show_watermark %}
   <div class="psp-watermark" aria-hidden="true"
        style="background-image: url('{% static "images/prostar-logo.png" %}');"></div>
+  {% endif %}
 
   <!-- ── Flash messages ───────────────────────────────────────── -->
   {% if messages %}

@@ -7,9 +7,15 @@ from django.views.generic import CreateView, ListView, UpdateView, View
 
 from audit.services import log_action
 
-from .forms import UserCreateForm, UserUpdateForm
+from .forms import (
+    SalesRepProfileForm,
+    UserAppSettingsForm,
+    UserCreateForm,
+    UserProfileForm,
+    UserUpdateForm,
+)
 from .mixins import AdminRequiredMixin
-from .models import User
+from .models import SalesRepProfile, User, UserAppSettings
 
 
 class UserListView(AdminRequiredMixin, ListView):
@@ -128,10 +134,97 @@ class UserDeactivateView(AdminRequiredMixin, View):
 # ---------------------------------------------------------------------------
 
 class ProfileView(LoginRequiredMixin, View):
-    """Display the current user's profile information."""
+    """View and edit the current user's profile and business details."""
+
+    template_name = "users/profile.html"
+
+    def _get_or_create_profile(self, user):
+        profile, _ = SalesRepProfile.objects.get_or_create(user=user)
+        return profile
 
     def get(self, request):
-        return render(request, "users/profile.html", {"profile_user": request.user})
+        user = request.user
+        profile = self._get_or_create_profile(user)
+        user_form    = UserProfileForm(instance=user)
+        profile_form = SalesRepProfileForm(instance=profile)
+        return render(request, self.template_name, {
+            "profile_user":  user,
+            "sales_profile": profile,
+            "user_form":     user_form,
+            "profile_form":  profile_form,
+        })
+
+    def post(self, request):
+        user = request.user
+        profile = self._get_or_create_profile(user)
+        user_form    = UserProfileForm(request.POST, request.FILES, instance=user)
+        profile_form = SalesRepProfileForm(request.POST, instance=profile)
+
+        if user_form.is_valid() and profile_form.is_valid():
+            user_form.save()
+            profile_form.save()
+            log_action(
+                user=request.user,
+                action="PROFILE_UPDATED",
+                module="users",
+                description=f"User {request.user} updated their profile.",
+                metadata={"user_id": request.user.pk},
+                request=request,
+            )
+            messages.success(request, _("Your profile has been updated."))
+            return redirect("users:profile")
+
+        messages.error(request, _("Please correct the errors below."))
+        return render(request, self.template_name, {
+            "profile_user":  user,
+            "sales_profile": profile,
+            "user_form":     user_form,
+            "profile_form":  profile_form,
+        })
+
+
+# ---------------------------------------------------------------------------
+# App Settings
+# ---------------------------------------------------------------------------
+
+class AppSettingsView(LoginRequiredMixin, View):
+    """Let the current user manage their personal app preferences."""
+
+    template_name = "users/app_settings.html"
+
+    def _get_or_create_settings(self, user):
+        settings_obj, _ = UserAppSettings.objects.get_or_create(user=user)
+        return settings_obj
+
+    def get(self, request):
+        settings_obj = self._get_or_create_settings(request.user)
+        form = UserAppSettingsForm(instance=settings_obj)
+        return render(request, self.template_name, {
+            "form":     form,
+            "settings": settings_obj,
+        })
+
+    def post(self, request):
+        settings_obj = self._get_or_create_settings(request.user)
+        form = UserAppSettingsForm(request.POST, instance=settings_obj)
+        if form.is_valid():
+            form.save()
+            log_action(
+                user=request.user,
+                action="APP_SETTINGS_UPDATED",
+                module="users",
+                description=f"User {request.user} updated their app settings.",
+                metadata={"user_id": request.user.pk},
+                request=request,
+            )
+            messages.success(request, _("Your settings have been saved."))
+            return redirect("users:app_settings")
+
+        messages.error(request, _("Please correct the errors below."))
+        return render(request, self.template_name, {
+            "form":     form,
+            "settings": settings_obj,
+        })
         user.is_active = not user.is_active
         user.save(update_fields=["is_active"])
 

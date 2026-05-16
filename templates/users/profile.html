@@ -1,116 +1,370 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}Profile — ProStar Paints{% endblock %}
+{% block title %}{% trans "My Profile" %} — ProStar Paints{% endblock %}
 
 {% block content %}
 <div class="d-flex align-items-center justify-content-between mb-4">
   <div>
     <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">{% trans "My Profile" %}</h4>
     <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">
-      {% trans "Your account details and role information." %}
+      {% trans "Keep your personal and business information up to date." %}
     </p>
   </div>
 </div>
 
+{% if messages %}
+  {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show py-2 mb-3" role="alert">
+      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<form method="post" enctype="multipart/form-data" novalidate id="profileForm">
+{% csrf_token %}
+
 <div class="row g-4">
 
-  <!-- Profile card -->
-  <div class="col-12 col-md-5 col-lg-4">
-    <div class="card">
+  <!-- ── Left column ── -->
+  <div class="col-12 col-lg-4">
+
+    <!-- Avatar card -->
+    <div class="card mb-4">
       <div class="card-body p-4 text-center">
-        <!-- Avatar -->
-        <div class="mx-auto mb-3 d-flex align-items-center justify-content-center"
-             style="width:80px;height:80px;background:var(--psp-grad-purple);border-radius:50%;font-size:2rem;font-weight:700;color:#fff;">
-          {{ profile_user.username|first|upper }}
+        <div class="position-relative d-inline-block mb-3" id="avatarWrapper">
+          {% if profile_user.profile_image %}
+            <img src="{{ profile_user.profile_image.url }}"
+                 alt="{% trans 'Profile photo' %}"
+                 class="psp-profile-avatar"
+                 id="avatarPreview">
+          {% else %}
+            <div class="psp-profile-avatar-placeholder" id="avatarInitials">
+              {{ profile_user.first_name|first|upper|default:profile_user.username|first|upper }}
+            </div>
+            <img src="" alt="" class="psp-profile-avatar d-none" id="avatarPreview">
+          {% endif %}
+
+          <!-- Upload trigger -->
+          <label for="{{ user_form.profile_image.id_for_label }}"
+                 class="position-absolute bottom-0 end-0 mb-0 d-flex align-items-center justify-content-center"
+                 style="width:28px;height:28px;border-radius:50%;background:var(--psp-grad-purple);cursor:pointer;border:2px solid #fff;"
+                 title="{% trans 'Change photo' %}">
+            <i class="bi bi-camera-fill text-white" style="font-size:.7rem;"></i>
+          </label>
+          {{ user_form.profile_image }}
         </div>
+
         <h5 class="fw-bold mb-0">{{ profile_user.get_full_name|default:profile_user.username }}</h5>
-        <p class="text-muted small mb-1">@{{ profile_user.username }}</p>
-        <span class="badge rounded-pill {% if profile_user.is_superuser %}bg-danger{% elif profile_user.role == 'ADMIN' %}bg-primary{% else %}bg-success{% endif %} mb-3">
+        <p class="small mb-1" style="color:var(--psp-text-soft);">@{{ profile_user.username }}</p>
+        {% if sales_profile.job_title %}<p class="small mb-0" style="color:var(--psp-text-muted);">{{ sales_profile.job_title }}</p>{% endif %}
+
+        <span class="badge rounded-pill mt-2
+          {% if profile_user.is_superuser %}bg-danger
+          {% elif profile_user.role == 'ADMIN' %}bg-primary
+          {% else %}bg-success{% endif %}">
           {% if profile_user.is_superuser %}Superuser{% else %}{{ profile_user.role }}{% endif %}
         </span>
 
-        <hr class="my-3">
-
-        <div class="text-start small">
-          <div class="d-flex align-items-center gap-2 mb-2 text-muted">
-            <i class="bi bi-envelope" style="width:16px;"></i>
-            {{ profile_user.email|default:"—" }}
-          </div>
-          <div class="d-flex align-items-center gap-2 mb-2 text-muted">
-            <i class="bi bi-person-check" style="width:16px;"></i>
-            {% if profile_user.is_active %}
-              <span class="text-success">{% trans "Active" %}</span>
-            {% else %}
-              <span class="text-danger">{% trans "Inactive" %}</span>
-            {% endif %}
-          </div>
-          <div class="d-flex align-items-center gap-2 text-muted">
-            <i class="bi bi-calendar3" style="width:16px;"></i>
-            {% trans "Joined" %}: {{ profile_user.date_joined|date:"d M Y" }}
-          </div>
-        </div>
+        {% if user_form.profile_image.errors %}
+          <div class="text-danger small mt-2">{{ user_form.profile_image.errors.0 }}</div>
+        {% endif %}
       </div>
     </div>
-  </div>
 
-  <!-- Info -->
-  <div class="col-12 col-md-7 col-lg-8">
+    <!-- Profile completion card -->
+    <div class="card mb-4">
+      <div class="card-header bg-transparent fw-semibold py-2" style="font-size:.85rem;">
+        <i class="bi bi-bar-chart-fill me-2" style="color:var(--psp-purple);"></i>{% trans "Profile Completion" %}
+      </div>
+      <div class="card-body p-3">
+        {% with pct=sales_profile.profile_completion_pct %}
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span class="small text-muted">{{ pct }}% {% trans "complete" %}</span>
+          {% if pct == 100 %}
+            <span class="badge bg-success" style="font-size:.7rem;">{% trans "Complete" %}</span>
+          {% elif pct >= 70 %}
+            <span class="badge bg-warning text-dark" style="font-size:.7rem;">{% trans "Almost there" %}</span>
+          {% else %}
+            <span class="badge bg-secondary" style="font-size:.7rem;">{% trans "In progress" %}</span>
+          {% endif %}
+        </div>
+        <div class="psp-completion-bar">
+          <div class="psp-completion-bar-fill" style="width:{{ pct }}%;"></div>
+        </div>
+        {% endwith %}
+
+        <ul class="list-unstyled mt-3 mb-0" style="font-size:.78rem;color:var(--psp-text-soft);">
+          <li class="mb-1 {% if profile_user.profile_image %}text-success{% endif %}">
+            <i class="bi {% if profile_user.profile_image %}bi-check-circle-fill{% else %}bi-circle{% endif %} me-1"></i>{% trans "Profile photo" %}
+          </li>
+          <li class="mb-1 {% if profile_user.phone_number %}text-success{% endif %}">
+            <i class="bi {% if profile_user.phone_number %}bi-check-circle-fill{% else %}bi-circle{% endif %} me-1"></i>{% trans "Phone number" %}
+          </li>
+          <li class="mb-1 {% if sales_profile.job_title %}text-success{% endif %}">
+            <i class="bi {% if sales_profile.job_title %}bi-check-circle-fill{% else %}bi-circle{% endif %} me-1"></i>{% trans "Job title" %}
+          </li>
+          <li class="mb-1 {% if sales_profile.department %}text-success{% endif %}">
+            <i class="bi {% if sales_profile.department %}bi-check-circle-fill{% else %}bi-circle{% endif %} me-1"></i>{% trans "Department" %}
+          </li>
+          <li class="mb-1 {% if sales_profile.bio %}text-success{% endif %}">
+            <i class="bi {% if sales_profile.bio %}bi-check-circle-fill{% else %}bi-circle{% endif %} me-1"></i>{% trans "Bio" %}
+          </li>
+          <li class="mb-1 {% if sales_profile.business_email %}text-success{% endif %}">
+            <i class="bi {% if sales_profile.business_email %}bi-check-circle-fill{% else %}bi-circle{% endif %} me-1"></i>{% trans "Business email" %}
+          </li>
+          <li class="mb-1 {% if sales_profile.company_phone %}text-success{% endif %}">
+            <i class="bi {% if sales_profile.company_phone %}bi-check-circle-fill{% else %}bi-circle{% endif %} me-1"></i>{% trans "Company phone" %}
+          </li>
+          <li class="mb-1 {% if sales_profile.branch_location %}text-success{% endif %}">
+            <i class="bi {% if sales_profile.branch_location %}bi-check-circle-fill{% else %}bi-circle{% endif %} me-1"></i>{% trans "Branch / location" %}
+          </li>
+          <li class="mb-1 {% if sales_profile.sales_region %}text-success{% endif %}">
+            <i class="bi {% if sales_profile.sales_region %}bi-check-circle-fill{% else %}bi-circle{% endif %} me-1"></i>{% trans "Sales region" %}
+          </li>
+          <li class="{% if sales_profile.signature_name %}text-success{% endif %}">
+            <i class="bi {% if sales_profile.signature_name %}bi-check-circle-fill{% else %}bi-circle{% endif %} me-1"></i>{% trans "Signature name" %}
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Account summary -->
     <div class="card">
-      <div class="card-header bg-transparent fw-semibold py-2">
-        <i class="bi bi-person-fill me-2 text-primary"></i>{% trans "Account Details" %}
+      <div class="card-body p-3">
+        <dl class="mb-0" style="font-size:.8rem;">
+          <dt class="text-muted fw-normal mb-0">{% trans "Joined" %}</dt>
+          <dd class="fw-semibold mb-2">{{ profile_user.date_joined|date:"d M Y" }}</dd>
+          <dt class="text-muted fw-normal mb-0">{% trans "Last login" %}</dt>
+          <dd class="fw-semibold mb-0">{{ profile_user.last_login|date:"d M Y, H:i"|default:"—" }}</dd>
+        </dl>
+      </div>
+    </div>
+
+  </div><!-- /left col -->
+
+  <!-- ── Right column ── -->
+  <div class="col-12 col-lg-8">
+
+    <!-- Personal info -->
+    <div class="card mb-4">
+      <div class="card-header bg-transparent fw-semibold py-2" style="font-size:.85rem;">
+        <i class="bi bi-person-fill me-2" style="color:var(--psp-purple);"></i>{% trans "Personal Information" %}
       </div>
       <div class="card-body p-4">
-
         <div class="row g-3">
+
           <div class="col-sm-6">
-            <div class="form-label fw-semibold small text-muted text-uppercase">{% trans "First Name" %}</div>
-            <div class="fw-semibold">{{ profile_user.first_name|default:"—" }}</div>
+            <label for="{{ user_form.first_name.id_for_label }}" class="form-label fw-semibold small">
+              {% trans "First Name" %}
+            </label>
+            {{ user_form.first_name }}
+            {% if user_form.first_name.errors %}
+              <div class="invalid-feedback d-block">{{ user_form.first_name.errors.0 }}</div>
+            {% endif %}
           </div>
+
           <div class="col-sm-6">
-            <div class="form-label fw-semibold small text-muted text-uppercase">{% trans "Last Name" %}</div>
-            <div class="fw-semibold">{{ profile_user.last_name|default:"—" }}</div>
+            <label for="{{ user_form.last_name.id_for_label }}" class="form-label fw-semibold small">
+              {% trans "Last Name" %}
+            </label>
+            {{ user_form.last_name }}
+            {% if user_form.last_name.errors %}
+              <div class="invalid-feedback d-block">{{ user_form.last_name.errors.0 }}</div>
+            {% endif %}
           </div>
+
           <div class="col-sm-6">
-            <div class="form-label fw-semibold small text-muted text-uppercase">{% trans "Username" %}</div>
-            <div class="fw-semibold">{{ profile_user.username }}</div>
+            <label for="{{ user_form.email.id_for_label }}" class="form-label fw-semibold small">
+              {% trans "Email Address" %}
+            </label>
+            {{ user_form.email }}
+            {% if user_form.email.errors %}
+              <div class="invalid-feedback d-block">{{ user_form.email.errors.0 }}</div>
+            {% endif %}
           </div>
+
           <div class="col-sm-6">
-            <div class="form-label fw-semibold small text-muted text-uppercase">{% trans "Email" %}</div>
-            <div class="fw-semibold">{{ profile_user.email|default:"—" }}</div>
+            <label for="{{ user_form.phone_number.id_for_label }}" class="form-label fw-semibold small">
+              {% trans "Phone Number" %}
+            </label>
+            {{ user_form.phone_number }}
+            {% if user_form.phone_number.errors %}
+              <div class="invalid-feedback d-block">{{ user_form.phone_number.errors.0 }}</div>
+            {% endif %}
           </div>
-          <div class="col-sm-6">
-            <div class="form-label fw-semibold small text-muted text-uppercase">{% trans "Role" %}</div>
-            <div class="fw-semibold">
-              {% if profile_user.is_superuser %}Superuser{% else %}{{ profile_user.get_role_display|default:profile_user.role }}{% endif %}
-            </div>
-          </div>
-          <div class="col-sm-6">
-            <div class="form-label fw-semibold small text-muted text-uppercase">{% trans "Status" %}</div>
-            <div class="fw-semibold">
-              {% if profile_user.is_active %}<span class="text-success">{% trans "Active" %}</span>{% else %}<span class="text-danger">{% trans "Inactive" %}</span>{% endif %}
-            </div>
-          </div>
-          <div class="col-sm-6">
-            <div class="form-label fw-semibold small text-muted text-uppercase">{% trans "Date Joined" %}</div>
-            <div class="fw-semibold">{{ profile_user.date_joined|date:"d M Y, H:i" }}</div>
-          </div>
-          <div class="col-sm-6">
-            <div class="form-label fw-semibold small text-muted text-uppercase">{% trans "Last Login" %}</div>
-            <div class="fw-semibold">{{ profile_user.last_login|date:"d M Y, H:i"|default:"—" }}</div>
-          </div>
+
         </div>
 
-        <hr class="my-4">
-
-        <div class="alert alert-info py-2 small">
-          <i class="bi bi-info-circle me-2"></i>
-          {% trans "To change your username, email, or password, please contact your system administrator." %}
+        <!-- Bio -->
+        <div class="row g-3 mt-0">
+          <div class="col-12">
+            <label for="{{ profile_form.bio.id_for_label }}" class="form-label fw-semibold small">
+              {% trans "Bio" %} <span class="text-muted fw-normal">({% trans "max 500 chars" %})</span>
+            </label>
+            {{ profile_form.bio }}
+            {% if profile_form.bio.errors %}
+              <div class="invalid-feedback d-block">{{ profile_form.bio.errors.0 }}</div>
+            {% endif %}
+          </div>
         </div>
 
       </div>
     </div>
-  </div>
 
-</div>
+    <!-- Business info -->
+    <div class="card mb-4">
+      <div class="card-header bg-transparent fw-semibold py-2" style="font-size:.85rem;">
+        <i class="bi bi-briefcase-fill me-2" style="color:var(--psp-purple);"></i>{% trans "Business Details" %}
+      </div>
+      <div class="card-body p-4">
+        <div class="row g-3">
+
+          <div class="col-sm-6">
+            <label for="{{ profile_form.job_title.id_for_label }}" class="form-label fw-semibold small">{% trans "Job Title" %}</label>
+            {{ profile_form.job_title }}
+            {% if profile_form.job_title.errors %}<div class="invalid-feedback d-block">{{ profile_form.job_title.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="col-sm-6">
+            <label for="{{ profile_form.department.id_for_label }}" class="form-label fw-semibold small">{% trans "Department" %}</label>
+            {{ profile_form.department }}
+            {% if profile_form.department.errors %}<div class="invalid-feedback d-block">{{ profile_form.department.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="col-sm-6">
+            <label for="{{ profile_form.branch_location.id_for_label }}" class="form-label fw-semibold small">{% trans "Branch / Office" %}</label>
+            {{ profile_form.branch_location }}
+            {% if profile_form.branch_location.errors %}<div class="invalid-feedback d-block">{{ profile_form.branch_location.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="col-sm-6">
+            <label for="{{ profile_form.sales_region.id_for_label }}" class="form-label fw-semibold small">{% trans "Sales Region" %}</label>
+            {{ profile_form.sales_region }}
+            {% if profile_form.sales_region.errors %}<div class="invalid-feedback d-block">{{ profile_form.sales_region.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="col-sm-6">
+            <label for="{{ profile_form.company_phone.id_for_label }}" class="form-label fw-semibold small">{% trans "Company Phone" %}</label>
+            {{ profile_form.company_phone }}
+            {% if profile_form.company_phone.errors %}<div class="invalid-feedback d-block">{{ profile_form.company_phone.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="col-sm-6">
+            <label for="{{ profile_form.whatsapp_number.id_for_label }}" class="form-label fw-semibold small">{% trans "WhatsApp Number" %}</label>
+            {{ profile_form.whatsapp_number }}
+            {% if profile_form.whatsapp_number.errors %}<div class="invalid-feedback d-block">{{ profile_form.whatsapp_number.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="col-sm-6">
+            <label for="{{ profile_form.business_email.id_for_label }}" class="form-label fw-semibold small">{% trans "Business Email" %}</label>
+            {{ profile_form.business_email }}
+            {% if profile_form.business_email.errors %}<div class="invalid-feedback d-block">{{ profile_form.business_email.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="col-sm-6">
+            <label for="{{ profile_form.employee_code.id_for_label }}" class="form-label fw-semibold small">{% trans "Employee Code" %}</label>
+            {{ profile_form.employee_code }}
+            {% if profile_form.employee_code.errors %}<div class="invalid-feedback d-block">{{ profile_form.employee_code.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="col-sm-6">
+            <label for="{{ profile_form.years_experience.id_for_label }}" class="form-label fw-semibold small">{% trans "Years of Experience" %}</label>
+            {{ profile_form.years_experience }}
+            {% if profile_form.years_experience.errors %}<div class="invalid-feedback d-block">{{ profile_form.years_experience.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="col-12">
+            <label for="{{ profile_form.specialities.id_for_label }}" class="form-label fw-semibold small">{% trans "Specialities" %}</label>
+            {{ profile_form.specialities }}
+            {% if profile_form.specialities.errors %}<div class="invalid-feedback d-block">{{ profile_form.specialities.errors.0 }}</div>{% endif %}
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Quotation defaults -->
+    <div class="card mb-4">
+      <div class="card-header bg-transparent fw-semibold py-2" style="font-size:.85rem;">
+        <i class="bi bi-file-text-fill me-2" style="color:var(--psp-purple);"></i>{% trans "Quotation Defaults" %}
+        <span class="ms-2 fw-normal small text-muted">({% trans "pre-fill new quotations" %})</span>
+      </div>
+      <div class="card-body p-4">
+        <div class="row g-3">
+
+          <div class="col-sm-6">
+            <label for="{{ profile_form.signature_name.id_for_label }}" class="form-label fw-semibold small">{% trans "Signature Name" %}</label>
+            {{ profile_form.signature_name }}
+            {% if profile_form.signature_name.errors %}<div class="invalid-feedback d-block">{{ profile_form.signature_name.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="col-sm-6">
+            <label for="{{ profile_form.signature_title.id_for_label }}" class="form-label fw-semibold small">{% trans "Signature Title" %}</label>
+            {{ profile_form.signature_title }}
+            {% if profile_form.signature_title.errors %}<div class="invalid-feedback d-block">{{ profile_form.signature_title.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="col-12">
+            <label for="{{ profile_form.default_quote_intro.id_for_label }}" class="form-label fw-semibold small">
+              {% trans "Default Quote Introduction" %} <span class="text-muted fw-normal">({% trans "max 1000 chars" %})</span>
+            </label>
+            {{ profile_form.default_quote_intro }}
+            {% if profile_form.default_quote_intro.errors %}<div class="invalid-feedback d-block">{{ profile_form.default_quote_intro.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="col-12">
+            <label for="{{ profile_form.default_quote_footer.id_for_label }}" class="form-label fw-semibold small">
+              {% trans "Default Quote Footer" %} <span class="text-muted fw-normal">({% trans "max 1000 chars" %})</span>
+            </label>
+            {{ profile_form.default_quote_footer }}
+            {% if profile_form.default_quote_footer.errors %}<div class="invalid-feedback d-block">{{ profile_form.default_quote_footer.errors.0 }}</div>{% endif %}
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Save -->
+    <div class="d-flex justify-content-end gap-2">
+      <a href="{% url 'dashboard:dashboard' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+      <button type="submit" class="btn btn-primary px-4">
+        <i class="bi bi-check-lg me-1"></i>{% trans "Save Changes" %}
+      </button>
+    </div>
+
+  </div><!-- /right col -->
+
+</div><!-- /row -->
+</form>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const fileInput = document.getElementById("{{ user_form.profile_image.id_for_label }}");
+  const preview   = document.getElementById("avatarPreview");
+  const initials  = document.getElementById("avatarInitials");
+
+  if (!fileInput) return;
+
+  // Hide the default file input widget (we use the camera icon as trigger)
+  fileInput.style.display = "none";
+
+  fileInput.addEventListener("change", function () {
+    const file = this.files && this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      if (preview) {
+        preview.src = e.target.result;
+        preview.classList.remove("d-none");
+      }
+      if (initials) initials.style.display = "none";
+    };
+    reader.readAsDataURL(file);
+  });
+})();
+</script>
+{% endblock %}
+

@@ -10,4 +10,5 @@ urlpatterns = [
     path("<int:pk>/edit/", views.UserUpdateView.as_view(), name="user_update"),
     path("<int:pk>/deactivate/", views.UserDeactivateView.as_view(), name="user_deactivate"),
     path("profile/", views.ProfileView.as_view(), name="profile"),
+    path("app-settings/", views.AppSettingsView.as_view(), name="app_settings"),
 ]

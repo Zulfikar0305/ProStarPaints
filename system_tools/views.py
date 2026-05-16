@@ -130,12 +130,17 @@ VATSettingsView = SystemSettingsView
 
 
 # ---------------------------------------------------------------------------
-# App Settings (user-specific: appearance / preferences placeholder)
+# App Settings (user-specific) — redirects to the users app
 # ---------------------------------------------------------------------------
 
 class AppSettingsView(LoginRequiredMixin, View):
-    """User-specific settings: appearance, preferences (placeholders for now)."""
+    """Redirect to users:app_settings (backward-compat for existing bookmarks)."""
 
     def get(self, request):
-        return render(request, "system_tools/app_settings.html", {})
+        from django.shortcuts import redirect as _redirect
+        return _redirect("users:app_settings")
+
+    def post(self, request):
+        from django.shortcuts import redirect as _redirect
+        return _redirect("users:app_settings")
 

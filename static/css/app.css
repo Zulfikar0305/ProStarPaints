@@ -1471,3 +1471,181 @@ body {
   }
 }
 
+
+/* ═══════════════════════════════════════════════════════════════
+   27. User Settings — Appearance / Density / Accent / Motion
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Sidebar avatar image ── */
+.psp-sidebar-avatar-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* ── Dark mode ── */
+.psp-body[data-theme="dark"] {
+  --psp-bg:          #0f172a;
+  --psp-card-bg:     #1e293b;
+  --psp-text:        #f1f5f9;
+  --psp-text-soft:   #94a3b8;
+  --psp-text-muted:  #64748b;
+  --psp-border:      #334155;
+  --psp-shadow:      0 2px 8px rgba(0,0,0,.35);
+  --psp-shadow-md:   0 4px 16px rgba(0,0,0,.45);
+}
+
+.psp-body[data-theme="dark"] .psp-sidebar {
+  background: #0f172a;
+  border-right-color: #1e293b;
+}
+
+.psp-body[data-theme="dark"] .psp-topbar {
+  background: #1e293b;
+  border-bottom-color: #334155;
+}
+
+.psp-body[data-theme="dark"] .card {
+  background: var(--psp-card-bg);
+  border-color: var(--psp-border);
+}
+
+.psp-body[data-theme="dark"] .table {
+  --bs-table-bg: var(--psp-card-bg);
+  --bs-table-striped-bg: #253048;
+  --bs-table-hover-bg:   #2a3650;
+  color: var(--psp-text);
+}
+
+.psp-body[data-theme="dark"] .form-control,
+.psp-body[data-theme="dark"] .form-select {
+  background-color: #253048;
+  border-color: #334155;
+  color: var(--psp-text);
+}
+
+.psp-body[data-theme="dark"] .modal-content {
+  background: var(--psp-card-bg);
+  border-color: var(--psp-border);
+}
+
+/* System default: honour OS preference when data-theme="system" */
+@media (prefers-color-scheme: dark) {
+  .psp-body[data-theme="system"] {
+    --psp-bg:         #0f172a;
+    --psp-card-bg:    #1e293b;
+    --psp-text:       #f1f5f9;
+    --psp-text-soft:  #94a3b8;
+    --psp-text-muted: #64748b;
+    --psp-border:     #334155;
+    --psp-shadow:     0 2px 8px rgba(0,0,0,.35);
+  }
+
+  .psp-body[data-theme="system"] .psp-sidebar  { background: #0f172a; }
+  .psp-body[data-theme="system"] .psp-topbar   { background: #1e293b; border-bottom-color: #334155; }
+  .psp-body[data-theme="system"] .card         { background: var(--psp-card-bg); }
+  .psp-body[data-theme="system"] .form-control,
+  .psp-body[data-theme="system"] .form-select  { background: #253048; border-color: #334155; color: #f1f5f9; }
+}
+
+
+/* ── Green accent ── */
+.psp-body[data-accent="green"] {
+  --psp-purple:       #059669;
+  --psp-purple-light: #d1fae5;
+  --psp-grad-purple:  linear-gradient(135deg, #059669 0%, #10b981 100%);
+}
+
+/* ── High contrast accent ── */
+.psp-body[data-accent="high_contrast"] {
+  --psp-purple:       #1e3a8a;
+  --psp-purple-light: #dbeafe;
+  --psp-grad-purple:  linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%);
+  --psp-text-soft:    #374151;
+}
+
+
+/* ── Compact table density ── */
+.psp-body[data-density="compact"] .table td,
+.psp-body[data-density="compact"] .table th {
+  padding: .22rem .5rem;
+  font-size: .8125rem;
+}
+
+.psp-body[data-density="compact"] .card-body {
+  padding: .75rem 1rem;
+}
+
+
+/* ── Reduced motion ── */
+.psp-body[data-reduce-motion="true"] *,
+.psp-body[data-reduce-motion="true"] *::before,
+.psp-body[data-reduce-motion="true"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+
+/* ── Profile page ── */
+.psp-profile-avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--psp-border);
+}
+
+.psp-profile-avatar-placeholder {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: var(--psp-grad-purple);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.psp-completion-bar {
+  height: 6px;
+  border-radius: 50px;
+  background: var(--psp-border);
+  overflow: hidden;
+}
+
+.psp-completion-bar-fill {
+  height: 100%;
+  border-radius: 50px;
+  background: var(--psp-grad-purple);
+  transition: width .4s ease;
+}
+
+
+/* ── Settings page toggle cards ── */
+.psp-setting-card {
+  border: 2px solid var(--psp-border);
+  border-radius: var(--psp-radius-sm);
+  padding: .85rem 1rem;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+
+.psp-setting-card:has(input:checked),
+.psp-setting-card.active {
+  border-color: var(--psp-purple);
+  background: var(--psp-purple-light);
+}
+
+.psp-setting-card input[type="radio"],
+.psp-setting-card input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+

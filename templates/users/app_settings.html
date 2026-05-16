@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "App Settings" %} — ProStar Paints{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">{% trans "App Settings" %}</h4>
+    <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">
+      {% trans "Personalise your ProStar Paints experience. Changes apply only to your account." %}
+    </p>
+  </div>
+  <a href="{% url 'users:profile' %}" class="btn btn-sm btn-secondary">
+    <i class="bi bi-arrow-left me-1"></i>{% trans "Back to Profile" %}
+  </a>
+</div>
+
+{% if messages %}
+  {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show py-2 mb-3" role="alert">
+      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<form method="post" novalidate id="appSettingsForm">
+{% csrf_token %}
+
+<div class="row g-4">
+
+  <!-- ── Left column ── -->
+  <div class="col-12 col-lg-6">
+
+    <!-- Appearance -->
+    <div class="card mb-4">
+      <div class="card-header bg-transparent fw-semibold py-2" style="font-size:.85rem;">
+        <i class="bi bi-palette-fill me-2" style="color:var(--psp-purple);"></i>{% trans "Appearance" %}
+      </div>
+      <div class="card-body p-4">
+
+        <p class="small fw-semibold mb-2">{% trans "Theme" %}</p>
+        <div class="row g-2 mb-4">
+          {% for val, label in form.appearance.field.choices %}
+          <div class="col-4">
+            <label class="psp-setting-card text-center w-100 position-relative"
+                   for="appearance_{{ val }}">
+              <input type="radio"
+                     name="{{ form.appearance.html_name }}"
+                     id="appearance_{{ val }}"
+                     value="{{ val }}"
+                     {% if form.appearance.value == val %}checked{% endif %}>
+              <div style="font-size:1.4rem;margin-bottom:.25rem;">
+                {% if val == "light" %}☀️{% elif val == "dark" %}🌙{% else %}💻{% endif %}
+              </div>
+              <div class="small fw-semibold">{{ label }}</div>
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+        {% if form.appearance.errors %}<div class="text-danger small">{{ form.appearance.errors.0 }}</div>{% endif %}
+
+        <p class="small fw-semibold mb-2">{% trans "Accent Colour" %}</p>
+        <div class="row g-2">
+          {% for val, label in form.accent_style.field.choices %}
+          <div class="col-4">
+            <label class="psp-setting-card text-center w-100 position-relative"
+                   for="accent_{{ val }}">
+              <input type="radio"
+                     name="{{ form.accent_style.html_name }}"
+                     id="accent_{{ val }}"
+                     value="{{ val }}"
+                     {% if form.accent_style.value == val %}checked{% endif %}>
+              <div style="font-size:1.2rem;margin-bottom:.25rem;">
+                {% if val == "prostar_default" %}🟣{% elif val == "green" %}🟢{% else %}⬛{% endif %}
+              </div>
+              <div class="small fw-semibold" style="font-size:.72rem;">{{ label }}</div>
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+        {% if form.accent_style.errors %}<div class="text-danger small">{{ form.accent_style.errors.0 }}</div>{% endif %}
+
+      </div>
+    </div>
+
+    <!-- Display -->
+    <div class="card">
+      <div class="card-header bg-transparent fw-semibold py-2" style="font-size:.85rem;">
+        <i class="bi bi-table me-2" style="color:var(--psp-purple);"></i>{% trans "Display" %}
+      </div>
+      <div class="card-body p-4">
+
+        <div class="mb-3">
+          <label for="{{ form.table_density.id_for_label }}" class="form-label fw-semibold small">
+            {% trans "Table Density" %}
+          </label>
+          {{ form.table_density }}
+          {% if form.table_density.errors %}<div class="text-danger small">{{ form.table_density.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="mb-3">
+          <label for="{{ form.rows_per_page.id_for_label }}" class="form-label fw-semibold small">
+            {% trans "Rows per Page" %}
+          </label>
+          {{ form.rows_per_page }}
+          {% if form.rows_per_page.errors %}<div class="text-danger small">{{ form.rows_per_page.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="mb-3">
+          <label for="{{ form.default_dashboard_period.id_for_label }}" class="form-label fw-semibold small">
+            {% trans "Default Dashboard Period" %}
+          </label>
+          {{ form.default_dashboard_period }}
+          {% if form.default_dashboard_period.errors %}<div class="text-danger small">{{ form.default_dashboard_period.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div>
+          <label for="{{ form.builder_summary_default.id_for_label }}" class="form-label fw-semibold small">
+            {% trans "Quotation Builder Summary" %}
+          </label>
+          {{ form.builder_summary_default }}
+          {% if form.builder_summary_default.errors %}<div class="text-danger small">{{ form.builder_summary_default.errors.0 }}</div>{% endif %}
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /left col -->
+
+  <!-- ── Right column ── -->
+  <div class="col-12 col-lg-6">
+
+    <!-- Behaviour -->
+    <div class="card mb-4">
+      <div class="card-header bg-transparent fw-semibold py-2" style="font-size:.85rem;">
+        <i class="bi bi-toggles me-2" style="color:var(--psp-purple);"></i>{% trans "Behaviour" %}
+      </div>
+      <div class="card-body p-4">
+
+        <div class="form-check form-switch mb-3">
+          {{ form.reduce_animations }}
+          <label class="form-check-label small" for="{{ form.reduce_animations.id_for_label }}">
+            <span class="fw-semibold">{% trans "Reduce Animations" %}</span>
+            <br><span class="text-muted" style="font-size:.75rem;">{% trans "Minimises transitions and animations throughout the app." %}</span>
+          </label>
+        </div>
+
+        <div class="form-check form-switch mb-3">
+          {{ form.show_watermark }}
+          <label class="form-check-label small" for="{{ form.show_watermark.id_for_label }}">
+            <span class="fw-semibold">{% trans "Show Background Watermark" %}</span>
+            <br><span class="text-muted" style="font-size:.75rem;">{% trans "Displays a subtle ProStar Paints logo watermark in the content area." %}</span>
+          </label>
+        </div>
+
+        <div class="form-check form-switch">
+          {{ form.show_help_text }}
+          <label class="form-check-label small" for="{{ form.show_help_text.id_for_label }}">
+            <span class="fw-semibold">{% trans "Show Help Text" %}</span>
+            <br><span class="text-muted" style="font-size:.75rem;">{% trans "Shows contextual hints and descriptions on forms." %}</span>
+          </label>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="card mb-4">
+      <div class="card-header bg-transparent fw-semibold py-2" style="font-size:.85rem;">
+        <i class="bi bi-bell-fill me-2" style="color:var(--psp-purple);"></i>{% trans "Notifications" %}
+      </div>
+      <div class="card-body p-4">
+
+        <div class="form-check form-switch">
+          {{ form.email_notifications_enabled }}
+          <label class="form-check-label small" for="{{ form.email_notifications_enabled.id_for_label }}">
+            <span class="fw-semibold">{% trans "Email Notifications" %}</span>
+            <br><span class="text-muted" style="font-size:.75rem;">{% trans "Receive summary emails for key events (coming soon)." %}</span>
+          </label>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Live preview hint -->
+    <div class="card" style="border-color:var(--psp-purple);background:var(--psp-purple-light);">
+      <div class="card-body p-3 small">
+        <i class="bi bi-lightbulb-fill me-2" style="color:var(--psp-purple);"></i>
+        <strong>{% trans "Live Preview" %}</strong> — {% trans "Theme and accent changes take effect after saving." %}
+      </div>
+    </div>
+
+  </div><!-- /right col -->
+
+</div><!-- /row -->
+
+<div class="d-flex justify-content-end gap-2 mt-3">
+  <a href="{% url 'users:profile' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+  <button type="submit" class="btn btn-primary px-4">
+    <i class="bi bi-check-lg me-1"></i>{% trans "Save Settings" %}
+  </button>
+</div>
+
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* Make psp-setting-card labels work like proper radio toggles */
+(function () {
+  document.querySelectorAll(".psp-setting-card").forEach(function (label) {
+    label.addEventListener("click", function () {
+      const inp = label.querySelector("input[type=radio]");
+      if (!inp) return;
+      document.querySelectorAll(".psp-setting-card").forEach(function (l) {
+        if (l.querySelector("input[name='" + inp.name + "']")) l.classList.remove("active");
+      });
+      inp.checked = true;
+      label.classList.add("active");
+    });
+    /* Mark initially active */
+    const inp = label.querySelector("input[type=radio]");
+    if (inp && inp.checked) label.classList.add("active");
+  });
+})();
+</script>
+{% endblock %}

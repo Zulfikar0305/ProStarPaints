@@ -6,7 +6,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
-from .models import User
+from .models import SalesRepProfile, User, UserAppSettings
 
 
 # ---------------------------------------------------------------------------
@@ -164,3 +164,156 @@ class UserUpdateForm(forms.ModelForm):
         if phone:
             _validate_sa_phone(phone)
         return phone
+
+
+# ---------------------------------------------------------------------------
+# UserProfileForm — self-service update of User-level fields
+# ---------------------------------------------------------------------------
+
+class UserProfileForm(forms.ModelForm):
+    """Lets the current user update their own base User fields."""
+
+    class Meta:
+        model = User
+        fields = ("first_name", "last_name", "email", "phone_number", "profile_image")
+        widgets = {
+            "first_name":    forms.TextInput(attrs={"class": "form-control"}),
+            "last_name":     forms.TextInput(attrs={"class": "form-control"}),
+            "email":         forms.EmailInput(attrs={"class": "form-control"}),
+            "phone_number":  forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "e.g. 082 123 4567 (optional)"}
+            ),
+            "profile_image": forms.ClearableFileInput(
+                attrs={"class": "form-control", "accept": "image/png,image/jpeg,image/webp"}
+            ),
+        }
+
+    def clean_email(self) -> str:
+        email = self.cleaned_data["email"].lower().strip()
+        qs = User.objects.filter(email=email).exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise ValidationError(_("A user with that email address already exists."))
+        return email
+
+    def clean_phone_number(self) -> str:
+        phone = self.cleaned_data.get("phone_number", "").strip()
+        if phone:
+            _validate_sa_phone(phone)
+        return phone
+
+    def clean_profile_image(self):
+        image = self.cleaned_data.get("profile_image")
+        if image and hasattr(image, "name"):
+            ext = image.name.rsplit(".", 1)[-1].lower() if "." in image.name else ""
+            if ext not in {"png", "jpg", "jpeg", "webp"}:
+                raise ValidationError(
+                    _("Profile image must be PNG, JPG, JPEG, or WebP.")
+                )
+            if image.size > 5 * 1024 * 1024:
+                raise ValidationError(_("Profile image must be 5 MB or smaller."))
+        return image
+
+
+# ---------------------------------------------------------------------------
+# SalesRepProfileForm — extended business profile
+# ---------------------------------------------------------------------------
+
+class SalesRepProfileForm(forms.ModelForm):
+    """Extended business / sales rep profile fields."""
+
+    class Meta:
+        model = SalesRepProfile
+        fields = (
+            "bio", "job_title", "department", "branch_location",
+            "company_phone", "whatsapp_number", "business_email",
+            "sales_region", "employee_code", "years_experience",
+            "specialities", "default_quote_intro", "default_quote_footer",
+            "signature_name", "signature_title",
+        )
+        widgets = {
+            "bio": forms.Textarea(
+                attrs={"class": "form-control", "rows": 3, "maxlength": 500}
+            ),
+            "job_title":        forms.TextInput(attrs={"class": "form-control"}),
+            "department":       forms.TextInput(attrs={"class": "form-control"}),
+            "branch_location":  forms.TextInput(attrs={"class": "form-control"}),
+            "company_phone":    forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "e.g. 011 123 4567"}
+            ),
+            "whatsapp_number":  forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "e.g. 082 123 4567"}
+            ),
+            "business_email":   forms.EmailInput(attrs={"class": "form-control"}),
+            "sales_region":     forms.TextInput(attrs={"class": "form-control"}),
+            "employee_code":    forms.TextInput(attrs={"class": "form-control"}),
+            "years_experience": forms.NumberInput(
+                attrs={"class": "form-control", "min": 0, "max": 50}
+            ),
+            "specialities": forms.Textarea(
+                attrs={"class": "form-control", "rows": 2, "maxlength": 300}
+            ),
+            "default_quote_intro": forms.Textarea(
+                attrs={"class": "form-control", "rows": 4, "maxlength": 1000}
+            ),
+            "default_quote_footer": forms.Textarea(
+                attrs={"class": "form-control", "rows": 4, "maxlength": 1000}
+            ),
+            "signature_name":  forms.TextInput(attrs={"class": "form-control"}),
+            "signature_title": forms.TextInput(attrs={"class": "form-control"}),
+        }
+
+    def clean_company_phone(self) -> str:
+        phone = self.cleaned_data.get("company_phone", "").strip()
+        if phone:
+            _validate_sa_phone(phone)
+        return phone
+
+    def clean_whatsapp_number(self) -> str:
+        phone = self.cleaned_data.get("whatsapp_number", "").strip()
+        if phone:
+            _validate_sa_phone(phone)
+        return phone
+
+    def clean_years_experience(self):
+        val = self.cleaned_data.get("years_experience")
+        if val is not None and val < 0:
+            raise ValidationError(_("Years of experience cannot be negative."))
+        return val
+
+
+# ---------------------------------------------------------------------------
+# UserAppSettingsForm — personal UI/display preferences
+# ---------------------------------------------------------------------------
+
+class UserAppSettingsForm(forms.ModelForm):
+    """Let users update their own appearance and display preferences."""
+
+    VALID_ROWS = {10, 25, 50}
+
+    class Meta:
+        model = UserAppSettings
+        fields = (
+            "appearance", "accent_style", "table_density",
+            "default_dashboard_period", "rows_per_page", "builder_summary_default",
+            "reduce_animations", "show_watermark", "show_help_text",
+            "email_notifications_enabled",
+        )
+        widgets = {
+            "appearance":               forms.Select(attrs={"class": "form-select"}),
+            "accent_style":             forms.Select(attrs={"class": "form-select"}),
+            "table_density":            forms.Select(attrs={"class": "form-select"}),
+            "default_dashboard_period": forms.Select(attrs={"class": "form-select"}),
+            "rows_per_page":            forms.Select(attrs={"class": "form-select"}),
+            "builder_summary_default":  forms.Select(attrs={"class": "form-select"}),
+            "reduce_animations":           forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_watermark":              forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_help_text":              forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "email_notifications_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+
+    def clean_rows_per_page(self):
+        val = self.cleaned_data.get("rows_per_page")
+        if val not in self.VALID_ROWS:
+            raise ValidationError(_("Rows per page must be 10, 25, or 50."))
+        return val
+
