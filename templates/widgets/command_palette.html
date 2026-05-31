@@ -35,11 +35,16 @@ Includes a small live filter and keyboard navigation.
           <kbd class="psp-palette-shortcut">D</kbd>
         </a></li>
 
-        <li><a href="{% url 'quotation:quotation_list' %}" class="psp-palette-item" data-keywords="quotations list quotes">
+        <li><a href="{% url 'quotation:quotation_list' %}" class="psp-palette-item" data-keywords="quotations list quotes workspace">
           <span class="psp-palette-item-icon"><i class="bi bi-file-earmark-text"></i></span>
           <span class="psp-palette-item-label">
             {% if is_admin or user.role == "ADMIN" %}{% trans "Quotations" %}{% else %}{% trans "My Quotations" %}{% endif %}
           </span>
+        </a></li>
+
+        <li><a href="{% url 'quotation:quotation_list' %}?q=" class="psp-palette-item" data-keywords="search quotations find reference customer project filter">
+          <span class="psp-palette-item-icon"><i class="bi bi-search"></i></span>
+          <span class="psp-palette-item-label">{% trans "Search quotations…" %}</span>
         </a></li>
 
         {% if is_admin or user.role == "ADMIN" %}

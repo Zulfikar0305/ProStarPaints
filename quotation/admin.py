@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import QuotationPdfExport
+from .models import QuotationPdfExport, QuotationPin
 
 
 @admin.register(QuotationPdfExport)
@@ -17,3 +17,11 @@ class QuotationPdfExportAdmin(admin.ModelAdmin):
         "error_message",
         "created_at",
     )
+
+
+@admin.register(QuotationPin)
+class QuotationPinAdmin(admin.ModelAdmin):
+    list_display = ("user", "quotation", "created_at")
+    list_filter  = ("user",)
+    search_fields = ("user__username", "quotation__reference", "quotation__customer_name")
+    ordering = ("-created_at",)

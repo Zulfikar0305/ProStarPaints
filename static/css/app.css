@@ -4088,3 +4088,94 @@ a:hover > .psp-dq-item { transform: translateY(-2px); box-shadow: var(--psp-shad
   .psp-cc-card { padding: .75rem .85rem; gap: .65rem; }
   .psp-cc-card-icon { flex-basis: 32px; width: 32px; height: 32px; }
 }
+
+
+/* ============================================================
+   §56  Quotation Workspace
+   ============================================================ */
+
+/* Stat strip */
+.psp-ws-stats .psp-ws-stat {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .6rem .8rem;
+  border: 1px solid var(--psp-border, #e2e8f0);
+  border-radius: 12px;
+  background: var(--psp-surface, #fff);
+  height: 100%;
+}
+.psp-ws-stat-icon {
+  flex: 0 0 36px; width: 36px; height: 36px;
+  border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 1rem;
+}
+.psp-ws-stat-value { font-size: 1.15rem; font-weight: 800; line-height: 1; letter-spacing: -.02em; color: var(--psp-text); }
+.psp-ws-stat-label { font-size: .7rem; color: var(--psp-text-soft); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; margin-top: .15rem; }
+
+/* Mini-list rows (pinned & recent panels) */
+.psp-ws-mini-list .list-group-item.psp-ws-mini-item {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .55rem .8rem;
+}
+.psp-ws-mini-item .min-w-0 { min-width: 0; }
+
+/* Pin button */
+.psp-ws-pin-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: .2rem .35rem;
+  color: var(--psp-text-soft, #64748b);
+  cursor: pointer;
+  font-size: .95rem;
+  line-height: 1;
+}
+.psp-ws-pin-btn:hover { background: var(--psp-surface-2, #f1f5f9); color: var(--psp-purple, #7c3aed); }
+.psp-ws-pin-btn.is-pinned { color: var(--psp-purple, #7c3aed); }
+
+/* Readiness badges */
+.psp-ws-readiness {
+  font-size: .68rem; font-weight: 700; letter-spacing: .02em;
+  padding: .3rem .55rem; border-radius: 999px;
+}
+.psp-ws-readiness--not_started   { background: #fee2e2; color: #b91c1c; }
+.psp-ws-readiness--in_progress   { background: #fef3c7; color: #b45309; }
+.psp-ws-readiness--ready         { background: #dbeafe; color: #1d4ed8; }
+.psp-ws-readiness--pdf_generated { background: #d1fae5; color: #047857; }
+.psp-ws-readiness--dot { padding: .25rem .4rem; }
+[data-theme="dark"] .psp-ws-readiness--not_started   { background: #7f1d1d; color: #fecaca; }
+[data-theme="dark"] .psp-ws-readiness--in_progress   { background: #78350f; color: #fde68a; }
+[data-theme="dark"] .psp-ws-readiness--ready         { background: #1e3a8a; color: #bfdbfe; }
+[data-theme="dark"] .psp-ws-readiness--pdf_generated { background: #064e3b; color: #a7f3d0; }
+
+/* Card view */
+.psp-ws-card {
+  border-radius: 12px;
+  border: 1px solid var(--psp-border, #e2e8f0);
+  background: var(--psp-surface, #fff);
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.psp-ws-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(15,23,42,.07); border-color: var(--psp-purple, #7c3aed); }
+.psp-ws-card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .6rem .85rem; border-bottom: 1px solid var(--psp-border, #e2e8f0);
+}
+.psp-ws-card-body { padding: .75rem .85rem; }
+.psp-ws-card-actions {
+  display: flex; gap: .35rem; flex-wrap: wrap;
+  padding: .55rem .85rem; border-top: 1px solid var(--psp-border, #e2e8f0);
+  background: var(--psp-surface-2, #f8fafc);
+  border-radius: 0 0 12px 12px;
+}
+[data-theme="dark"] .psp-ws-card-actions { background: var(--psp-surface); }
+
+/* Mini empty-state inside cards */
+.psp-empty--mini { padding: 1.25rem 1rem; }
+.psp-empty--mini .psp-empty-icon { font-size: 1.5rem; }
+
+/* Tablet/mobile: stack stat tiles cleaner */
+@media (max-width: 575.98px) {
+  .psp-ws-stat-value { font-size: 1rem; }
+  .psp-ws-stat { padding: .5rem .65rem; gap: .5rem; }
+  .psp-ws-stat-icon { flex-basis: 30px; width: 30px; height: 30px; font-size: .85rem; }
+}

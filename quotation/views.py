@@ -27,12 +27,30 @@ from .config import (
 )
 from .description_engine import generate_line_item_description
 from .forms import QuotationStartForm
-from .models import Quotation, QuotationLineItem, QuotationSection, QuotationPdfExport
+from .models import (
+    Quotation,
+    QuotationLineItem,
+    QuotationPdfExport,
+    QuotationPin,
+    QuotationSection,
+)
 from .services import (
     ALL_SUBSECTIONS,
     EXTERIOR_SUBSECTIONS,
     INTERIOR_SUBSECTIONS,
     get_quotation_summary,
+)
+from .workspace import (
+    HAS_PDF_CHOICES,
+    READINESS_FILTER_CHOICES,
+    annotate_workspace,
+    apply_quotation_filters,
+    get_pinned_pk_set,
+    get_pinned_quotations,
+    get_quotation_readiness,
+    get_quotation_workspace_stats,
+    get_recently_viewed_quotations,
+    track_recent_quotation,
 )
 
 
@@ -62,37 +80,128 @@ class QuotationAccessMixin(LoginRequiredMixin):
 # ---------------------------------------------------------------------------
 
 class QuotationListView(QuotationAccessMixin, ListView):
+    """The Quotations Workspace — stats, filters, pins, recently-viewed and list."""
+
     template_name       = "quotation/quotation_list.html"
     context_object_name = "quotations"
     paginate_by         = 25
 
-    def get_queryset(self):
-        qs = self.get_base_qs()
-        q = self.request.GET.get("q", "").strip()
-        if q:
-            qs = qs.filter(
-                Q(customer_name__icontains=q)
-                | Q(reference__icontains=q)
-                | Q(project_name__icontains=q)
-            )
-        status = self.request.GET.get("status", "")
-        if status in Quotation.Status.values:
-            qs = qs.filter(status=status)
-        qs = qs.annotate(
-            section_count=Count(
-                "sections", filter=Q(sections__is_placeholder=False), distinct=True
-            )
+    # ── view-mode handling ───────────────────────────────────────────
+    def _resolve_view_mode(self):
+        """Return 'table' or 'cards' from ?view= override or user preference."""
+        requested = (self.request.GET.get("view") or "").lower()
+        if requested in ("table", "cards"):
+            return requested
+        pref = getattr(
+            getattr(self.request.user, "app_settings", None),
+            "preferred_quotation_view",
+            None,
         )
-        return qs.order_by("-created_at")
+        return pref if pref in ("table", "cards") else "table"
+
+    def get_queryset(self):
+        qs = apply_quotation_filters(self.get_base_qs(), self.request, self.request.user)
+        return qs.order_by("-updated_at")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["q"]              = self.request.GET.get("q", "")
-        ctx["current_status"] = self.request.GET.get("status", "")
+        user = self.request.user
+        req = self.request
+
+        ctx["q"]              = req.GET.get("q", "")
+        ctx["current_status"] = req.GET.get("status", "")
+        ctx["current_readiness"] = req.GET.get("readiness", "")
+        ctx["current_has_pdf"] = req.GET.get("has_pdf", "")
+        ctx["current_date_from"] = req.GET.get("date_from", "")
+        ctx["current_date_to"]   = req.GET.get("date_to", "")
+        ctx["current_rep"]    = req.GET.get("rep", "")
         ctx["status_choices"] = Quotation.Status.choices
+        ctx["readiness_choices"] = READINESS_FILTER_CHOICES
+        ctx["has_pdf_choices"] = HAS_PDF_CHOICES
         ctx["is_admin"]       = self._is_admin()
-        ctx["has_filters"]    = bool(ctx["q"] or ctx["current_status"])
+        ctx["view_mode"]      = self._resolve_view_mode()
+        ctx["has_filters"]    = any([
+            ctx["q"], ctx["current_status"], ctx["current_readiness"],
+            ctx["current_has_pdf"], ctx["current_date_from"],
+            ctx["current_date_to"], ctx["current_rep"],
+        ])
+
+        # Admin-only rep filter list
+        if ctx["is_admin"]:
+            from users.models import User
+            ctx["rep_choices"] = (
+                User.objects.filter(quotations__isnull=False)
+                .distinct().order_by("first_name", "last_name", "username")
+            )
+
+        # Stats
+        ctx["stats"] = get_quotation_workspace_stats(user)
+
+        # Readiness for the current page
+        page_qs = ctx.get("page_obj").object_list if ctx.get("page_obj") else ctx["quotations"]
+        pin_set = get_pinned_pk_set(user)
+        rows = []
+        for q in page_qs:
+            rows.append({
+                "q":         q,
+                "readiness": get_quotation_readiness(q),
+                "is_pinned": q.pk in pin_set,
+            })
+        ctx["rows"] = rows
+
+        # Pinned + recently viewed (annotated, scoped)
+        pinned = get_pinned_quotations(user)
+        ctx["pinned_quotations"] = [
+            {"q": q, "readiness": get_quotation_readiness(q)} for q in pinned
+        ]
+        recents = get_recently_viewed_quotations(user, req.session)
+        ctx["recent_quotations"] = [
+            {"q": q, "readiness": get_quotation_readiness(q)} for q in recents
+        ]
+
+        # Preserve filter querystring for pagination links (without page=)
+        params = req.GET.copy()
+        params.pop("page", None)
+        ctx["filter_qs"] = params.urlencode()
+
         return ctx
+
+
+# ---------------------------------------------------------------------------
+# Pin / unpin
+# ---------------------------------------------------------------------------
+
+class QuotationPinToggleView(QuotationAccessMixin, View):
+    """Toggle a pin on a quotation the current user is allowed to access."""
+
+    def post(self, request, pk):
+        quotation = get_object_or_404(self.get_base_qs(), pk=pk)
+        pin, created = QuotationPin.objects.get_or_create(
+            user=request.user, quotation=quotation,
+        )
+        if not created:
+            pin.delete()
+            messages.info(request, f"Unpinned {quotation.reference}.")
+            action = "QUOTATION_UNPINNED"
+        else:
+            messages.success(request, f"Pinned {quotation.reference}.")
+            action = "QUOTATION_PINNED"
+        log_action(
+            user=request.user,
+            action=action,
+            module="quotation",
+            description=f"{request.user} {'pinned' if created else 'unpinned'} {quotation.reference}.",
+            metadata={"quotation_id": quotation.pk, "reference": quotation.reference},
+            request=request,
+        )
+        # Validate next URL to prevent open-redirect (don't follow off-site refs)
+        from django.utils.http import url_has_allowed_host_and_scheme
+        next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or ""
+        if next_url and url_has_allowed_host_and_scheme(
+            next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+        ):
+            return redirect(next_url)
+        return redirect("quotation:quotation_list")
 
 
 # ---------------------------------------------------------------------------
@@ -328,6 +437,7 @@ class QuotationBuilderView(QuotationAccessMixin, View):
 
     def get(self, request, pk, *args, **kwargs):
         quotation     = get_object_or_404(self.get_base_qs(), pk=pk)
+        track_recent_quotation(request.session, quotation.pk)
         all_sections  = list(quotation.sections.order_by("sort_order"))
         interior_secs = [s for s in all_sections if s.substrate_type == "INTERIOR"]
         exterior_secs = [s for s in all_sections if s.substrate_type == "EXTERIOR"]
@@ -880,6 +990,7 @@ class QuotationReviewView(QuotationAccessMixin, View):
             ),
             pk=pk,
         )
+        track_recent_quotation(request.session, quotation.pk)
 
         all_sections = list(quotation.sections.order_by("sort_order"))
 
@@ -951,7 +1062,9 @@ class QuotationDetailView(QuotationAccessMixin, DetailView):
     context_object_name = "quotation"
 
     def get_object(self, queryset=None):
-        return get_object_or_404(self.get_base_qs(), pk=self.kwargs["pk"])
+        obj = get_object_or_404(self.get_base_qs(), pk=self.kwargs["pk"])
+        track_recent_quotation(self.request.session, obj.pk)
+        return obj
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -983,6 +1096,7 @@ class QuotationPdfTemplateSelectView(QuotationAccessMixin, View):
 
     def get(self, request, pk):
         quotation = get_object_or_404(self.get_base_qs(), pk=pk)
+        track_recent_quotation(request.session, quotation.pk)
         from .pdf_templates import PDF_TEMPLATES, get_template_display_name
         templates = [
             {"key": k, **v}

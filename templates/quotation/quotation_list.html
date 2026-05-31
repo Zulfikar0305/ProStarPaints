@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}Quotations — ProStar Paints{% endblock %}
+{% block title %}{% trans "Quotations Workspace" %} — ProStar Paints{% endblock %}
 
 {% block breadcrumbs %}
   {% trans "Quotations" as bc_current %}
@@ -10,38 +10,129 @@
 
 {% block content %}
 
-{% trans "Quotations" as ph_title %}
-{% trans "Create, search and filter every quotation. Reopen drafts in the builder; re-export completed quotations as PDFs at any time." as ph_text %}
+{% trans "Quotations Workspace" as ph_title %}
+{% trans "Search, filter, continue and export quotations. Pin the ones you care about; we'll remember the last five you opened." as ph_text %}
 {% include "widgets/page_help.html" with title=ph_title text=ph_text icon="bi-file-earmark-text" tone="purple" %}
 
-<!-- Header -->
-<div class="d-flex align-items-center justify-content-between mb-4">
+{# ── Header ───────────────────────────────────────────────────── #}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
   <div>
-    <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">{% trans "Quotations" %}</h4>
-    <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">{% trans "Create and manage quotation records" %}</p>
+    <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">
+      <i class="bi bi-file-earmark-text me-2" style="color:var(--psp-purple);"></i>{% trans "Quotations" %}
+    </h4>
+    <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">
+      {% if is_admin %}{% trans "All quotations across the team." %}{% else %}{% trans "Your quotations." %}{% endif %}
+    </p>
   </div>
-  <a href="{% url 'quotation:quotation_start' %}" class="btn btn-primary btn-sm">
-    <i class="bi bi-plus-lg me-1"></i>{% trans "New Quotation" %}
-  </a>
+  <div class="d-flex align-items-center gap-2">
+    <div class="btn-group btn-group-sm" role="group" aria-label="{% trans 'View mode' %}">
+      <a href="?{% if filter_qs %}{{ filter_qs }}&{% endif %}view=table"
+         class="btn btn-outline-secondary {% if view_mode == 'table' %}active{% endif %}"
+         title="{% trans 'Table view' %}"><i class="bi bi-list-ul"></i></a>
+      <a href="?{% if filter_qs %}{{ filter_qs }}&{% endif %}view=cards"
+         class="btn btn-outline-secondary {% if view_mode == 'cards' %}active{% endif %}"
+         title="{% trans 'Card view' %}"><i class="bi bi-grid-3x3-gap"></i></a>
+    </div>
+    <a href="{% url 'quotation:quotation_start' %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg me-1"></i>{% trans "New Quotation" %}
+    </a>
+  </div>
 </div>
 
-<!-- Filters -->
-<div class="card mb-3">
-  <div class="card-body py-2">
-    <form method="get" class="row g-2 align-items-end">
+{# ── Stats strip ──────────────────────────────────────────────── #}
+<div class="row g-2 mb-3 psp-ws-stats">
+  <div class="col-6 col-md">
+    <div class="psp-ws-stat">
+      <div class="psp-ws-stat-icon" style="background:var(--psp-grad-purple);"><i class="bi bi-files"></i></div>
+      <div><div class="psp-ws-stat-value">{{ stats.total }}</div><div class="psp-ws-stat-label">{% trans "Total" %}</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md">
+    <div class="psp-ws-stat">
+      <div class="psp-ws-stat-icon" style="background:var(--psp-grad-amber);"><i class="bi bi-pencil-square"></i></div>
+      <div><div class="psp-ws-stat-value">{{ stats.drafts }}</div><div class="psp-ws-stat-label">{% trans "Drafts" %}</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md">
+    <div class="psp-ws-stat">
+      <div class="psp-ws-stat-icon" style="background:var(--psp-grad-green);"><i class="bi bi-check-circle"></i></div>
+      <div><div class="psp-ws-stat-value">{{ stats.completed }}</div><div class="psp-ws-stat-label">{% trans "Completed" %}</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md">
+    <div class="psp-ws-stat">
+      <div class="psp-ws-stat-icon" style="background:var(--psp-grad-blue);"><i class="bi bi-file-earmark-pdf"></i></div>
+      <div><div class="psp-ws-stat-value">{{ stats.pdfs }}</div><div class="psp-ws-stat-label">{% trans "PDFs" %}</div></div>
+    </div>
+  </div>
+  <div class="col-12 col-md">
+    <div class="psp-ws-stat">
+      <div class="psp-ws-stat-icon" style="background:#f59e0b;"><i class="bi bi-exclamation-triangle"></i></div>
+      <div><div class="psp-ws-stat-value">{{ stats.needs_config }}</div><div class="psp-ws-stat-label">{% trans "Needs config" %}</div></div>
+    </div>
+  </div>
+</div>
 
-      <div class="col-12 col-sm-6 col-md-4">
+{# ── Pinned & Recently viewed ────────────────────────────────── #}
+<div class="row g-3 mb-3">
+  <div class="col-12 col-lg-6">
+    <div class="card psp-settings-card h-100">
+      <div class="card-header psp-settings-card-header">
+        <span><i class="bi bi-pin-angle-fill me-2" style="color:var(--psp-purple);"></i>{% trans "Pinned" %}</span>
+        <span class="psp-settings-card-hint">{{ pinned_quotations|length }}</span>
+      </div>
+      {% if pinned_quotations %}
+        <ul class="list-group list-group-flush psp-ws-mini-list">
+          {% for row in pinned_quotations %}
+            {% include "quotation/_workspace_mini_row.html" with row=row show_unpin=True %}
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="psp-empty psp-empty--mini">
+          <div class="psp-empty-icon"><i class="bi bi-pin-angle"></i></div>
+          <div class="psp-empty-text small">{% trans "Pin a quotation to keep it one click away." %}</div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-12 col-lg-6">
+    <div class="card psp-settings-card h-100">
+      <div class="card-header psp-settings-card-header">
+        <span><i class="bi bi-clock-history me-2" style="color:var(--psp-purple);"></i>{% trans "Recently viewed" %}</span>
+        <span class="psp-settings-card-hint">{{ recent_quotations|length }}</span>
+      </div>
+      {% if recent_quotations %}
+        <ul class="list-group list-group-flush psp-ws-mini-list">
+          {% for row in recent_quotations %}
+            {% include "quotation/_workspace_mini_row.html" with row=row %}
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="psp-empty psp-empty--mini">
+          <div class="psp-empty-icon"><i class="bi bi-clock-history"></i></div>
+          <div class="psp-empty-text small">{% trans "Quotations you open will appear here." %}</div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{# ── Filters ─────────────────────────────────────────────────── #}
+<div class="card mb-3">
+  <div class="card-body py-3">
+    <form method="get" class="row g-2 align-items-end">
+      <input type="hidden" name="view" value="{{ view_mode }}">
+
+      <div class="col-12 col-md-4">
         <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Search" %}</label>
         <div class="input-group input-group-sm">
-          <input type="text" name="q" value="{{ q }}"
-                 class="form-control" placeholder="{% trans 'Reference, customer or project…' %}">
-          <button class="btn btn-outline-secondary" type="submit">
-            <i class="bi bi-search"></i>
-          </button>
+          <input type="text" name="q" value="{{ q }}" class="form-control"
+                 placeholder="{% trans 'Reference, customer, project, location…' %}">
+          <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
         </div>
       </div>
 
-      <div class="col-6 col-sm-3 col-md-2">
+      <div class="col-6 col-md-2">
         <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Status" %}</label>
         <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
           <option value="">{% trans "All" %}</option>
@@ -51,124 +142,245 @@
         </select>
       </div>
 
-      {% if q or current_status %}
-        <div class="col-auto align-self-end">
-          <a href="{% url 'quotation:quotation_list' %}" class="btn btn-sm btn-outline-danger">
-            <i class="bi bi-x-lg me-1"></i>{% trans "Clear" %}
-          </a>
-        </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Readiness" %}</label>
+        <select name="readiness" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="">{% trans "Any" %}</option>
+          {% for val, label in readiness_choices %}
+            <option value="{{ val }}" {% if current_readiness == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-6 col-md-2">
+        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Has PDF" %}</label>
+        <select name="has_pdf" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="">{% trans "Any" %}</option>
+          {% for val, label in has_pdf_choices %}
+            <option value="{{ val }}" {% if current_has_pdf == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      {% if is_admin %}
+      <div class="col-6 col-md-2">
+        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Rep" %}</label>
+        <select name="rep" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="">{% trans "All reps" %}</option>
+          {% for rep in rep_choices %}
+            <option value="{{ rep.pk }}" {% if current_rep == rep.pk|stringformat:'s' %}selected{% endif %}>
+              {{ rep.get_full_name|default:rep.username }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
       {% endif %}
 
+      <div class="col-6 col-md-2">
+        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "From" %}</label>
+        <input type="date" name="date_from" value="{{ current_date_from }}" class="form-control form-control-sm">
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "To" %}</label>
+        <input type="date" name="date_to" value="{{ current_date_to }}" class="form-control form-control-sm">
+      </div>
+
+      <div class="col-12 col-md-auto d-flex gap-2">
+        <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel me-1"></i>{% trans "Apply" %}</button>
+        {% if has_filters %}
+          <a href="{% url 'quotation:quotation_list' %}?view={{ view_mode }}" class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-x-lg me-1"></i>{% trans "Clear" %}
+          </a>
+        {% endif %}
+      </div>
     </form>
   </div>
 </div>
 
-<!-- Table -->
-<div class="card">
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0 small">
-        <thead class="table-light">
-          <tr>
-            <th class="ps-3">{% trans "Reference" %}</th>
-            <th>{% trans "Customer" %}</th>
-            {% if is_admin %}<th>{% trans "Rep" %}</th>{% endif %}
-            <th>{% trans "Project" %}</th>
-            <th>{% trans "Sections" %}</th>
-            <th>{% trans "Status" %}</th>
-            <th>{% trans "Updated" %}</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for q in quotations %}
-            <tr>
-              <td class="ps-3 text-nowrap">
-                <a href="{% url 'quotation:quotation_detail' q.pk %}" class="psp-q-ref text-decoration-none">
-                  {{ q.reference }}
-                </a>
-              </td>
-              <td>
-                <div class="fw-semibold">{{ q.customer_name|default:"—" }}</div>
-                <div class="text-muted" style="font-size:.72rem;">{{ q.created_at|date:"d M Y" }}</div>
-              </td>
-              {% if is_admin %}
-                <td class="text-muted">{{ q.created_by.get_full_name|default:q.created_by.username }}</td>
+{# ── Results ────────────────────────────────────────────────── #}
+{% if rows %}
+
+  {% if view_mode == "cards" %}
+    <div class="row g-3 psp-ws-cards">
+      {% for row in rows %}
+      <div class="col-12 col-md-6 col-xl-4">
+        <div class="card psp-ws-card h-100">
+          <div class="psp-ws-card-head">
+            <a href="{% url 'quotation:quotation_detail' row.q.pk %}" class="psp-q-ref text-decoration-none fw-bold">
+              {{ row.q.reference }}
+            </a>
+            <form method="post" action="{% url 'quotation:quotation_pin_toggle' row.q.pk %}" class="d-inline">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button type="submit" class="psp-ws-pin-btn {% if row.is_pinned %}is-pinned{% endif %}"
+                      title="{% if row.is_pinned %}{% trans 'Unpin' %}{% else %}{% trans 'Pin' %}{% endif %}">
+                <i class="bi {% if row.is_pinned %}bi-pin-angle-fill{% else %}bi-pin-angle{% endif %}"></i>
+              </button>
+            </form>
+          </div>
+          <div class="psp-ws-card-body">
+            <div class="fw-semibold">{{ row.q.customer_name|default:"—" }}</div>
+            {% if row.q.project_name %}<div class="small text-muted">{{ row.q.project_name }}</div>{% endif %}
+            <div class="d-flex flex-wrap gap-2 mt-2">
+              <span class="badge text-bg-{% if row.q.status == 'COMPLETED' %}success{% elif row.q.status == 'CANCELLED' %}secondary{% else %}warning text-dark{% endif %}">
+                {{ row.q.get_status_display }}
+              </span>
+              <span class="badge psp-ws-readiness psp-ws-readiness--{{ row.readiness.key }}">
+                <i class="bi {{ row.readiness.icon }} me-1"></i>{{ row.readiness.label }}
+              </span>
+              {% if row.readiness.has_pdf %}
+                <span class="badge text-bg-info"><i class="bi bi-file-earmark-pdf me-1"></i>{{ row.readiness.pdf_count }}</span>
               {% endif %}
-              <td class="text-muted">{{ q.project_name|default:"—" }}</td>
-              <td>
-                <span class="psp-q-progress">
-                  <span class="psp-q-progress-dot {% if q.section_count %}psp-q-progress-dot--on{% endif %}"></span>
-                  {% blocktrans count counter=q.section_count %}{{ counter }} section{% plural %}{{ counter }} sections{% endblocktrans %}
-                </span>
-              </td>
-              <td>
-                {% if q.status == "COMPLETED" %}
-                  <span class="badge text-bg-success">{{ q.get_status_display }}</span>
-                {% elif q.status == "CANCELLED" %}
-                  <span class="badge text-bg-secondary">{{ q.get_status_display }}</span>
-                {% else %}
-                  <span class="badge text-bg-warning text-dark">{{ q.get_status_display }}</span>
+            </div>
+            <div class="mt-2 small text-muted">
+              <i class="bi bi-bricks me-1"></i>{{ row.readiness.configured }}/{{ row.readiness.total }} {% trans "sections" %}
+              · <i class="bi bi-clock"></i> {{ row.q.updated_at|timesince }} {% trans "ago" %}
+              {% if is_admin %} · <i class="bi bi-person"></i> {{ row.q.created_by.get_full_name|default:row.q.created_by.username }}{% endif %}
+            </div>
+          </div>
+          <div class="psp-ws-card-actions">
+            <a href="{% url 'quotation:quotation_builder' row.q.pk %}" class="btn btn-sm btn-outline-primary" title="{% trans 'Continue builder' %}">
+              <i class="bi bi-pencil-square"></i><span class="d-none d-md-inline ms-1">{% trans "Builder" %}</span>
+            </a>
+            <a href="{% url 'quotation:quotation_review' row.q.pk %}" class="btn btn-sm btn-outline-secondary" title="{% trans 'Review' %}">
+              <i class="bi bi-eye"></i><span class="d-none d-md-inline ms-1">{% trans "Review" %}</span>
+            </a>
+            <a href="{% url 'quotation:pdf_select' row.q.pk %}" class="btn btn-sm btn-outline-secondary" title="{% trans 'Generate PDF' %}">
+              <i class="bi bi-file-earmark-pdf"></i><span class="d-none d-md-inline ms-1">{% trans "PDF" %}</span>
+            </a>
+            <a href="{% url 'quotation:quotation_detail' row.q.pk %}" class="btn btn-sm btn-outline-secondary" title="{% trans 'Detail' %}">
+              <i class="bi bi-info-circle"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+  {% else %}
+    <div class="card">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3" style="width:24px;"></th>
+                <th>{% trans "Reference" %}</th>
+                <th>{% trans "Customer" %}</th>
+                {% if is_admin %}<th>{% trans "Rep" %}</th>{% endif %}
+                <th>{% trans "Project" %}</th>
+                <th>{% trans "Readiness" %}</th>
+                <th>{% trans "Status" %}</th>
+                <th>{% trans "Updated" %}</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for row in rows %}
+              <tr>
+                <td class="ps-3">
+                  <form method="post" action="{% url 'quotation:quotation_pin_toggle' row.q.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="psp-ws-pin-btn {% if row.is_pinned %}is-pinned{% endif %}"
+                            title="{% if row.is_pinned %}{% trans 'Unpin' %}{% else %}{% trans 'Pin' %}{% endif %}">
+                      <i class="bi {% if row.is_pinned %}bi-pin-angle-fill{% else %}bi-pin-angle{% endif %}"></i>
+                    </button>
+                  </form>
+                </td>
+                <td class="text-nowrap">
+                  <a href="{% url 'quotation:quotation_detail' row.q.pk %}" class="psp-q-ref text-decoration-none">
+                    {{ row.q.reference }}
+                  </a>
+                </td>
+                <td>
+                  <div class="fw-semibold">{{ row.q.customer_name|default:"—" }}</div>
+                  <div class="text-muted" style="font-size:.72rem;">{{ row.q.created_at|date:"d M Y" }}</div>
+                </td>
+                {% if is_admin %}
+                  <td class="text-muted">{{ row.q.created_by.get_full_name|default:row.q.created_by.username }}</td>
                 {% endif %}
-              </td>
-              <td class="text-muted text-nowrap" title="{{ q.updated_at|date:'d M Y H:i' }}">
-                {{ q.updated_at|timesince }} {% trans "ago" %}
-              </td>
-              <td class="text-end pe-3">
-                <a href="{% url 'quotation:quotation_builder' q.pk %}"
-                   class="btn btn-sm btn-outline-primary me-1" title="{% trans 'Builder' %}">
-                  <i class="bi bi-pencil-square"></i>
-                </a>
-                <a href="{% url 'quotation:quotation_detail' q.pk %}"
-                   class="btn btn-sm btn-outline-secondary" title="{% trans 'View' %}">
-                  <i class="bi bi-eye"></i>
-                </a>
-              </td>
-            </tr>
-          {% empty %}
-            <tr>
-              <td colspan="{% if is_admin %}8{% else %}7{% endif %}" class="p-0">
-                {% if has_filters %}
-                  <div class="psp-empty">
-                    <div class="psp-empty-icon"><i class="bi bi-funnel"></i></div>
-                    <div class="psp-empty-title">{% trans "No quotations match your filters" %}</div>
-                    <div class="psp-empty-text">{% trans "Try a broader search term or clear the status filter to see all quotations." %}</div>
-                    <div class="psp-empty-actions">
-                      <a href="{% url 'quotation:quotation_list' %}" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-x-lg me-1"></i>{% trans "Clear filters" %}
-                      </a>
-                    </div>
+                <td class="text-muted">{{ row.q.project_name|default:"—" }}</td>
+                <td>
+                  <span class="badge psp-ws-readiness psp-ws-readiness--{{ row.readiness.key }}">
+                    <i class="bi {{ row.readiness.icon }} me-1"></i>{{ row.readiness.label }}
+                  </span>
+                  <div class="text-muted" style="font-size:.7rem;margin-top:.15rem;">
+                    {{ row.readiness.configured }}/{{ row.readiness.total }} {% trans "sections" %}
+                    {% if row.readiness.has_pdf %} · {{ row.readiness.pdf_count }} PDF{{ row.readiness.pdf_count|pluralize }}{% endif %}
                   </div>
-                {% else %}
-                  <div class="psp-empty">
-                    <div class="psp-empty-icon"><i class="bi bi-file-earmark-plus"></i></div>
-                    <div class="psp-empty-title">{% trans "No quotations yet" %}</div>
-                    <div class="psp-empty-text">{% trans "Quotations let you scope a customer project across rooms, surfaces and finishes — then export a polished PDF." %}</div>
-                    <div class="psp-empty-actions">
-                      <a href="{% url 'quotation:quotation_start' %}" class="btn btn-primary btn-sm">
-                        <i class="bi bi-plus-lg me-1"></i>{% trans "Create your first quotation" %}
-                      </a>
-                    </div>
-                  </div>
-                {% endif %}
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+                </td>
+                <td>
+                  {% if row.q.status == "COMPLETED" %}
+                    <span class="badge text-bg-success">{{ row.q.get_status_display }}</span>
+                  {% elif row.q.status == "CANCELLED" %}
+                    <span class="badge text-bg-secondary">{{ row.q.get_status_display }}</span>
+                  {% else %}
+                    <span class="badge text-bg-warning text-dark">{{ row.q.get_status_display }}</span>
+                  {% endif %}
+                </td>
+                <td class="text-muted text-nowrap" title="{{ row.q.updated_at|date:'d M Y H:i' }}">
+                  {{ row.q.updated_at|timesince }} {% trans "ago" %}
+                </td>
+                <td class="text-end pe-3 text-nowrap">
+                  <a href="{% url 'quotation:quotation_builder' row.q.pk %}"
+                     class="btn btn-sm btn-outline-primary me-1" title="{% trans 'Builder' %}">
+                    <i class="bi bi-pencil-square"></i>
+                  </a>
+                  <a href="{% url 'quotation:quotation_review' row.q.pk %}"
+                     class="btn btn-sm btn-outline-secondary me-1" title="{% trans 'Review' %}">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                  <a href="{% url 'quotation:pdf_select' row.q.pk %}"
+                     class="btn btn-sm btn-outline-secondary" title="{% trans 'PDF' %}">
+                    <i class="bi bi-file-earmark-pdf"></i>
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+{% else %}
+  <div class="card">
+    <div class="card-body p-0">
+      {% if has_filters %}
+        <div class="psp-empty">
+          <div class="psp-empty-icon"><i class="bi bi-funnel"></i></div>
+          <div class="psp-empty-title">{% trans "No quotations match your filters" %}</div>
+          <div class="psp-empty-text">{% trans "Try a broader search term or clear the filters." %}</div>
+          <div class="psp-empty-actions">
+            <a href="{% url 'quotation:quotation_list' %}?view={{ view_mode }}" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-x-lg me-1"></i>{% trans "Clear filters" %}
+            </a>
+          </div>
+        </div>
+      {% else %}
+        <div class="psp-empty">
+          <div class="psp-empty-icon"><i class="bi bi-file-earmark-plus"></i></div>
+          <div class="psp-empty-title">{% trans "No quotations yet" %}</div>
+          <div class="psp-empty-text">{% trans "Create your first quotation to start scoping a customer project." %}</div>
+          <div class="psp-empty-actions">
+            <a href="{% url 'quotation:quotation_start' %}" class="btn btn-primary btn-sm">
+              <i class="bi bi-plus-lg me-1"></i>{% trans "Create your first quotation" %}
+            </a>
+          </div>
+        </div>
+      {% endif %}
     </div>
   </div>
-</div>
+{% endif %}
 
-<!-- Pagination -->
 {% if is_paginated %}
   <nav class="mt-3" aria-label="{% trans 'Pagination' %}">
     <ul class="pagination justify-content-center">
       {% if page_obj.has_previous %}
         <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}">
-            &laquo;
-          </a>
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filter_qs %}&{{ filter_qs }}{% endif %}">&laquo;</a>
         </li>
       {% endif %}
       <li class="page-item disabled">
@@ -176,9 +388,7 @@
       </li>
       {% if page_obj.has_next %}
         <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}">
-            &raquo;
-          </a>
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filter_qs %}&{{ filter_qs }}{% endif %}">&raquo;</a>
         </li>
       {% endif %}
     </ul>

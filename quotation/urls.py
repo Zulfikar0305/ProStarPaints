@@ -9,6 +9,7 @@ from .views import (
     QuotationPdfDownloadView,
     QuotationPdfGenerateView,
     QuotationPdfTemplateSelectView,
+    QuotationPinToggleView,
     QuotationReviewView,
     QuotationStartView,
     QuotationSubstrateSelectionView,
@@ -19,6 +20,7 @@ app_name = "quotation"
 urlpatterns = [
     path("",                                    QuotationListView.as_view(),               name="quotation_list"),
     path("start/",                              QuotationStartView.as_view(),              name="quotation_start"),
+    path("<int:pk>/pin/",                       QuotationPinToggleView.as_view(),          name="quotation_pin_toggle"),
     path("<int:pk>/sections/",                  QuotationSubstrateSelectionView.as_view(), name="quotation_sections"),
     path("<int:pk>/builder/",                   QuotationBuilderView.as_view(),            name="quotation_builder"),
     path("<int:pk>/review/",                    QuotationReviewView.as_view(),             name="quotation_review"),

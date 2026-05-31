@@ -1,0 +1,34 @@
+{% load i18n %}
+<li class="list-group-item psp-ws-mini-item">
+  <div class="d-flex align-items-center gap-2 flex-grow-1 min-w-0">
+    <span class="badge psp-ws-readiness psp-ws-readiness--{{ row.readiness.key }} psp-ws-readiness--dot"
+          title="{{ row.readiness.label }}">
+      <i class="bi {{ row.readiness.icon }}"></i>
+    </span>
+    <div class="min-w-0 flex-grow-1">
+      <a href="{% url 'quotation:quotation_detail' row.q.pk %}" class="psp-q-ref text-decoration-none fw-semibold d-block text-truncate">
+        {{ row.q.reference }}
+      </a>
+      <div class="small text-muted text-truncate">
+        {{ row.q.customer_name|default:"—" }}{% if row.q.project_name %} · {{ row.q.project_name }}{% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="d-flex align-items-center gap-1">
+    <a href="{% url 'quotation:quotation_builder' row.q.pk %}" class="btn btn-sm btn-outline-primary" title="{% trans 'Continue builder' %}">
+      <i class="bi bi-pencil-square"></i>
+    </a>
+    <a href="{% url 'quotation:pdf_select' row.q.pk %}" class="btn btn-sm btn-outline-secondary" title="{% trans 'PDF' %}">
+      <i class="bi bi-file-earmark-pdf"></i>
+    </a>
+    {% if show_unpin %}
+      <form method="post" action="{% url 'quotation:quotation_pin_toggle' row.q.pk %}" class="d-inline">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button type="submit" class="btn btn-sm btn-outline-secondary" title="{% trans 'Unpin' %}">
+          <i class="bi bi-pin-angle-fill" style="color:var(--psp-purple);"></i>
+        </button>
+      </form>
+    {% endif %}
+  </div>
+</li>

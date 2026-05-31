@@ -341,3 +341,34 @@ class QuotationPdfExport(models.Model):
     def __str__(self) -> str:
         return f"{self.quotation.reference} — {self.template_key} ({self.status})"
 
+
+
+# ---------------------------------------------------------------------------
+# QuotationPin
+# ---------------------------------------------------------------------------
+
+class QuotationPin(models.Model):
+    """A user pin on a quotation so it shows up in their pinned panel."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="quotation_pins",
+        verbose_name=_("user"),
+    )
+    quotation = models.ForeignKey(
+        Quotation,
+        on_delete=models.CASCADE,
+        related_name="pins",
+        verbose_name=_("quotation"),
+    )
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        unique_together = [("user", "quotation")]
+        verbose_name = _("quotation pin")
+        verbose_name_plural = _("quotation pins")
+
+    def __str__(self) -> str:
+        return f"{self.user} \u2605 {self.quotation.reference}"
