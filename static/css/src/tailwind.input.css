@@ -741,3 +741,307 @@ body.psp-body[data-theme="light"] {
   color: #0f172a !important;
 }
 body.psp-body[data-theme="light"]::before { display: none; }
+
+/* ============================================================
+   §15  Final polish pass (aesthetic refinements)
+   ============================================================ */
+
+/* — Login: premium dark glass card with spotlight + glow — */
+.psp-login-wrap {
+  position: relative;
+  min-height: 100vh !important;
+}
+.psp-login-wrap::before,
+.psp-login-wrap::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+  z-index: 0;
+}
+.psp-login-wrap::before {
+  width: 480px; height: 480px;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.45) 0%, transparent 70%);
+  top: -120px; left: 50%; transform: translateX(-60%);
+}
+.psp-login-wrap::after {
+  width: 380px; height: 380px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.30) 0%, transparent 70%);
+  bottom: -100px; left: 50%; transform: translateX(20%);
+}
+.psp-login-card {
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(18, 25, 57, 0.85), rgba(11, 16, 36, 0.92)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(24px);
+  color: var(--tw-text) !important;
+  box-shadow:
+    0 40px 90px -20px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(139, 92, 246, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+  border-radius: 22px !important;
+}
+.psp-login-card h4 {
+  background: linear-gradient(135deg, #c4b5fd 0%, #6ee7b7 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent !important;
+  font-family: "Space Grotesk", "Inter", sans-serif;
+}
+.psp-login-card .form-label { color: #cbd5e1 !important; }
+.psp-login-card .btn-primary {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding-block: 0.7rem;
+}
+
+/* — Dashboard KPI: tighten rhythm, gradient top hairline, focus on number — */
+.psp-kpi-card {
+  padding: 1.1rem 1.25rem !important;
+}
+.psp-kpi-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.6), transparent);
+  opacity: 0.7;
+}
+.psp-kpi-card { position: relative; overflow: hidden; }
+.psp-kpi-card .psp-kpi-value,
+.psp-kpi-card .display-6,
+.psp-kpi-card h2,
+.psp-kpi-card h3 {
+  font-family: "Space Grotesk", "Inter", sans-serif !important;
+  letter-spacing: -0.02em;
+  color: #ffffff !important;
+}
+
+/* — Quotation builder: reduce visual noise — */
+[data-psp-page*="quotation_builder"] .card,
+[data-psp-page*="quotation_builder"] .psp-card {
+  box-shadow: 0 10px 30px -20px rgba(0, 0, 0, 0.5),
+              inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
+  background: rgba(18, 25, 57, 0.50) !important;
+}
+[data-psp-page*="quotation_builder"] .psp-section-rail-item {
+  background: rgba(255, 255, 255, 0.025) !important;
+  border: 1px solid transparent !important;
+}
+[data-psp-page*="quotation_builder"] .psp-section-rail-item:hover {
+  background: rgba(139, 92, 246, 0.10) !important;
+}
+[data-psp-page*="quotation_builder"] .psp-section-rail-item.is-active,
+[data-psp-page*="quotation_builder"] .psp-section-rail-item[aria-current="true"] {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.25), rgba(16, 185, 129, 0.12)) !important;
+  border-color: rgba(139, 92, 246, 0.4) !important;
+}
+[data-psp-page*="quotation_builder"] .form-control,
+[data-psp-page*="quotation_builder"] .form-select {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+/* Dim grid background a touch under the dense builder so it's not busy */
+[data-psp-page*="quotation_builder"] body.psp-body::before,
+body.psp-body[data-psp-page*="quotation_builder"]::before { opacity: 0.5; }
+
+/* — PDF template gallery: premium card with glow on selected — */
+.psp-pdf-tpl-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease !important;
+  overflow: hidden;
+}
+.psp-pdf-tpl-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(139, 92, 246, 0.45) !important;
+  box-shadow:
+    0 28px 70px -25px rgba(124, 58, 237, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+.psp-pdf-tpl-card.is-preferred {
+  border-color: rgba(110, 231, 183, 0.55) !important;
+  box-shadow:
+    0 0 0 1px rgba(110, 231, 183, 0.35),
+    0 25px 65px -20px rgba(16, 185, 129, 0.4) !important;
+}
+.psp-pdf-tpl-card.is-disabled { opacity: 0.55; filter: saturate(0.7); }
+.psp-pdf-mock {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(139, 92, 246, 0.08)) !important;
+  border-bottom: 1px solid var(--tw-line) !important;
+}
+.psp-pdf-mock-page {
+  background: rgba(248, 250, 252, 0.97) !important;
+  box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5);
+}
+.psp-pdf-default-pill {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 22px -8px rgba(16, 185, 129, 0.7);
+  border: 1px solid rgba(110, 231, 183, 0.6) !important;
+}
+.psp-pdf-bestfor { color: var(--tw-text-soft) !important; }
+
+/* — Control Center: cockpit feel via section dividers + chip glow — */
+.psp-settings-nav-pill {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid var(--tw-line) !important;
+  color: var(--tw-text-soft) !important;
+  border-radius: 999px !important;
+  transition: all 0.18s ease;
+}
+.psp-settings-nav-pill:hover {
+  border-color: rgba(139, 92, 246, 0.4) !important;
+  color: #ffffff !important;
+}
+.psp-settings-nav-pill.is-active,
+.psp-settings-nav-pill[aria-current="true"] {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.25), rgba(16, 185, 129, 0.15)) !important;
+  color: #ffffff !important;
+  border-color: rgba(139, 92, 246, 0.5) !important;
+  box-shadow: 0 8px 22px -10px rgba(124, 58, 237, 0.55);
+}
+.psp-cc-chip {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid var(--tw-line) !important;
+  color: var(--tw-text) !important;
+}
+.psp-cc-chip.is-ready   { border-color: rgba(110, 231, 183, 0.4) !important; color: #6ee7b7 !important; }
+.psp-cc-chip.is-warning { border-color: rgba(252, 211, 77, 0.4)  !important; color: #fcd34d !important; }
+.psp-cc-chip.is-info    { border-color: rgba(103, 232, 249, 0.4) !important; color: #67e8f9 !important; }
+
+/* — Quotation review preflight card polish — */
+.psp-preflight {
+  border: 1px solid var(--tw-line-strong) !important;
+  background: rgba(18, 25, 57, 0.70) !important;
+  backdrop-filter: blur(14px);
+  border-radius: 1.1rem !important;
+}
+.psp-preflight--ok      { border-color: rgba(110, 231, 183, 0.40) !important; }
+.psp-preflight--warning { border-color: rgba(252, 211, 77,  0.40) !important; }
+.psp-preflight--fail    { border-color: rgba(252, 165, 165, 0.40) !important; }
+.psp-preflight-chip {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid var(--tw-line) !important;
+}
+.psp-preflight-chip--ok   { color: #6ee7b7 !important; border-color: rgba(110, 231, 183, 0.4) !important; }
+.psp-preflight-chip--warn { color: #fcd34d !important; border-color: rgba(252, 211, 77, 0.4)  !important; }
+.psp-preflight-chip--fail { color: #fca5a5 !important; border-color: rgba(252, 165, 165, 0.4) !important; }
+
+/* — Quick actions / cockpit tiles polish — */
+.psp-quick-action {
+  background: rgba(18, 25, 57, 0.60) !important;
+  border: 1px solid var(--tw-line) !important;
+  color: var(--tw-text) !important;
+  border-radius: 1rem !important;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.psp-quick-action:hover {
+  transform: translateY(-2px);
+  border-color: rgba(139, 92, 246, 0.4) !important;
+  box-shadow: 0 20px 50px -20px rgba(124, 58, 237, 0.45);
+}
+.psp-quick-action-title { color: #ffffff !important; }
+.psp-quick-action-sub   { color: var(--tw-text-soft) !important; }
+.psp-quick-action-icon {
+  box-shadow: 0 8px 22px -10px rgba(0, 0, 0, 0.5);
+}
+
+/* — Continue-card hero polish — */
+.psp-continue-card {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.18), rgba(16, 185, 129, 0.12)) !important;
+  border: 1px solid rgba(139, 92, 246, 0.35) !important;
+  color: var(--tw-text) !important;
+  border-radius: 1.1rem !important;
+  box-shadow: 0 22px 60px -25px rgba(124, 58, 237, 0.5);
+}
+.psp-continue-label { color: #c4b5fd !important; }
+.psp-continue-title { color: #ffffff !important; }
+.psp-continue-sub   { color: var(--tw-text-soft) !important; }
+
+/* — Mobile 360px polish — */
+@media (max-width: 575.98px) {
+  /* Hero text sizing */
+  section h1.font-display { font-size: 1.65rem !important; line-height: 1.15 !important; }
+  /* Tighter hero padding */
+  section.psp-glass,
+  section.psp-glass-strong { padding: 1.25rem !important; }
+  /* Pill row wraps with breathing room */
+  .psp-pill { padding: 0.2rem 0.55rem; font-size: 0.7rem; }
+  /* Login full-bleed */
+  .psp-login-card { padding: 1.75rem 1.25rem !important; border-radius: 16px !important; }
+  /* KPI numbers stay legible */
+  .psp-kpi-card { padding: 0.9rem 1rem !important; }
+}
+
+/* — Tablet 1024px polish: more generous horizontal rhythm — */
+@media (min-width: 768px) and (max-width: 1199.98px) {
+  section.psp-glass-strong { padding: 1.75rem 2rem !important; }
+  .psp-pdf-tpl-card .psp-pdf-mock { aspect-ratio: 1 / 1.15; }
+}
+
+/* — Light mode: ensure all §14/§15 dark overrides defer to original palette — */
+body.psp-body[data-theme="light"] .dropdown-menu,
+body.psp-body[data-theme="light"] .modal-content,
+body.psp-body[data-theme="light"] .offcanvas,
+body.psp-body[data-theme="light"] .toast,
+body.psp-body[data-theme="light"] .card,
+body.psp-body[data-theme="light"] .psp-card,
+body.psp-body[data-theme="light"] .psp-kpi-card,
+body.psp-body[data-theme="light"] .psp-login-card,
+body.psp-body[data-theme="light"] .psp-sidebar,
+body.psp-body[data-theme="light"] .psp-topbar,
+body.psp-body[data-theme="light"] .psp-notify-panel,
+body.psp-body[data-theme="light"] .list-group-item {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.10) !important;
+  backdrop-filter: none !important;
+}
+body.psp-body[data-theme="light"] .form-control,
+body.psp-body[data-theme="light"] .form-select {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.18) !important;
+}
+body.psp-body[data-theme="light"] .text-muted,
+body.psp-body[data-theme="light"] .text-secondary { color: #64748b !important; }
+body.psp-body[data-theme="light"] thead th { color: #475569 !important; }
+body.psp-body[data-theme="light"] .psp-login-wrap::before,
+body.psp-body[data-theme="light"] .psp-login-wrap::after { display: none; }
+
+/* — High-contrast mode: bolder borders, brighter text, no blur — */
+body.psp-body[data-high-contrast="true"] {
+  --tw-line: rgba(255, 255, 255, 0.30);
+  --tw-line-strong: rgba(255, 255, 255, 0.45);
+  --tw-text-soft: #e2e8f0;
+  --tw-text-mute: #cbd5e1;
+}
+body.psp-body[data-high-contrast="true"] .card,
+body.psp-body[data-high-contrast="true"] .psp-card,
+body.psp-body[data-high-contrast="true"] .psp-kpi-card,
+body.psp-body[data-high-contrast="true"] .dropdown-menu,
+body.psp-body[data-high-contrast="true"] .modal-content,
+body.psp-body[data-high-contrast="true"] .offcanvas,
+body.psp-body[data-high-contrast="true"] .psp-login-card,
+body.psp-body[data-high-contrast="true"] .psp-sidebar,
+body.psp-body[data-high-contrast="true"] .psp-topbar {
+  backdrop-filter: none !important;
+  border-width: 2px !important;
+}
+body.psp-body[data-high-contrast="true"] .btn,
+body.psp-body[data-high-contrast="true"] .form-control,
+body.psp-body[data-high-contrast="true"] .form-select {
+  border-width: 2px !important;
+}
+body.psp-body[data-high-contrast="true"] :focus-visible {
+  outline-width: 3px !important;
+  outline-color: #fde047 !important;
+}
+body.psp-body[data-high-contrast="true"] .text-muted,
+body.psp-body[data-high-contrast="true"] .text-secondary { color: #e2e8f0 !important; }
+
+/* — Larger text mode pairs nicely with HC — */
+body.psp-body[data-larger-text="true"] { font-size: 17px; }
+body.psp-body[data-larger-text="true"] .form-control,
+body.psp-body[data-larger-text="true"] .form-select,
+body.psp-body[data-larger-text="true"] .btn { font-size: 1rem; }
