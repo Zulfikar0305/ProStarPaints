@@ -56,9 +56,53 @@
   {% endfor %}
 {% endif %}
 
+<!-- Preflight summary -->
+{% if preflight %}
+{% with pf=preflight %}
+<div class="psp-preflight psp-preflight--{{ pf.status|lower }} mb-4" role="region" aria-label="{% trans 'Quotation readiness' %}">
+  <div class="p-3 p-md-3">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+      <div class="d-flex align-items-center gap-3">
+        <div class="psp-preflight-icon" aria-hidden="true">
+          {% if pf.status == "READY" %}<i class="bi bi-shield-check"></i>
+          {% elif pf.status == "WARNING" %}<i class="bi bi-shield-exclamation"></i>
+          {% else %}<i class="bi bi-shield-x"></i>{% endif %}
+        </div>
+        <div>
+          <div class="fw-bold" style="font-size:.95rem;">
+            {% trans "Preflight" %}
+            <span class="badge ms-1 psp-preflight-badge psp-preflight-badge--{{ pf.status|lower }}">{{ pf.status }}</span>
+            <span class="ms-2 small text-muted">{{ pf.score }}%</span>
+          </div>
+          <div class="small text-muted">{{ pf.summary }}</div>
+        </div>
+      </div>
+      <div class="d-flex align-items-center gap-2 small">
+        <span class="psp-preflight-chip psp-preflight-chip--ok"><i class="bi bi-check-circle-fill" aria-hidden="true"></i> {{ pf.counts.ok }}</span>
+        <span class="psp-preflight-chip psp-preflight-chip--warn"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i> {{ pf.counts.warning }}</span>
+        {% if pf.counts.fail %}<span class="psp-preflight-chip psp-preflight-chip--fail"><i class="bi bi-x-circle-fill" aria-hidden="true"></i> {{ pf.counts.fail }}</span>{% endif %}
+        <a href="{% url 'quotation:quotation_review' quotation.pk %}" class="btn btn-sm btn-outline-secondary ms-1" style="font-size:.72rem;padding:.2rem .55rem;">
+          <i class="bi bi-list-check me-1" aria-hidden="true"></i>{% trans "Open checklist" %}
+        </a>
+      </div>
+    </div>
+    {% if not pf.can_generate_pdf %}
+    <div class="alert alert-danger d-flex align-items-start gap-2 py-2 mb-0 small" style="border-radius:10px;">
+      <i class="bi bi-x-octagon-fill mt-1" aria-hidden="true"></i>
+      <div>
+        <strong>{% trans "PDF generation is blocked." %}</strong>
+        {% trans "Fix the blocking issue on the review page, then try again." %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endwith %}
+{% endif %}
+
 <!-- Pricing notice -->
 <div class="alert alert-warning d-flex align-items-start gap-2 py-2 mb-4" style="font-size:.85rem;border-radius:var(--psp-radius-sm,10px);">
-  <i class="bi bi-info-circle-fill fs-5 mt-1"></i>
+  <i class="bi bi-info-circle-fill fs-5 mt-1" aria-hidden="true"></i>
   <div>
     <strong>{% trans "Pricing will display as TBC" %}</strong> —
     {% trans "Until pricing rules are configured, all templates render descriptions and specs with TBC totals." %}
@@ -78,9 +122,9 @@
     <form method="post" action="{% url 'quotation:pdf_generate' quotation.pk %}" class="h-100" data-psp-loading="true">
       {% csrf_token %}
       <input type="hidden" name="template_key" value="{{ tpl.key }}">
-      <div class="card h-100 psp-pdf-tpl-card{% if tpl.key == preferred_pdf_template_key %} is-preferred{% endif %}"
-           style="border: 2px solid var(--psp-border); border-radius: var(--psp-radius,16px); cursor: pointer; overflow: hidden; position: relative;"
-           onclick="this.closest('form').querySelector('button[type=submit]').click();">
+      <div class="card h-100 psp-pdf-tpl-card{% if tpl.key == preferred_pdf_template_key %} is-preferred{% endif %}{% if preflight and not preflight.can_generate_pdf %} is-disabled{% endif %}"
+           style="border: 2px solid var(--psp-border); border-radius: var(--psp-radius,16px); cursor: {% if preflight and not preflight.can_generate_pdf %}not-allowed{% else %}pointer{% endif %}; overflow: hidden; position: relative;"
+           {% if not preflight or preflight.can_generate_pdf %}onclick="this.closest('form').querySelector('button[type=submit]').click();"{% endif %}>
 
         {% if tpl.key == preferred_pdf_template_key %}
         <span class="psp-pdf-default-pill" title="{% trans 'Your saved default template' %}">
@@ -143,7 +187,8 @@
         <div class="card-footer bg-transparent border-0 pt-0 pb-3 px-4">
           <button type="submit" class="btn w-100 fw-semibold"
                   style="background:{{ tpl.preview_color }};color:#fff;border:none;border-radius:10px;"
-                  data-loading-text="{% trans 'Generating PDF…' %}">
+                  data-loading-text="{% trans 'Generating PDF…' %}"
+                  {% if preflight and not preflight.can_generate_pdf %}disabled aria-disabled="true"{% endif %}>
             <i class="bi bi-file-earmark-pdf-fill me-1"></i>{% trans "Generate this PDF" %}
           </button>
         </div>

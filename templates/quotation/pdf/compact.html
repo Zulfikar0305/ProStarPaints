@@ -167,9 +167,9 @@ body {
 <div class="header">
   <div class="logo-area">
     {% if logo_data_uri %}
-      <img class="logo" src="{{ logo_data_uri }}" alt="ProStar Paints">
+      <img class="logo" src="{{ logo_data_uri }}" alt="{{ branding.company_name|default:'ProStar Paints' }}">
     {% else %}
-      <div class="brand">ProStar Paints</div>
+      <div class="brand">{{ branding.company_name|default:"ProStar Paints" }}</div>
     {% endif %}
   </div>
   <div class="doc-area">
@@ -262,7 +262,7 @@ body {
 
 <!-- FOOTER -->
 <div class="footer">
-  <span>ProStar Paints — Compact Estimate</span>
+  <span>{{ branding.company_name|default:"ProStar Paints" }} — Compact Estimate{% if branding.pdf_footer_note %} · {{ branding.pdf_footer_note }}{% endif %}</span>
   <span>{{ quotation.reference }}</span>
   <span>Pricing TBC · Generated {{ generated_at|date:"d M Y" }}</span>
 </div>

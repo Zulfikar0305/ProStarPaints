@@ -69,6 +69,39 @@
 
     {% if interior_secs or exterior_secs %}
 
+      {# ── Sticky section navigation rail (tablet & desktop) ── #}
+      <nav class="psp-section-rail d-none d-md-flex" aria-label="{% trans 'Section navigation' %}" id="pspSectionRail">
+        <span class="psp-section-rail-label">{% trans "Jump to" %}:</span>
+        <div class="psp-section-rail-track" role="list">
+          {% for entry in interior_sections_data %}
+            {% with section=entry.section %}
+            <a href="#gsCard_{{ section.pk }}"
+               class="psp-section-rail-item"
+               data-rail-target="{{ section.pk }}"
+               data-configured="{{ entry.summary.configured|yesno:'1,0' }}"
+               role="listitem">
+              <i class="bi {% if entry.summary.configured %}bi-check-circle-fill psp-rail-ok{% else %}bi-circle psp-rail-pending{% endif %}" aria-hidden="true"></i>
+              <span>{{ section.display_name }}</span>
+              <span class="psp-rail-unsaved-dot" aria-hidden="true"></span>
+            </a>
+            {% endwith %}
+          {% endfor %}
+          {% for entry in exterior_sections_data %}
+            {% with section=entry.section %}
+            <a href="#gsCard_{{ section.pk }}"
+               class="psp-section-rail-item psp-section-rail-item--ext"
+               data-rail-target="{{ section.pk }}"
+               data-configured="{{ entry.summary.configured|yesno:'1,0' }}"
+               role="listitem">
+              <i class="bi {% if entry.summary.configured %}bi-check-circle-fill psp-rail-ok{% else %}bi-circle psp-rail-pending{% endif %}" aria-hidden="true"></i>
+              <span>{{ section.display_name }}</span>
+              <span class="psp-rail-unsaved-dot" aria-hidden="true"></span>
+            </a>
+            {% endwith %}
+          {% endfor %}
+        </div>
+      </nav>
+
       {# ── Interior ── #}
       {% if interior_secs %}
         <div class="psp-builder-substrate-label">
@@ -158,7 +191,8 @@
         <div class="text-end">
           {% if any_configured %}
             <a href="{% url 'quotation:quotation_review' quotation.pk %}"
-               class="btn btn-success btn-sm">
+               class="btn btn-success btn-sm"
+               data-psp-review-link="true">
               <i class="bi bi-arrow-right-circle me-1"></i>{% trans "Continue to Review" %}
             </a>
           {% else %}

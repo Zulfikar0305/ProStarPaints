@@ -24,7 +24,9 @@
 
 <div class="card border-0 shadow-sm mb-3"
      style="border-left:4px solid var(--psp-purple) !important;"
-     data-section-pk="{{ section.pk }}">
+     id="gsCard_{{ section.pk }}"
+     data-section-pk="{{ section.pk }}"
+     data-section-name="{{ section.display_name }}">
 
   {# Card header #}
   <div class="card-header bg-transparent py-3 d-flex align-items-center justify-content-between">
@@ -309,9 +311,9 @@
                     rows="2" placeholder="Any special notes...">{{ meta.notes|default:'' }}</textarea>
         </div>
 
-        {# Actions #}
-        <div class="d-flex gap-2 flex-wrap">
-          <button type="submit" class="btn btn-primary btn-sm">
+        {# Actions (sticky save bar) #}
+        <div class="psp-save-bar">
+          <button type="submit" class="btn btn-primary btn-sm psp-save-bar-primary">
             <i class="bi bi-floppy me-1"></i>Save Interior Walls
           </button>
           <button type="button" class="btn btn-outline-secondary btn-sm"
@@ -319,6 +321,16 @@
                   data-bs-target="#iwFormBody_{{ section.pk }}">
             Cancel
           </button>
+          <div class="ms-auto d-flex gap-1" role="group" aria-label="{% trans 'Move between sections' %}">
+            <button type="button" class="btn btn-outline-secondary btn-sm psp-section-prev"
+                    data-section-prev="{{ section.pk }}" title="{% trans 'Previous section' %}" aria-label="{% trans 'Previous section' %}">
+              <i class="bi bi-chevron-up" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm psp-section-next"
+                    data-section-next="{{ section.pk }}" title="{% trans 'Next section' %}" aria-label="{% trans 'Next section' %}">
+              <i class="bi bi-chevron-down" aria-hidden="true"></i>
+            </button>
+          </div>
         </div>
 
       </div>{# /card-body #}

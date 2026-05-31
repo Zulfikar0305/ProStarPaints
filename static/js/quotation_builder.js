@@ -79,6 +79,8 @@
     if (!form) return;
     var badge = card.querySelector('.psp-unsaved-badge');
     if (badge) badge.style.display = 'inline-flex';
+    card.dataset.unsaved = '1';
+    markRailUnsaved(card.dataset.sectionPk, true);
   });
 
   document.addEventListener('submit', function (e) {
@@ -86,6 +88,86 @@
     if (!card) return;
     var badge = card.querySelector('.psp-unsaved-badge');
     if (badge) badge.style.display = 'none';
+    delete card.dataset.unsaved;
+    markRailUnsaved(card.dataset.sectionPk, false);
+  });
+
+  /* ── 3. Section navigation rail ─────────────────────────────── */
+  var prefersReducedMotion =
+    window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var scrollBehavior = prefersReducedMotion ? 'auto' : 'smooth';
+
+  function scrollToCard(card) {
+    if (!card) return;
+    card.scrollIntoView({ behavior: scrollBehavior, block: 'start' });
+    /* Flash highlight for orientation */
+    card.classList.remove('psp-section-flash');
+    /* Force reflow so re-adding the class re-triggers the animation */
+    void card.offsetWidth;
+    card.classList.add('psp-section-flash');
+  }
+
+  function markRailUnsaved(pk, unsaved) {
+    if (!pk) return;
+    var item = document.querySelector('.psp-section-rail-item[data-rail-target="' + pk + '"]');
+    if (item) item.classList.toggle('is-unsaved', !!unsaved);
+  }
+
+  /* Rail click → scroll to card (anchor jump would lose smooth/flash) */
+  document.querySelectorAll('.psp-section-rail-item').forEach(function (item) {
+    item.addEventListener('click', function (e) {
+      var pk = item.dataset.railTarget;
+      var card = document.getElementById('gsCard_' + pk);
+      if (card) {
+        e.preventDefault();
+        scrollToCard(card);
+      }
+    });
+  });
+
+  /* Prev / Next buttons */
+  function listSectionCards() {
+    return Array.prototype.slice.call(document.querySelectorAll('[data-section-pk]'));
+  }
+  function moveSection(currentPk, direction) {
+    var cards = listSectionCards();
+    var idx = cards.findIndex(function (c) { return c.dataset.sectionPk === String(currentPk); });
+    if (idx < 0) return;
+    var target = cards[idx + direction];
+    if (target) scrollToCard(target);
+  }
+  document.addEventListener('click', function (e) {
+    var prev = e.target.closest && e.target.closest('.psp-section-prev');
+    if (prev) {
+      e.preventDefault();
+      moveSection(prev.dataset.sectionPrev, -1);
+      return;
+    }
+    var next = e.target.closest && e.target.closest('.psp-section-next');
+    if (next) {
+      e.preventDefault();
+      moveSection(next.dataset.sectionNext, +1);
+    }
+  });
+
+  /* ── 4. Gentle confirm when leaving with unsaved work ───────── */
+  function anyUnsaved() {
+    return !!document.querySelector('[data-section-pk][data-unsaved="1"]');
+  }
+  document.querySelectorAll('[data-psp-review-link="true"]').forEach(function (link) {
+    link.addEventListener('click', function (e) {
+      if (!anyUnsaved()) return;
+      var ok = window.confirm(
+        'You have unsaved changes in one or more sections. Continue to Review without saving?'
+      );
+      if (!ok) e.preventDefault();
+    });
+  });
+  window.addEventListener('beforeunload', function (e) {
+    if (anyUnsaved()) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
   });
 
 }());

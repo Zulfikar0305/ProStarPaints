@@ -321,9 +321,9 @@ p { margin-bottom: 4pt; }
 <div class="header">
   <div class="header-brand">
     {% if logo_data_uri %}
-      <img class="logo" src="{{ logo_data_uri }}" alt="ProStar Paints">
+      <img class="logo" src="{{ logo_data_uri }}" alt="{{ branding.company_name|default:'ProStar Paints' }}">
     {% else %}
-      <div class="company-name">ProStar Paints</div>
+      <div class="company-name">{{ branding.company_name|default:"ProStar Paints" }}</div>
     {% endif %}
     {% if sales_profile and sales_profile.branch_location %}
       <div class="text-muted text-small mt-1">{{ sales_profile.branch_location }}</div>
@@ -501,7 +501,7 @@ p { margin-bottom: 4pt; }
 
 <!-- ══ FOOTER ═════════════════════════════════════════════════════════════ -->
 <div class="footer-bar">
-  <span>ProStar Paints — Professional Quotation</span>
+  <span>{{ branding.company_name|default:"ProStar Paints" }} — Professional Quotation{% if branding.pdf_footer_note %} · {{ branding.pdf_footer_note }}{% endif %}</span>
   <span>{{ quotation.reference }} | Generated {{ generated_at|date:"d M Y" }}</span>
   <span>Prices are TBC pending final assessment</span>
 </div>

@@ -9,16 +9,18 @@
 
     <!-- Logo -->
     <div class="text-center mb-4">
-      <img src="{% static "images/prostar-logo.png" %}"
-           alt="ProStar Paints"
+      <img src="{{ branding.logo_url }}"
+           alt="{{ branding.company_name }}"
            class="psp-login-logo"
            onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex';" />
       <div class="psp-login-logo-fallback d-inline-flex align-items-center justify-content-center"
            style="display:none !important;width:72px;height:72px;background:var(--psp-grad-purple);border-radius:18px;">
         <i class="bi bi-paint-bucket text-white fs-3"></i>
       </div>
-      <h4 class="fw-bold mt-3 mb-0" style="letter-spacing:-.03em;">ProStar Paints</h4>
-      <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">{% trans "Sign in to your account" %}</p>
+      <h4 class="fw-bold mt-3 mb-0" style="letter-spacing:-.03em;">{{ branding.company_name|default:"ProStar Paints" }}</h4>
+      <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">
+        {% if branding.company_tagline %}{{ branding.company_tagline }}{% else %}{% trans "Sign in to your account" %}{% endif %}
+      </p>
     </div>
 
     <form method="post" novalidate>

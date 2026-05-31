@@ -25,15 +25,17 @@
         <button type="button" class="btn btn-outline-secondary" onclick="if(history.length>1){history.back()}else{location.href='/'}">
           <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{% trans "Go back" %}
         </button>
-        <a href="mailto:support@prostarpaints.local" class="btn btn-outline-secondary">
+        {% if branding.support_email %}
+        <a href="mailto:{{ branding.support_email }}" class="btn btn-outline-secondary">
           <i class="bi bi-life-preserver me-1" aria-hidden="true"></i>{% trans "Help" %}
         </a>
+        {% endif %}
       </div>
 
       <div class="psp-error-foot">
-        <img src="{% static 'images/prostar-logo.png' %}" alt="" class="psp-error-logo"
+        <img src="{{ branding.logo_url|default:'/static/images/prostar-logo.png' }}" alt="" class="psp-error-logo"
              onerror="this.style.display='none';">
-        <span>ProStar Paints</span>
+        <span>{{ branding.company_name|default:"ProStar Paints" }}</span>
       </div>
     </div>
   </main>

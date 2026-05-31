@@ -4361,3 +4361,419 @@ a:hover > .psp-dq-item { transform: translateY(-2px); box-shadow: var(--psp-shad
 }
 
 [data-reduce-motion="true"] .psp-skip-link { transition: none !important; }
+
+/* ============================================================
+   §60  Quotation Preflight panel
+   ============================================================ */
+.psp-preflight {
+  border-radius: var(--psp-radius, 16px);
+  background: var(--psp-surface, #fff);
+  border: 1px solid var(--psp-border);
+}
+.psp-preflight--ready    { border-left: 4px solid var(--psp-green, #22c55e); }
+.psp-preflight--warning  { border-left: 4px solid #f59e0b; }
+.psp-preflight--incomplete { border-left: 4px solid var(--psp-danger, #ef4444); }
+
+.psp-preflight-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; flex-shrink: 0;
+}
+.psp-preflight--ready .psp-preflight-icon    { background: rgba(34,197,94,.12);  color: #16a34a; }
+.psp-preflight--warning .psp-preflight-icon  { background: rgba(245,158,11,.14); color: #b45309; }
+.psp-preflight--incomplete .psp-preflight-icon { background: rgba(239,68,68,.12); color: #b91c1c; }
+
+.psp-preflight-badge {
+  font-size: .68rem; padding: .28em .55em; letter-spacing: .04em;
+  text-transform: uppercase; vertical-align: middle;
+}
+.psp-preflight-badge--ready       { background: #16a34a; color: #fff; }
+.psp-preflight-badge--warning     { background: #f59e0b; color: #1f2937; }
+.psp-preflight-badge--incomplete  { background: #ef4444; color: #fff; }
+
+.psp-preflight-chip {
+  display: inline-flex; align-items: center; gap: .3em;
+  font-size: .72rem; font-weight: 600;
+  padding: .25em .55em; border-radius: 999px;
+  background: var(--psp-bg-soft, #f1f5f9); color: var(--psp-text-muted);
+}
+.psp-preflight-chip--ok   { background: rgba(34,197,94,.14);  color: #15803d; }
+.psp-preflight-chip--warn { background: rgba(245,158,11,.16); color: #b45309; }
+.psp-preflight-chip--fail { background: rgba(239,68,68,.14);  color: #b91c1c; }
+
+.psp-preflight-bar { background: linear-gradient(90deg, #22c55e, #16a34a); }
+.psp-preflight--warning .psp-preflight-bar    { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+.psp-preflight--incomplete .psp-preflight-bar { background: linear-gradient(90deg, #f87171, #ef4444); }
+
+.psp-preflight-list {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: .5rem;
+}
+.psp-preflight-item {
+  display: flex; align-items: flex-start; gap: .6rem;
+  padding: .55rem .7rem; border-radius: 10px;
+  background: var(--psp-bg-soft, #f8fafc);
+  border: 1px solid transparent;
+}
+.psp-preflight-item--ok      { border-color: rgba(34,197,94,.2); }
+.psp-preflight-item--warning { border-color: rgba(245,158,11,.25); background: rgba(245,158,11,.06); }
+.psp-preflight-item--fail    { border-color: rgba(239,68,68,.25); background: rgba(239,68,68,.06); }
+
+.psp-preflight-item-icon { font-size: 1.05rem; line-height: 1.2; padding-top: .05em; }
+.psp-preflight-item--ok .psp-preflight-item-icon      { color: #16a34a; }
+.psp-preflight-item--warning .psp-preflight-item-icon { color: #b45309; }
+.psp-preflight-item--fail .psp-preflight-item-icon    { color: #b91c1c; }
+
+.psp-preflight-item-body { display: flex; flex-direction: column; flex-grow: 1; min-width: 0; }
+.psp-preflight-item-label { font-weight: 600; font-size: .82rem; color: var(--psp-text, #0f172a); }
+.psp-preflight-item-msg { font-size: .76rem; color: var(--psp-text-soft, #475569); line-height: 1.35; }
+.psp-preflight-item-action {
+  font-size: .72rem; font-weight: 600; white-space: nowrap;
+  color: var(--psp-primary, #2563eb); text-decoration: none;
+  display: inline-flex; align-items: center; gap: 2px;
+}
+.psp-preflight-item-action:hover { text-decoration: underline; }
+
+.psp-pdf-tpl-card.is-disabled { opacity: .55; pointer-events: none; }
+.psp-pdf-tpl-card.is-disabled button[type=submit] { cursor: not-allowed; }
+
+/* ============================================================
+   §61  Paint Pricing Maintenance
+   ============================================================ */
+.psp-quality-card { background: var(--psp-surface, #fff); border: 1px solid var(--psp-border); border-radius: var(--psp-radius, 16px); }
+.psp-quality-tile {
+  display: block; padding: .55rem .75rem; border-radius: 10px;
+  background: var(--psp-bg-soft, #f8fafc); border: 1px solid var(--psp-border);
+  text-align: left;
+}
+.psp-quality-tile--ok   { border-color: rgba(34,197,94,.25);  background: rgba(34,197,94,.06); }
+.psp-quality-tile--warn { border-color: rgba(245,158,11,.3);  background: rgba(245,158,11,.08); }
+
+.psp-pricing-table { font-size: .85rem; }
+.psp-pricing-table thead th { font-weight: 600; font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
+.psp-pricing-table tbody td { vertical-align: middle; }
+.psp-price-input { max-width: 110px; margin-left: auto; }
+
+.psp-pricing-row { transition: background-color .25s ease; }
+.psp-pricing-row--warn td:first-child { box-shadow: inset 3px 0 0 #f59e0b; }
+.psp-pricing-row--saved { background-color: rgba(34,197,94,.10) !important; }
+.psp-pricing-row--error { background-color: rgba(239,68,68,.10) !important; }
+
+/* ============================================================
+   §62  Quotation Builder polish (rail, chips, save bar, tips)
+   ============================================================ */
+
+/* Section navigation rail — sticky horizontal pill list */
+.psp-section-rail {
+  position: sticky; top: .5rem; z-index: 5;
+  align-items: center; gap: .55rem;
+  padding: .45rem .65rem; margin-bottom: .9rem;
+  background: var(--psp-surface, #fff);
+  border: 1px solid var(--psp-border);
+  border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(15,23,42,.04);
+  overflow: hidden;
+}
+.psp-section-rail-label {
+  font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--psp-text-soft, #64748b); flex-shrink: 0;
+}
+.psp-section-rail-track {
+  display: flex; gap: .35rem; overflow-x: auto;
+  scrollbar-width: thin; flex: 1 1 auto;
+}
+.psp-section-rail-item {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .35rem .65rem; border-radius: 999px;
+  background: var(--psp-bg-soft, #f1f5f9);
+  border: 1px solid transparent;
+  color: var(--psp-text, #1e293b);
+  font-size: .78rem; font-weight: 600; white-space: nowrap;
+  text-decoration: none;
+  min-height: 36px; /* touch */
+  position: relative;
+  transition: background-color .15s ease, border-color .15s ease, transform .12s ease;
+}
+.psp-section-rail-item:hover { background: #e2e8f0; border-color: var(--psp-border); }
+.psp-section-rail-item:active { transform: scale(.97); }
+.psp-section-rail-item--ext { background: rgba(34,197,94,.10); }
+.psp-section-rail-item--ext:hover { background: rgba(34,197,94,.18); }
+.psp-rail-ok      { color: #16a34a; }
+.psp-rail-pending { color: #94a3b8; }
+.psp-rail-unsaved-dot {
+  display: none; width: 8px; height: 8px; border-radius: 50%;
+  background: #f59e0b; box-shadow: 0 0 0 2px #fff;
+}
+.psp-section-rail-item.is-unsaved .psp-rail-unsaved-dot { display: inline-block; }
+.psp-section-rail-item.is-unsaved { border-color: rgba(245,158,11,.45); }
+
+/* Flash highlight when scrolling to a section */
+@keyframes pspSectionFlash {
+  0%   { box-shadow: 0 0 0 0 rgba(59,130,246,.45); }
+  60%  { box-shadow: 0 0 0 6px rgba(59,130,246,0); }
+  100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+}
+.psp-section-flash { animation: pspSectionFlash 1.1s ease-out 1; }
+@media (prefers-reduced-motion: reduce) {
+  .psp-section-flash { animation: none; }
+  .psp-section-rail-item, .psp-section-rail-item:active { transition: none; transform: none; }
+}
+
+/* Surface summary chips (under collapsed summary row) */
+.psp-surface-chips { display: flex; flex-wrap: wrap; gap: .35rem; }
+.psp-chip {
+  display: inline-flex; align-items: center; gap: .3em;
+  font-size: .7rem; font-weight: 600;
+  padding: .2em .55em; border-radius: 999px;
+  background: var(--psp-bg-soft, #f1f5f9); color: var(--psp-text-muted, #475569);
+}
+.psp-chip--purple { background: rgba(124,58,237,.10); color: #6d28d9; }
+.psp-chip--blue   { background: rgba(59,130,246,.10); color: #1d4ed8; }
+.psp-chip--green  { background: rgba(34,197,94,.12);  color: #15803d; }
+.psp-chip--danger { background: rgba(239,68,68,.12);  color: #b91c1c; }
+
+/* Inline help tip */
+.psp-help-tip {
+  font-size: .76rem; color: var(--psp-text-soft, #64748b);
+  background: rgba(59,130,246,.06); border-left: 3px solid #93c5fd;
+  padding: .4rem .65rem; border-radius: 6px;
+  margin: -.25rem 0 .9rem 0;
+}
+
+/* Sticky save bar inside an open section */
+.psp-save-bar {
+  display: flex; gap: .5rem; flex-wrap: wrap; align-items: center;
+  position: sticky; bottom: 0;
+  background: var(--psp-surface, #fff);
+  padding: .65rem .75rem; margin: 1rem -1rem -1rem;
+  border-top: 1px solid var(--psp-border);
+  border-radius: 0 0 var(--psp-radius, 16px) var(--psp-radius, 16px);
+  z-index: 2;
+}
+.psp-save-bar-primary { min-height: 40px; }
+.psp-section-prev, .psp-section-next { min-width: 40px; min-height: 40px; }
+/* Avoid the mobile bottom-summary bar covering the sticky save bar on phone */
+@media (max-width: 991.98px) {
+  .psp-save-bar { bottom: 4.5rem; }
+}
+
+/* Larger touch targets for substrate checkbox cards */
+@media (hover: none), (max-width: 991.98px) {
+  .psp-substrate-check { min-height: 44px; padding: .55rem .75rem; }
+}
+
+/* Prevent any horizontal overflow inside builder column */
+#pspBuilderMain { min-width: 0; overflow-x: clip; }
+
+/* ============================================================
+   §63  Guided Help Mode  — banner, spotlight, callout, labels
+   ============================================================ */
+
+/* Topbar trigger toggled-on state */
+.psp-helpmode-trigger.is-on,
+.psp-helpmode-trigger[aria-pressed="true"] {
+  color: #f59e0b;
+  background: rgba(245,158,11,.14);
+}
+
+/* -- Floating banner --------------------------------------- */
+.psp-help-banner {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  top: .75rem; z-index: 1080;
+  display: inline-flex; align-items: center; gap: .65rem;
+  padding: .45rem .55rem .45rem .85rem;
+  background: linear-gradient(135deg, #fff7ed 0%, #fefce8 100%);
+  border: 1px solid #fcd34d;
+  border-radius: 999px;
+  box-shadow: 0 10px 28px rgba(245,158,11,.22);
+  font-size: .82rem; color: #78350f;
+  max-width: calc(100vw - 1.5rem);
+}
+.psp-help-banner[hidden] { display: none; }
+.psp-help-banner-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 0 4px rgba(245,158,11,.22);
+  animation: pspHelpDot 1.6s ease-in-out infinite;
+  flex: 0 0 auto;
+}
+.psp-help-banner-tour,
+.psp-help-banner-close {
+  display: inline-flex; align-items: center; gap: .3rem;
+  border: 1px solid transparent; background: rgba(255,255,255,.7);
+  color: #78350f; border-radius: 999px;
+  padding: .25rem .65rem; font-size: .75rem; font-weight: 600;
+  cursor: pointer;
+}
+.psp-help-banner-tour:hover { background: #fff; border-color: #fbbf24; }
+.psp-help-banner-close { padding: .25rem .45rem; }
+.psp-help-banner-close:hover { background: #fff; border-color: #fbbf24; }
+@keyframes pspHelpDot {
+  0%,100% { box-shadow: 0 0 0 4px rgba(245,158,11,.18); }
+  50%     { box-shadow: 0 0 0 8px rgba(245,158,11,.02); }
+}
+
+/* -- Highlight glow on help-tagged elements ---------------- */
+[data-help-mode="on"] .psp-help-glow {
+  position: relative;
+  outline: 2px solid rgba(245,158,11,.55);
+  outline-offset: 2px;
+  border-radius: 8px;
+  animation: pspHelpGlow 2.2s ease-in-out infinite;
+}
+@keyframes pspHelpGlow {
+  0%,100% { box-shadow: 0 0 0 0 rgba(245,158,11,.35); }
+  50%     { box-shadow: 0 0 0 6px rgba(245,158,11,0); }
+}
+
+/* -- Demo labels — small chip under tagged controls ------- */
+[data-help-mode="on"] .psp-demo-tagged {
+  position: relative;
+}
+[data-help-mode="on"] .psp-demo-tagged::after {
+  content: attr(data-psp-demo-label);
+  position: absolute;
+  top: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  background: #0f172a; color: #fff;
+  font-size: .68rem; font-weight: 500; line-height: 1.25;
+  padding: .3rem .55rem; border-radius: 6px;
+  white-space: nowrap; max-width: 260px;
+  pointer-events: none; opacity: 0; z-index: 1075;
+  transition: opacity .15s ease;
+  box-shadow: 0 8px 20px rgba(15,23,42,.18);
+}
+[data-help-mode="on"] .psp-demo-tagged:hover::after,
+[data-help-mode="on"] .psp-demo-tagged:focus-visible::after {
+  opacity: 1;
+}
+/* Demo label inside sidebar — flip to right side so it doesn't get clipped */
+[data-help-mode="on"] .psp-sidebar .psp-demo-tagged::after {
+  top: 50%; left: calc(100% + 8px); transform: translateY(-50%);
+  white-space: normal; min-width: 180px;
+}
+
+/* -- Spotlight ring around walkthrough target -------------- */
+.psp-spotlight {
+  position: absolute; z-index: 1085;
+  border: 2px solid #f59e0b; border-radius: 10px;
+  box-shadow: 0 0 0 9999px rgba(15,23,42,.40);
+  pointer-events: none;
+  transition: top .25s ease, left .25s ease, width .25s ease, height .25s ease;
+}
+.psp-spotlight[hidden] { display: none; }
+
+/* -- Walkthrough callout card ------------------------------ */
+.psp-walkthrough {
+  position: absolute; z-index: 1090;
+  width: min(340px, calc(100vw - 1.5rem));
+  background: #fff;
+  border: 1px solid var(--psp-border, #e2e8f0);
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(15,23,42,.25);
+  padding: .85rem .9rem;
+}
+.psp-walkthrough[hidden] { display: none; }
+.psp-walkthrough-arrow {
+  position: absolute; width: 14px; height: 14px;
+  background: #fff;
+  border-top: 1px solid var(--psp-border, #e2e8f0);
+  border-left: 1px solid var(--psp-border, #e2e8f0);
+}
+.psp-walkthrough[data-arrow="top"]    .psp-walkthrough-arrow { top: -8px; left: 50%; transform: translateX(-50%) rotate(45deg); }
+.psp-walkthrough[data-arrow="bottom"] .psp-walkthrough-arrow { bottom: -8px; left: 50%; transform: translateX(-50%) rotate(225deg); }
+.psp-walkthrough-head {
+  display: flex; align-items: center; gap: .45rem; margin-bottom: .35rem;
+}
+.psp-walkthrough-step-num {
+  font-size: .65rem; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase;
+  background: #fef3c7; color: #92400e;
+  padding: .15rem .45rem; border-radius: 999px;
+}
+.psp-walkthrough-title {
+  flex: 1; margin: 0; font-size: .92rem; font-weight: 700; color: #0f172a;
+}
+.psp-walkthrough-close {
+  border: none; background: transparent; color: #64748b;
+  padding: .15rem .35rem; border-radius: 6px; cursor: pointer;
+}
+.psp-walkthrough-close:hover { background: #f1f5f9; color: #0f172a; }
+.psp-walkthrough-body {
+  margin: 0 0 .65rem; font-size: .8rem; color: #475569; line-height: 1.45;
+}
+.psp-walkthrough-actions {
+  display: flex; gap: .4rem; justify-content: flex-end;
+}
+
+/* -- Help drawer additions: actions + flow ----------------- */
+.psp-help-actions {
+  display: flex; flex-direction: column; gap: .4rem; margin: .25rem 0 .9rem;
+}
+.psp-help-action-btn {
+  display: flex; align-items: center; gap: .65rem;
+  padding: .6rem .75rem; border-radius: 10px;
+  border: 1px solid var(--psp-border, #e2e8f0);
+  background: var(--psp-bg-soft, #f8fafc);
+  text-align: left; cursor: pointer; color: inherit;
+  transition: border-color .15s ease, background-color .15s ease, transform .12s ease;
+}
+.psp-help-action-btn:hover { border-color: #fbbf24; background: #fffbeb; }
+.psp-help-action-btn:active { transform: translateY(1px); }
+.psp-help-action-btn i { font-size: 1.2rem; color: #f59e0b; }
+.psp-help-action-btn span { display: flex; flex-direction: column; line-height: 1.25; }
+.psp-help-action-btn small { color: var(--psp-text-soft, #64748b); font-size: .72rem; }
+.psp-help-action-btn--primary { background: linear-gradient(135deg,#fff7ed,#fefce8); border-color: #fbbf24; }
+.psp-help-action-btn.is-on,
+.psp-help-action-btn[aria-pressed="true"] { border-color: #16a34a; background: rgba(34,197,94,.08); }
+.psp-help-action-btn.is-on i,
+.psp-help-action-btn[aria-pressed="true"] i { color: #16a34a; }
+
+.psp-help-flow {
+  background: #f8fafc;
+  border: 1px solid var(--psp-border, #e2e8f0);
+  border-radius: 12px;
+  padding: .75rem .85rem; margin-bottom: 1rem;
+}
+.psp-help-flow-title {
+  font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--psp-text-soft, #64748b); margin-bottom: .55rem;
+}
+.psp-help-flow-list { list-style: none; padding: 0; margin: 0; }
+.psp-help-flow-list li {
+  display: flex; align-items: flex-start; gap: .55rem; margin-bottom: .45rem;
+}
+.psp-help-flow-list li:last-child { margin-bottom: 0; }
+.psp-help-flow-num {
+  flex: 0 0 22px; height: 22px; border-radius: 50%;
+  background: #e0e7ff; color: #3730a3;
+  font-size: .72rem; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-top: 1px;
+}
+.psp-help-flow-list a {
+  display: flex; flex-direction: column; line-height: 1.3;
+  color: var(--psp-text, #1e293b); text-decoration: none;
+  flex: 1; min-width: 0;
+}
+.psp-help-flow-list a:hover strong { text-decoration: underline; }
+.psp-help-flow-list small { color: var(--psp-text-soft, #64748b); font-size: .72rem; }
+
+/* -- Mobile tweaks ---------------------------------------- */
+@media (max-width: 575.98px) {
+  .psp-help-banner { top: .4rem; padding: .35rem .45rem .35rem .65rem; font-size: .75rem; }
+  .psp-walkthrough { width: calc(100vw - 1rem); left: .5rem !important; }
+  .psp-walkthrough-arrow { display: none; }
+  [data-help-mode="on"] .psp-demo-tagged::after {
+    white-space: normal; max-width: 60vw;
+  }
+}
+
+/* -- Reduce motion ---------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .psp-help-banner-dot,
+  .psp-help-glow { animation: none; }
+  .psp-spotlight { transition: none; }
+}
+[data-reduce-motion="true"] .psp-help-banner-dot,
+[data-reduce-motion="true"] .psp-help-glow { animation: none; }
+[data-reduce-motion="true"] .psp-spotlight   { transition: none; }

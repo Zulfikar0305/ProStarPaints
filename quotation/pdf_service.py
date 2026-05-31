@@ -108,8 +108,18 @@ def build_pdf_context(quotation, request=None) -> dict:
     # ── Summary ───────────────────────────────────────────────────────────
     summary = get_quotation_summary(quotation)
 
-    # ── Logo as base64 data-URI ────────────────────────────────────────────
-    logo_data_uri = _load_logo_data_uri()
+    # ── Branding (admin-controlled) + logo data URI ───────────────────────
+    try:
+        from system_tools.branding import get_branding, get_pdf_logo_data_uri
+        branding = get_branding()
+        logo_data_uri = get_pdf_logo_data_uri()
+    except Exception:
+        logger.exception("Failed to load branding for PDF; using safe defaults")
+        branding = {
+            "company_name": "ProStar Paints", "company_tagline": "", "pdf_footer_note": "",
+            "support_email": "", "support_phone": "", "website": "",
+        }
+        logo_data_uri = _load_logo_data_uri()
 
     return {
         "quotation":          quotation,
@@ -124,6 +134,7 @@ def build_pdf_context(quotation, request=None) -> dict:
         "quotation_summary":  summary,
         "pricing_status":     "pending",
         "logo_data_uri":      logo_data_uri,
+        "branding":           branding,
         "generated_at":       timezone.now(),
         "notes":              quotation.notes,
     }

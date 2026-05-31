@@ -29,6 +29,101 @@ Trigger via the topbar Help button (toggles offcanvas with id="pspHelpDrawer").
              placeholder="{% trans 'Search help topics…' %}" autocomplete="off">
     </div>
 
+    {# ── Guided Help Mode actions ─────────────────────────── #}
+    <div class="psp-help-actions">
+      <button type="button" class="psp-help-action-btn psp-help-action-btn--primary"
+              data-psp-walkthrough-start>
+        <i class="bi bi-play-circle" aria-hidden="true"></i>
+        <span>
+          <strong>{% trans "Start guided help" %}</strong>
+          <small>{% trans "Walks you through this page step by step." %}</small>
+        </span>
+      </button>
+      <button type="button" class="psp-help-action-btn"
+              data-psp-help-mode-toggle aria-pressed="false">
+        <i class="bi bi-lightbulb" aria-hidden="true"></i>
+        <span>
+          <strong>{% trans "Toggle Help mode" %}</strong>
+          <small>{% trans "Highlights important controls. Shortcut: ?" %}</small>
+        </span>
+      </button>
+    </div>
+
+    {# ── Recommended setup flow ───────────────────────────── #}
+    <div class="psp-help-flow">
+      <div class="psp-help-flow-title">
+        <i class="bi bi-signpost-split me-1" aria-hidden="true"></i>{% trans "Recommended setup flow" %}
+      </div>
+      <ol class="psp-help-flow-list">
+        {% if is_admin or user.role == "ADMIN" %}
+          <li>
+            <span class="psp-help-flow-num">1</span>
+            <a href="{% url 'system_tools:system_settings' %}" data-bs-dismiss="offcanvas">
+              <strong>{% trans "Configure system settings" %}</strong>
+              <small>{% trans "VAT rate, branding, defaults." %}</small>
+            </a>
+          </li>
+          <li>
+            <span class="psp-help-flow-num">2</span>
+            <a href="{% url 'paints:paint_list' %}" data-bs-dismiss="offcanvas">
+              <strong>{% trans "Load your paint catalogue" %}</strong>
+              <small>{% trans "Add brands, finishes, prices reps will pick from." %}</small>
+            </a>
+          </li>
+          <li>
+            <span class="psp-help-flow-num">3</span>
+            <a href="{% url 'users:user_list' %}" data-bs-dismiss="offcanvas">
+              <strong>{% trans "Invite your team" %}</strong>
+              <small>{% trans "Add reps and other admins, assign roles." %}</small>
+            </a>
+          </li>
+          <li>
+            <span class="psp-help-flow-num">4</span>
+            <a href="{% url 'users:app_settings' %}" data-bs-dismiss="offcanvas">
+              <strong>{% trans "Personalise your workspace" %}</strong>
+              <small>{% trans "Theme, density, accent, motion." %}</small>
+            </a>
+          </li>
+          <li>
+            <span class="psp-help-flow-num">5</span>
+            <a href="{% url 'quotation:quotation_start' %}" data-bs-dismiss="offcanvas">
+              <strong>{% trans "Create your first quotation" %}</strong>
+              <small>{% trans "End-to-end run-through, builder to PDF." %}</small>
+            </a>
+          </li>
+        {% else %}
+          <li>
+            <span class="psp-help-flow-num">1</span>
+            <a href="{% url 'users:profile' %}" data-bs-dismiss="offcanvas">
+              <strong>{% trans "Complete your profile" %}</strong>
+              <small>{% trans "Name and photo appear on every quote." %}</small>
+            </a>
+          </li>
+          <li>
+            <span class="psp-help-flow-num">2</span>
+            <a href="{% url 'users:app_settings' %}" data-bs-dismiss="offcanvas">
+              <strong>{% trans "Tune your workspace" %}</strong>
+              <small>{% trans "Enable builder help tips and the command palette hint." %}</small>
+            </a>
+          </li>
+          <li>
+            <span class="psp-help-flow-num">3</span>
+            <a href="{% url 'quotation:quotation_start' %}" data-bs-dismiss="offcanvas">
+              <strong>{% trans "Start a quotation" %}</strong>
+              <small>{% trans "The builder walks you through every section." %}</small>
+            </a>
+          </li>
+          <li>
+            <span class="psp-help-flow-num">4</span>
+            <a href="{% url 'quotation:quotation_list' %}" data-bs-dismiss="offcanvas">
+              <strong>{% trans "Browse your quotations" %}</strong>
+              <small>{% trans "Pick up drafts or re-export completed PDFs." %}</small>
+            </a>
+          </li>
+        {% endif %}
+      </ol>
+    </div>
+
     <ul class="psp-help-topics" id="pspHelpTopics">
 
       <li class="psp-help-topic" data-keywords="dashboard home overview kpi activity">
@@ -151,9 +246,11 @@ Trigger via the topbar Help button (toggles offcanvas with id="pspHelpDrawer").
       <div class="psp-help-shortcuts-title">{% trans "Keyboard shortcuts" %}</div>
       <ul>
         <li><kbd>Ctrl</kbd> + <kbd>K</kbd> <span>{% trans "Open quick actions" %}</span></li>
+        <li><kbd>?</kbd> <span>{% trans "Toggle Help mode" %}</span></li>
         <li><kbd>N</kbd> <span>{% trans "New quotation" %}</span></li>
         <li><kbd>D</kbd> <span>{% trans "Dashboard" %}</span></li>
-        <li><kbd>Esc</kbd> <span>{% trans "Close modals" %}</span></li>
+        <li><kbd>&larr;</kbd> / <kbd>&rarr;</kbd> <span>{% trans "Step through guided tour" %}</span></li>
+        <li><kbd>Esc</kbd> <span>{% trans "Close modals or tour" %}</span></li>
       </ul>
       <div class="psp-help-shortcuts-note">{% trans "Single-key shortcuts are disabled while typing in a form." %}</div>
     </div>

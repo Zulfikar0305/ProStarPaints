@@ -34,6 +34,7 @@ from .models import (
     QuotationPin,
     QuotationSection,
 )
+from .preflight import get_quotation_preflight
 from .services import (
     ALL_SUBSECTIONS,
     EXTERIOR_SUBSECTIONS,
@@ -1050,6 +1051,7 @@ class QuotationReviewView(QuotationAccessMixin, View):
             "is_admin":          self._is_admin(),
             "quotation_summary": get_quotation_summary(quotation),
             "last_pdf_export":   last_pdf_export,
+            "preflight":         get_quotation_preflight(quotation),
         })
 
 
@@ -1110,6 +1112,7 @@ class QuotationPdfTemplateSelectView(QuotationAccessMixin, View):
         for exp in recent_exports:
             exp.template_name = get_template_display_name(exp.template_key)
         summary = get_quotation_summary(quotation)
+        preflight = get_quotation_preflight(quotation)
         preferred_key = getattr(
             getattr(request.user, "app_settings", None),
             "preferred_pdf_template",
@@ -1120,6 +1123,7 @@ class QuotationPdfTemplateSelectView(QuotationAccessMixin, View):
             "pdf_templates":     templates,
             "recent_exports":    recent_exports,
             "quotation_summary": summary,
+            "preflight":         preflight,
             "preferred_pdf_template_key": preferred_key,
         })
 
@@ -1144,6 +1148,17 @@ class QuotationPdfGenerateView(QuotationAccessMixin, View):
         # Validate against registry — never accept arbitrary paths
         if template_key not in PDF_TEMPLATES:
             messages.error(request, _("Invalid template selection. Please choose a valid template."))
+            return redirect("quotation:pdf_select", pk=pk)
+
+        # Preflight: block only when clearly unsafe (e.g. no sections at all).
+        preflight = get_quotation_preflight(quotation)
+        if not preflight["can_generate_pdf"]:
+            messages.error(
+                request,
+                _("This quotation isn't ready for a PDF yet. %(summary)s") % {
+                    "summary": preflight["summary"]
+                },
+            )
             return redirect("quotation:pdf_select", pk=pk)
 
         export = render_quotation_pdf(

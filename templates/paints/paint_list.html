@@ -20,9 +20,16 @@
     <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">{% trans "Paint Catalogue" %}</h4>
     <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">{% trans "Manage paint products and colours" %}</p>
   </div>
-  <a href="{% url 'paints:paint_create' %}" class="btn btn-primary btn-sm">
-    <i class="bi bi-plus-lg me-1"></i>{% trans "Add Paint" %}
-  </a>
+  <div class="d-flex gap-2">
+    {% if user.is_superuser or user.role == "ADMIN" %}
+    <a href="{% url 'paints:paint_pricing' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-currency-dollar me-1"></i>{% trans "Pricing" %}
+    </a>
+    {% endif %}
+    <a href="{% url 'paints:paint_create' %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg me-1"></i>{% trans "Add Paint" %}
+    </a>
+  </div>
 </div>
 
 <!-- Search & Filters -->

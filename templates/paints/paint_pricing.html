@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Pricing Maintenance" %} — ProStar Paints{% endblock %}
+
+{% block breadcrumbs %}
+  {% trans "Pricing Maintenance" as bc_current %}
+  {% url 'paints:paint_list' as bc_paints_url %}
+  {% include "widgets/breadcrumbs.html" with parent_label="Paints" parent_url=bc_paints_url current=bc_current %}
+{% endblock %}
+
+{% block content %}
+
+{% trans "Pricing Maintenance" as ph_title %}
+{% trans "Bulk-edit paint prices with automatic VAT calculation, then keep an eye on catalogue quality from the same screen." as ph_text %}
+{% include "widgets/page_help.html" with title=ph_title text=ph_text icon="bi-currency-dollar" tone="green" %}
+
+<!-- Header -->
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+  <div>
+    <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">{% trans "Pricing Maintenance" %}</h4>
+    <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">
+      {% blocktrans with rate=vat_rate %}Edit prices inline — VAT auto-calculated at {{ rate }}%.{% endblocktrans %}
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'paints:paint_list' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>{% trans "Back to Catalogue" %}
+    </a>
+    <a href="{% url 'paints:paint_create' %}" class="btn btn-sm btn-primary">
+      <i class="bi bi-plus-lg me-1"></i>{% trans "Add Paint" %}
+    </a>
+  </div>
+</div>
+
+<!-- Catalogue Quality scorecard -->
+<div class="card border-0 shadow-sm mb-3 psp-quality-card">
+  <div class="card-body p-3">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-clipboard2-pulse fs-5" style="color:var(--psp-primary);" aria-hidden="true"></i>
+        <h6 class="mb-0 fw-bold">{% trans "Catalogue Quality" %}</h6>
+        <span class="badge bg-light text-dark border ms-1">{{ quality.score }}%</span>
+      </div>
+      <small class="text-muted">{% trans "Across" %} {{ quality.total }} {% trans "paint(s)" %}</small>
+    </div>
+    <div class="row g-2 small">
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="psp-quality-tile psp-quality-tile--ok">
+          <div class="fw-bold fs-5 lh-1">{{ quality.active }}</div>
+          <div class="text-muted">{% trans "Active" %}</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="psp-quality-tile">
+          <div class="fw-bold fs-5 lh-1">{{ quality.inactive }}</div>
+          <div class="text-muted">{% trans "Inactive" %}</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-lg-2">
+        <a href="?price_state=missing" class="psp-quality-tile psp-quality-tile--{% if quality.missing_price %}warn{% else %}ok{% endif %} text-decoration-none">
+          <div class="fw-bold fs-5 lh-1 text-dark">{{ quality.missing_price }}</div>
+          <div class="text-muted">{% trans "Missing price" %}</div>
+        </a>
+      </div>
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="psp-quality-tile psp-quality-tile--{% if quality.missing_image %}warn{% else %}ok{% endif %}">
+          <div class="fw-bold fs-5 lh-1">{{ quality.missing_image }}</div>
+          <div class="text-muted">{% trans "Missing image" %}</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="psp-quality-tile psp-quality-tile--{% if quality.missing_class %}warn{% else %}ok{% endif %}">
+          <div class="fw-bold fs-5 lh-1">{{ quality.missing_class }}</div>
+          <div class="text-muted">{% trans "Missing class." %}</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="psp-quality-tile psp-quality-tile--{% if quality.duplicate_count %}warn{% else %}ok{% endif %}">
+          <div class="fw-bold fs-5 lh-1">{{ quality.duplicate_count }}</div>
+          <div class="text-muted">{% trans "Duplicates" %}</div>
+        </div>
+      </div>
+    </div>
+
+    {% if quality.duplicate_groups %}
+    <details class="mt-2 small">
+      <summary class="text-muted" style="cursor:pointer;">{% trans "Show duplicate groups" %} ({{ quality.duplicate_groups|length }})</summary>
+      <ul class="mb-0 mt-1 ps-3">
+        {% for g in quality.duplicate_groups %}
+        <li>{{ g.name }} <span class="text-muted">({{ g.category }} / {{ g.base_type }})</span> — {{ g.n }} {% trans "records" %}</li>
+        {% endfor %}
+      </ul>
+    </details>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-12 col-sm-6 col-md-3">
+        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Search" %}</label>
+        <div class="input-group input-group-sm">
+          <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="{% trans 'Name, colour…' %}">
+          <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
+        </div>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Category" %}</label>
+        <select name="category" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="">{% trans "All" %}</option>
+          {% for v, l in category_choices %}<option value="{{ v }}" {% if current_category == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Type" %}</label>
+        <select name="paint_type" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="">{% trans "All" %}</option>
+          {% for v, l in paint_type_choices %}<option value="{{ v }}" {% if current_paint_type == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Base" %}</label>
+        <select name="base_type" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="">{% trans "All" %}</option>
+          {% for v, l in base_type_choices %}<option value="{{ v }}" {% if current_base_type == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-1">
+        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Status" %}</label>
+        <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="all"      {% if current_status == "all"      %}selected{% endif %}>{% trans "All" %}</option>
+          <option value="active"   {% if current_status == "active"   %}selected{% endif %}>{% trans "Active" %}</option>
+          <option value="inactive" {% if current_status == "inactive" %}selected{% endif %}>{% trans "Inactive" %}</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Price" %}</label>
+        <select name="price_state" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value=""        {% if current_price_state == ""        %}selected{% endif %}>{% trans "Any" %}</option>
+          <option value="missing" {% if current_price_state == "missing" %}selected{% endif %}>{% trans "Missing / zero" %}</option>
+          <option value="priced"  {% if current_price_state == "priced"  %}selected{% endif %}>{% trans "Priced" %}</option>
+        </select>
+      </div>
+      <div class="col-12 d-flex justify-content-end gap-2 mt-1">
+        <a href="{% url 'paints:paint_pricing' %}" class="btn btn-sm btn-link text-muted">{% trans "Reset" %}</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Pricing table -->
+<div class="card">
+  <div class="card-body p-0">
+    {% if paints %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 psp-pricing-table">
+        <thead class="table-light small">
+          <tr>
+            <th>{% trans "Paint" %}</th>
+            <th class="d-none d-md-table-cell">{% trans "Category" %}</th>
+            <th class="d-none d-lg-table-cell">{% trans "Type" %}</th>
+            <th class="d-none d-lg-table-cell">{% trans "Base" %}</th>
+            <th class="text-end" style="width:130px;">{% trans "Excl. VAT" %}</th>
+            <th class="text-end" style="width:130px;">{% trans "Incl. VAT" %}</th>
+            <th class="text-center" style="width:90px;">{% trans "Auto VAT" %}</th>
+            <th class="text-center" style="width:80px;">{% trans "Active" %}</th>
+            <th class="text-end d-none d-md-table-cell" style="width:140px;">{% trans "Updated" %}</th>
+            <th style="width:90px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in paints %}
+          <tr data-paint-id="{{ p.pk }}" class="psp-pricing-row{% if not p.price_excl_vat or not p.price_incl_vat %} psp-pricing-row--warn{% endif %}">
+            <td>
+              <div class="fw-semibold">{{ p.name }}</div>
+              {% if p.colour %}<div class="small text-muted">{{ p.colour }}</div>{% endif %}
+            </td>
+            <td class="d-none d-md-table-cell small">{{ p.get_category_display }}</td>
+            <td class="d-none d-lg-table-cell small">{{ p.get_paint_type_display }}</td>
+            <td class="d-none d-lg-table-cell small">{{ p.get_base_type_display }}</td>
+            <td class="text-end">
+              <input type="number" step="0.01" min="0" name="price_excl_vat"
+                     value="{{ p.price_excl_vat|stringformat:'.2f' }}"
+                     class="form-control form-control-sm text-end psp-price-input"
+                     data-role="excl"
+                     inputmode="decimal" aria-label="{% trans 'Price excluding VAT' %}">
+            </td>
+            <td class="text-end">
+              <input type="number" step="0.01" min="0" name="price_incl_vat"
+                     value="{{ p.price_incl_vat|stringformat:'.2f' }}"
+                     class="form-control form-control-sm text-end psp-price-input"
+                     data-role="incl"
+                     inputmode="decimal" aria-label="{% trans 'Price including VAT' %}">
+            </td>
+            <td class="text-center">
+              <div class="form-check form-switch d-inline-block">
+                <input class="form-check-input psp-auto-vat" type="checkbox" checked
+                       role="switch" aria-label="{% trans 'Auto-calculate VAT' %}">
+              </div>
+            </td>
+            <td class="text-center">
+              {% if p.is_active %}
+                <span class="badge bg-success-subtle text-success">{% trans "Yes" %}</span>
+              {% else %}
+                <span class="badge bg-secondary-subtle text-secondary">{% trans "No" %}</span>
+              {% endif %}
+            </td>
+            <td class="text-end d-none d-md-table-cell small text-muted" data-role="updated">
+              {{ p.updated_at|date:"Y-m-d H:i" }}
+            </td>
+            <td class="text-end">
+              <button type="button" class="btn btn-sm btn-primary psp-save-btn" data-loading-text="…">
+                <i class="bi bi-check2"></i>
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="p-4 text-center text-muted small">
+      <i class="bi bi-inbox fs-3 d-block mb-2" aria-hidden="true"></i>
+      {% trans "No paints match the current filters." %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if is_paginated %}
+<nav class="mt-3" aria-label="{% trans 'Pagination' %}">
+  <ul class="pagination pagination-sm justify-content-center mb-0">
+    {% if page_obj.has_previous %}
+      <li class="page-item"><a class="page-link" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">«</a></li>
+    {% endif %}
+    <li class="page-item disabled"><span class="page-link">{{ page_obj.number }} / {{ paginator.num_pages }}</span></li>
+    {% if page_obj.has_next %}
+      <li class="page-item"><a class="page-link" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">»</a></li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+
+{# Inline editor JS — uses fetch + CSRF cookie #}
+<script>
+(function () {
+  const VAT_RATE = parseFloat("{{ vat_rate }}") || 0;
+  const updateUrl = (pk) => `/paints/pricing/${pk}/update/`;
+
+  function getCookie(name) {
+    const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  function recomputeIncl(row) {
+    const excl = parseFloat(row.querySelector('[data-role=excl]').value);
+    const incl = row.querySelector('[data-role=incl]');
+    if (!isNaN(excl)) {
+      incl.value = (excl * (1 + VAT_RATE / 100)).toFixed(2);
+    }
+  }
+
+  function flash(row, ok, msg) {
+    row.classList.remove('psp-pricing-row--saved', 'psp-pricing-row--error');
+    row.classList.add(ok ? 'psp-pricing-row--saved' : 'psp-pricing-row--error');
+    if (!ok && msg) {
+      let banner = row.querySelector('.psp-pricing-error');
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.className = 'psp-pricing-error small text-danger mt-1';
+        row.querySelector('[data-role=excl]').closest('td').appendChild(banner);
+      }
+      banner.textContent = msg;
+    } else {
+      const banner = row.querySelector('.psp-pricing-error');
+      if (banner) banner.remove();
+    }
+    setTimeout(() => row.classList.remove('psp-pricing-row--saved', 'psp-pricing-row--error'), 2500);
+  }
+
+  document.querySelectorAll('.psp-pricing-row').forEach((row) => {
+    const auto = row.querySelector('.psp-auto-vat');
+    const excl = row.querySelector('[data-role=excl]');
+    const incl = row.querySelector('[data-role=incl]');
+
+    auto.addEventListener('change', () => {
+      incl.readOnly = auto.checked;
+      if (auto.checked) recomputeIncl(row);
+    });
+    incl.readOnly = auto.checked;
+
+    excl.addEventListener('input', () => { if (auto.checked) recomputeIncl(row); });
+
+    row.querySelector('.psp-save-btn').addEventListener('click', async (ev) => {
+      ev.preventDefault();
+      const btn = ev.currentTarget;
+      const pk  = row.dataset.paintId;
+      btn.disabled = true;
+      const original = btn.innerHTML;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>';
+
+      const form = new FormData();
+      form.append('price_excl_vat', excl.value);
+      form.append('price_incl_vat', incl.value);
+      form.append('auto_vat', auto.checked ? '1' : '0');
+
+      try {
+        const res = await fetch(updateUrl(pk), {
+          method: 'POST',
+          headers: { 'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest' },
+          body: form,
+          credentials: 'same-origin',
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          excl.value = data.price_excl_vat;
+          incl.value = data.price_incl_vat;
+          const upd = row.querySelector('[data-role=updated]');
+          if (upd) upd.textContent = data.updated_at;
+          flash(row, true);
+        } else {
+          flash(row, false, data.error || 'Save failed.');
+        }
+      } catch (err) {
+        flash(row, false, 'Network error.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+      }
+    });
+  });
+})();
+</script>
+
+{% endblock %}

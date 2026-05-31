@@ -24,7 +24,9 @@
 
 <div class="card border-0 shadow-sm mb-3"
      style="border-left:4px solid {% if section_config.substrate_type == 'EXTERIOR' %}var(--psp-green){% else %}var(--psp-purple){% endif %} !important;"
-     data-section-pk="{{ section.pk }}">
+     id="gsCard_{{ section.pk }}"
+     data-section-pk="{{ section.pk }}"
+     data-section-name="{{ section.display_name }}">
 
   {# ── Card header ── #}
   <div class="card-header bg-transparent py-3 d-flex align-items-center justify-content-between">
@@ -90,6 +92,14 @@
         <div class="col-auto text-muted ms-3">Items:</div>
         <div class="col-auto">{{ gs_summary.line_count }}</div>
       </div>
+
+      {# Surface summary chips #}
+      <div class="psp-surface-chips mt-2">
+        {% if meta.type_labels %}<span class="psp-chip psp-chip--purple"><i class="bi bi-grid-3x3-gap" aria-hidden="true"></i>{{ meta.type_labels|length }} {% trans "type" %}{{ meta.type_labels|length|pluralize }}</span>{% endif %}
+        {% if meta.finish_labels %}<span class="psp-chip psp-chip--blue"><i class="bi bi-droplet" aria-hidden="true"></i>{{ meta.finish_labels|length }} {% trans "finish" %}{{ meta.finish_labels|length|pluralize:"es" }}</span>{% endif %}
+        {% if gs_summary.saved_paint_keys %}<span class="psp-chip psp-chip--green"><i class="bi bi-palette" aria-hidden="true"></i>{{ gs_summary.saved_paint_keys|length }} {% trans "paint option" %}{{ gs_summary.saved_paint_keys|length|pluralize }}</span>{% endif %}
+        {% if meta.moisture_level and meta.moisture_level > moisture_threshold %}<span class="psp-chip psp-chip--danger"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>{% trans "High moisture" %}</span>{% endif %}
+      </div>
     </div>
   {% endif %}
 
@@ -149,6 +159,9 @@
           Finish Selection <span class="text-danger">*</span>
           <span class="text-muted fw-normal">(one or more)</span>
         </h6>
+        {% if user_app_settings.show_builder_help_tips %}
+        <p class="psp-help-tip"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>{% trans "Choosing a finish reveals matching paint options below." %}</p>
+        {% endif %}
         <div class="row g-2 mb-4">
           {% for val, label in section_config.finishes %}
             <div class="col-12 col-sm-6 col-md-4 col-lg-3">
@@ -226,6 +239,9 @@
         <h6 class="fw-bold text-uppercase text-muted small mb-3">
           <span class="psp-step-badge">5</span> Measurements
         </h6>
+        {% if user_app_settings.show_builder_help_tips %}
+        <p class="psp-help-tip"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>{% trans "Area in square metres helps reps quote accurately. Moisture above" %} {{ moisture_threshold }}% {% trans "triggers a waterproofing reminder." %}</p>
+        {% endif %}
         <div class="row g-3 mb-4">
           <div class="col-12 col-sm-6 col-md-4">
             <label class="form-label fw-semibold small">Area (m&sup2;)</label>
@@ -307,6 +323,9 @@
           <span class="psp-step-badge psp-step-badge--blue">8</span>
           Other Prep Work <span class="text-muted fw-normal">(optional)</span>
         </h6>
+        {% if user_app_settings.show_builder_help_tips %}
+        <p class="psp-help-tip"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>{% trans "Prep work is added as separate line items so the customer sees scope clearly." %}</p>
+        {% endif %}
         <div class="row g-2 mb-4">
           {% for val, label in other_prep_options %}
             <div class="col-12 col-sm-6 col-md-4 col-lg-3">
@@ -330,9 +349,9 @@
                     placeholder="Any special notes...">{{ meta.notes|default:'' }}</textarea>
         </div>
 
-        {# ── Actions ── #}
-        <div class="d-flex gap-2 flex-wrap">
-          <button type="submit" class="btn btn-primary btn-sm">
+        {# ── Actions (sticky save bar) ── #}
+        <div class="psp-save-bar">
+          <button type="submit" class="btn btn-primary btn-sm psp-save-bar-primary">
             <i class="bi bi-floppy me-1"></i>Save {{ section_config.display_name }}
           </button>
           <button type="button" class="btn btn-outline-secondary btn-sm"
@@ -340,6 +359,16 @@
                   data-bs-target="#gsFormBody_{{ section.pk }}">
             Cancel
           </button>
+          <div class="ms-auto d-flex gap-1" role="group" aria-label="{% trans 'Move between sections' %}">
+            <button type="button" class="btn btn-outline-secondary btn-sm psp-section-prev"
+                    data-section-prev="{{ section.pk }}" title="{% trans 'Previous section' %}" aria-label="{% trans 'Previous section' %}">
+              <i class="bi bi-chevron-up" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm psp-section-next"
+                    data-section-next="{{ section.pk }}" title="{% trans 'Next section' %}" aria-label="{% trans 'Next section' %}">
+              <i class="bi bi-chevron-down" aria-hidden="true"></i>
+            </button>
+          </div>
         </div>
 
       </div>{# /card-body #}

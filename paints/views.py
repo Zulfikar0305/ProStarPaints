@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -11,6 +12,12 @@ from users.mixins import AdminRequiredMixin
 
 from .forms import PaintForm
 from .models import Paint
+from .pricing import (
+    apply_price_update,
+    filter_paints,
+    get_catalogue_quality,
+    PriceUpdateError,
+)
 
 
 class PaintListView(AdminRequiredMixin, ListView):
@@ -152,3 +159,91 @@ class PaintDeactivateView(AdminRequiredMixin, View):
             request=request,
         )
         return redirect("paints:paint_list")
+
+
+# ---------------------------------------------------------------------------
+# Pricing Maintenance
+# ---------------------------------------------------------------------------
+
+class PaintPricingView(AdminRequiredMixin, View):
+    """
+    Admin-only pricing maintenance dashboard.
+    GET  /paints/pricing/       ? table + quality scorecard
+    POST /paints/pricing/<pk>/  ? inline update (JSON)
+    """
+
+    template_name = "paints/paint_pricing.html"
+
+    def get(self, request):
+        qs = filter_paints(request.GET)
+        # Paginate manually to avoid breaking inline editing if the page is huge
+        from django.core.paginator import Paginator
+        paginator = Paginator(qs, 50)
+        page = paginator.get_page(request.GET.get("page"))
+
+        ctx = {
+            "paints":           page.object_list,
+            "page_obj":         page,
+            "paginator":        paginator,
+            "is_paginated":     page.has_other_pages(),
+            "quality":          get_catalogue_quality(),
+            "vat_rate":         AppSetting.get_vat_rate(),
+            "category_choices": Paint.Category.choices,
+            "paint_type_choices": Paint.PaintType.choices,
+            "base_type_choices":  Paint.BaseType.choices,
+            "q":                request.GET.get("q", ""),
+            "current_category": request.GET.get("category", ""),
+            "current_paint_type": request.GET.get("paint_type", ""),
+            "current_base_type":  request.GET.get("base_type", ""),
+            "current_status":   request.GET.get("status", "all"),
+            "current_price_state": request.GET.get("price_state", ""),
+        }
+        return render(request, self.template_name, ctx)
+
+
+class PaintPriceUpdateView(AdminRequiredMixin, View):
+    """POST /paints/pricing/<pk>/update/  ? JSON response with old/new values."""
+
+    def post(self, request, pk):
+        paint = get_object_or_404(Paint, pk=pk)
+        auto_vat = request.POST.get("auto_vat", "1") in ("1", "true", "on", "yes")
+
+        try:
+            before, after = apply_price_update(
+                paint,
+                request.POST.get("price_excl_vat"),
+                request.POST.get("price_incl_vat"),
+                auto_vat=auto_vat,
+            )
+        except PriceUpdateError as e:
+            return JsonResponse({"ok": False, "error": str(e)}, status=400)
+
+        # Skip audit if nothing actually changed
+        if before != after:
+            log_action(
+                user=request.user,
+                action="PAINT_PRICE_UPDATED",
+                module="paints",
+                description=(
+                    f"Paint '{paint.name}' (id: {paint.pk}) price updated: "
+                    f"excl {before['price_excl_vat']} -> {after['price_excl_vat']}, "
+                    f"incl {before['price_incl_vat']} -> {after['price_incl_vat']}."
+                ),
+                metadata={
+                    "paint_id": paint.pk,
+                    "paint_name": paint.name,
+                    "before":   before,
+                    "after":    after,
+                    "auto_vat": auto_vat,
+                },
+                request=request,
+            )
+
+        return JsonResponse({
+            "ok":             True,
+            "paint_id":       paint.pk,
+            "price_excl_vat": str(paint.price_excl_vat),
+            "price_incl_vat": str(paint.price_incl_vat),
+            "updated_at":     paint.updated_at.strftime("%Y-%m-%d %H:%M"),
+            "changed":        before != after,
+        })

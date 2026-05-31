@@ -113,3 +113,61 @@ class AppSetting(models.Model):
         except InvalidOperation:
             return cls.DEFAULT_VAT_RATE
 
+
+# ---------------------------------------------------------------------------
+# Branding settings (admin-controlled business identity, singleton row)
+# ---------------------------------------------------------------------------
+
+class BrandingSetting(models.Model):
+    """
+    Singleton row holding admin-managed business identity / branding values.
+    Always loaded via ``BrandingSetting.load()``.
+    """
+
+    SINGLETON_ID = 1
+    DEFAULT_COMPANY_NAME = "ProStar Paints"
+
+    company_name    = models.CharField(_("company name"), max_length=120, default=DEFAULT_COMPANY_NAME)
+    company_tagline = models.CharField(_("tagline"), max_length=200, blank=True, default="")
+    company_logo    = models.ImageField(_("logo"), upload_to="branding/", blank=True, null=True)
+    primary_colour  = models.CharField(_("primary colour"), max_length=7, blank=True, default="")
+    accent_colour   = models.CharField(_("accent colour"), max_length=7, blank=True, default="")
+    support_email   = models.EmailField(_("support email"), blank=True, default="")
+    support_phone   = models.CharField(_("support phone"), max_length=40, blank=True, default="")
+    website         = models.URLField(_("website"), blank=True, default="")
+    pdf_footer_note = models.CharField(_("PDF footer note"), max_length=300, blank=True, default="")
+
+    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="branding_updates",
+        verbose_name=_("updated by"),
+    )
+
+    class Meta:
+        verbose_name = _("branding setting")
+        verbose_name_plural = _("branding settings")
+
+    def __str__(self) -> str:
+        return self.company_name or self.DEFAULT_COMPANY_NAME
+
+    def save(self, *args, **kwargs):
+        # Enforce singleton — always row id=1
+        self.pk = self.SINGLETON_ID
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):  # pragma: no cover - guard
+        # Never delete the singleton row through the app
+        return
+
+    @classmethod
+    def load(cls) -> "BrandingSetting":
+        obj, _created = cls.objects.get_or_create(
+            pk=cls.SINGLETON_ID,
+            defaults={"company_name": cls.DEFAULT_COMPANY_NAME},
+        )
+        return obj
+

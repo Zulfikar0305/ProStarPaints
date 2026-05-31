@@ -20,8 +20,8 @@ from .control_center import (
     get_setup_health,
     get_staff_readiness,
 )
-from .forms import VATSettingsForm
-from .models import AppSetting, SystemToolRun
+from .forms import BrandingSettingForm, VATSettingsForm
+from .models import AppSetting, BrandingSetting, SystemToolRun
 from .services import TOOL_REGISTRY, get_tool_display_name, run_tool
 
 
@@ -140,6 +140,63 @@ class SystemSettingsView(AdminRequiredMixin, View):
 
 # Backward-compat alias so any bookmarked /system-tools/vat-settings/ still works
 VATSettingsView = SystemSettingsView
+
+
+# ---------------------------------------------------------------------------
+# Branding settings (admin-only)
+# ---------------------------------------------------------------------------
+
+class BrandingSettingsView(AdminRequiredMixin, View):
+    """Admin form for updating business identity / branding values."""
+
+    template_name = "system_tools/branding_settings.html"
+
+    def _diff(self, before: BrandingSetting, after: BrandingSetting) -> dict:
+        fields = [
+            "company_name", "company_tagline", "primary_colour", "accent_colour",
+            "support_email", "support_phone", "website", "pdf_footer_note",
+        ]
+        changed = {}
+        for f in fields:
+            old = getattr(before, f) or ""
+            new = getattr(after, f) or ""
+            if str(old) != str(new):
+                changed[f] = {"old": str(old), "new": str(new)}
+        old_logo = getattr(before.company_logo, "name", "") or ""
+        new_logo = getattr(after.company_logo, "name", "") or ""
+        if old_logo != new_logo:
+            changed["company_logo"] = {"old": old_logo, "new": new_logo}
+        return changed
+
+    def get(self, request):
+        obj = BrandingSetting.load()
+        form = BrandingSettingForm(instance=obj)
+        return render(request, self.template_name, {"form": form, "branding_obj": obj})
+
+    def post(self, request):
+        obj = BrandingSetting.load()
+        # Snapshot pre-change values for the audit diff
+        snapshot = BrandingSetting.objects.get(pk=obj.pk)
+        form = BrandingSettingForm(request.POST, request.FILES, instance=obj)
+        if form.is_valid():
+            saved = form.save(commit=False)
+            saved.updated_by = request.user
+            saved.save()
+            changed = self._diff(snapshot, saved)
+            log_action(
+                user=request.user,
+                action="BRANDING_SETTINGS_UPDATED",
+                module="system_tools",
+                description=(
+                    f"Branding settings updated ({len(changed)} field(s) changed)."
+                    if changed else "Branding settings saved (no field changes)."
+                ),
+                metadata={"changed": changed},
+                request=request,
+            )
+            messages.success(request, _("Branding settings saved."))
+            return redirect("system_tools:branding_settings")
+        return render(request, self.template_name, {"form": form, "branding_obj": obj})
 
 
 # ---------------------------------------------------------------------------

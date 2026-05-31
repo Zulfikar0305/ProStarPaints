@@ -32,7 +32,9 @@
       data-compact-nav="{{ user_app_settings.compact_navigation|yesno:'true,false' }}"
       data-larger-text="{{ user_app_settings.larger_text|yesno:'true,false' }}"
       data-high-contrast="{{ user_app_settings.high_contrast_mode|yesno:'true,false' }}"
-      data-auto-collapse-summary="{{ user_app_settings.auto_collapse_builder_summary_mobile|yesno:'true,false' }}">
+      data-auto-collapse-summary="{{ user_app_settings.auto_collapse_builder_summary_mobile|yesno:'true,false' }}"
+      data-psp-page="{{ request.resolver_match.view_name|default:'' }}"
+      data-user-role="{% if user.is_superuser or user.role == 'ADMIN' %}admin{% else %}rep{% endif %}"{% if user.is_superuser or user.role == 'ADMIN' %} data-user-admin{% endif %}>
 
 <a href="#pspMainContent" class="psp-skip-link">{% trans 'Skip to main content' %}</a>
 
@@ -46,14 +48,14 @@
   <!-- Brand -->
   <div class="psp-sidebar-brand">
     <a class="psp-sidebar-logo-link" href="{% url 'dashboard:dashboard' %}">
-      <img src="{% static "images/prostar-logo.png" %}"
-           alt="ProStar Paints"
+      <img src="{{ branding.logo_url }}"
+           alt="{{ branding.company_name }}"
            class="psp-sidebar-logo"
            onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
       <span class="psp-sidebar-logo-icon" style="display:none;">
         <i class="bi bi-paint-bucket"></i>
       </span>
-      <span class="psp-sidebar-brand-name">ProStar<span>Paints</span></span>
+      <span class="psp-sidebar-brand-name">{{ branding.company_name|default:"ProStar Paints" }}</span>
     </a>
   </div>
 
@@ -218,6 +220,14 @@
         <i class="bi bi-question-circle" aria-hidden="true"></i>
       </button>
 
+      <button class="psp-icon-btn psp-helpmode-trigger" type="button"
+              data-psp-help-mode-toggle
+              aria-pressed="false"
+              aria-label="{% trans 'Toggle guided help mode' %}"
+              title="{% trans 'Help mode (press ?)' %}">
+        <i class="bi bi-lightbulb" aria-hidden="true"></i>
+      </button>
+
       {% include "widgets/notification_bell.html" %}
 
       {% if user.is_authenticated %}
@@ -295,6 +305,7 @@
 {% endif %}
 {% include "widgets/command_palette.html" %}
 {% include "widgets/help_drawer.html" %}
+{% include "widgets/help_mode.html" %}
 
 <!-- Bootstrap 5 JS bundle -->
 <script
@@ -600,6 +611,10 @@
   });
 }());
 </script>
+
+{% if user.is_authenticated %}
+<script src="{% static 'js/help_mode.js' %}" defer></script>
+{% endif %}
 
 {% block extra_js %}{% endblock %}
 </body>

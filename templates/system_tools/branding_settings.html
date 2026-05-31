@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Branding Settings" %} — ProStar Paints{% endblock %}
+
+{% block breadcrumbs %}
+  {% trans "Branding" as bc_current %}
+  {% include "widgets/breadcrumbs.html" with current=bc_current %}
+{% endblock %}
+
+{% block content %}
+
+{% trans "Business identity" as ph_title %}
+{% trans "Control the company name, logo, contact details and PDF footer note used across the app shell and customer PDFs." as ph_text %}
+{% include "widgets/page_help.html" with title=ph_title text=ph_text icon="bi-palette" tone="purple" %}
+
+<div class="d-flex align-items-center mb-4 gap-3">
+  <a href="{% url 'system_tools:dashboard' %}" class="btn btn-sm btn-outline-secondary" aria-label="{% trans 'Back to System Tools' %}">
+    <i class="bi bi-arrow-left" aria-hidden="true"></i>
+  </a>
+  <div>
+    <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">
+      <i class="bi bi-palette me-2" style="color:var(--psp-purple);" aria-hidden="true"></i>{% trans "Branding Settings" %}
+    </h4>
+    <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">
+      {% trans "Admin-only. Changes apply to the navbar, login page, error pages and quotation PDFs." %}
+    </p>
+  </div>
+</div>
+
+<form method="post" enctype="multipart/form-data" novalidate>
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger py-2">
+      {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="row g-4">
+
+    <!-- Identity -->
+    <div class="col-12 col-lg-7">
+      <div class="card mb-4">
+        <div class="card-header bg-transparent fw-semibold py-2">
+          <i class="bi bi-building me-2 text-primary" aria-hidden="true"></i>{% trans "Identity" %}
+        </div>
+        <div class="card-body p-4">
+
+          <div class="mb-3">
+            <label for="{{ form.company_name.id_for_label }}" class="form-label fw-semibold">
+              {% trans "Company name" %} <span class="text-danger">*</span>
+            </label>
+            {{ form.company_name }}
+            {% if form.company_name.errors %}<div class="invalid-feedback d-block">{{ form.company_name.errors|join:", " }}</div>{% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label for="{{ form.company_tagline.id_for_label }}" class="form-label fw-semibold">
+              {% trans "Tagline" %}
+            </label>
+            {{ form.company_tagline }}
+            {% if form.company_tagline.errors %}<div class="invalid-feedback d-block">{{ form.company_tagline.errors|join:", " }}</div>{% endif %}
+            <div class="form-text">{% trans "Optional. Shown on the login screen under the company name." %}</div>
+          </div>
+
+          <div class="mb-3">
+            <label for="{{ form.company_logo.id_for_label }}" class="form-label fw-semibold">
+              {% trans "Logo" %}
+            </label>
+            {{ form.company_logo }}
+            {% if form.company_logo.errors %}<div class="invalid-feedback d-block">{{ form.company_logo.errors|join:", " }}</div>{% endif %}
+            <div class="form-text">{% trans "PNG, JPEG, WebP or SVG. Max 2 MB. Falls back to built-in logo if cleared." %}</div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-sm-6">
+              <label for="{{ form.primary_colour.id_for_label }}" class="form-label fw-semibold">{% trans "Primary colour" %}</label>
+              <div class="input-group">
+                {{ form.primary_colour }}
+                {% if branding_obj.primary_colour %}
+                  <span class="input-group-text" style="background:{{ branding_obj.primary_colour }};width:42px;" aria-hidden="true"></span>
+                {% endif %}
+              </div>
+              {% if form.primary_colour.errors %}<div class="invalid-feedback d-block">{{ form.primary_colour.errors|join:", " }}</div>{% endif %}
+              <div class="form-text">{% trans "Hex format #RRGGBB. Leave blank for default." %}</div>
+            </div>
+            <div class="col-sm-6">
+              <label for="{{ form.accent_colour.id_for_label }}" class="form-label fw-semibold">{% trans "Accent colour" %}</label>
+              <div class="input-group">
+                {{ form.accent_colour }}
+                {% if branding_obj.accent_colour %}
+                  <span class="input-group-text" style="background:{{ branding_obj.accent_colour }};width:42px;" aria-hidden="true"></span>
+                {% endif %}
+              </div>
+              {% if form.accent_colour.errors %}<div class="invalid-feedback d-block">{{ form.accent_colour.errors|join:", " }}</div>{% endif %}
+              <div class="form-text">{% trans "Hex format #RRGGBB. Leave blank for default." %}</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Contact -->
+      <div class="card mb-4">
+        <div class="card-header bg-transparent fw-semibold py-2">
+          <i class="bi bi-telephone me-2 text-primary" aria-hidden="true"></i>{% trans "Contact" %}
+        </div>
+        <div class="card-body p-4">
+
+          <div class="row g-3">
+            <div class="col-sm-6">
+              <label for="{{ form.support_email.id_for_label }}" class="form-label fw-semibold">{% trans "Support email" %}</label>
+              {{ form.support_email }}
+              {% if form.support_email.errors %}<div class="invalid-feedback d-block">{{ form.support_email.errors|join:", " }}</div>{% endif %}
+            </div>
+            <div class="col-sm-6">
+              <label for="{{ form.support_phone.id_for_label }}" class="form-label fw-semibold">{% trans "Support phone" %}</label>
+              {{ form.support_phone }}
+              {% if form.support_phone.errors %}<div class="invalid-feedback d-block">{{ form.support_phone.errors|join:", " }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="mt-3">
+            <label for="{{ form.website.id_for_label }}" class="form-label fw-semibold">{% trans "Website" %}</label>
+            {{ form.website }}
+            {% if form.website.errors %}<div class="invalid-feedback d-block">{{ form.website.errors|join:", " }}</div>{% endif %}
+          </div>
+
+          <div class="mt-3">
+            <label for="{{ form.pdf_footer_note.id_for_label }}" class="form-label fw-semibold">{% trans "PDF footer note" %}</label>
+            {{ form.pdf_footer_note }}
+            {% if form.pdf_footer_note.errors %}<div class="invalid-feedback d-block">{{ form.pdf_footer_note.errors|join:", " }}</div>{% endif %}
+            <div class="form-text">{% trans "Optional. Appears at the bottom of every PDF (e.g. company reg / VAT number)." %}</div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary psp-loading-btn" data-loading-text="{% trans 'Saving…' %}">
+          <i class="bi bi-check-lg me-1" aria-hidden="true"></i>{% trans "Save branding" %}
+        </button>
+        <a href="{% url 'system_tools:control_center' %}" class="btn btn-outline-secondary">{% trans "Cancel" %}</a>
+      </div>
+    </div>
+
+    <!-- Preview -->
+    <div class="col-12 col-lg-5">
+      <div class="card h-100 sticky-lg-top" style="top:1rem;">
+        <div class="card-header bg-transparent fw-semibold py-2">
+          <i class="bi bi-eye me-2 text-info" aria-hidden="true"></i>{% trans "Current branding" %}
+        </div>
+        <div class="card-body p-4">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            {% if branding_obj.company_logo %}
+              <img src="{{ branding_obj.company_logo.url }}" alt=""
+                   style="width:64px;height:64px;object-fit:contain;border:1px solid var(--psp-border);border-radius:12px;background:#fff;padding:6px;">
+            {% else %}
+              <img src="{% static 'images/prostar-logo.png' %}" alt=""
+                   style="width:64px;height:64px;object-fit:contain;border:1px solid var(--psp-border);border-radius:12px;background:#fff;padding:6px;"
+                   onerror="this.style.display='none';">
+            {% endif %}
+            <div>
+              <div class="fw-bold fs-5 mb-0">{{ branding_obj.company_name|default:"ProStar Paints" }}</div>
+              {% if branding_obj.company_tagline %}
+                <div style="font-size:.82rem;color:var(--psp-text-soft);">{{ branding_obj.company_tagline }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <hr class="my-3">
+
+          <dl class="small mb-0">
+            {% if branding_obj.support_email %}<dt class="text-muted">{% trans "Email" %}</dt><dd>{{ branding_obj.support_email }}</dd>{% endif %}
+            {% if branding_obj.support_phone %}<dt class="text-muted">{% trans "Phone" %}</dt><dd>{{ branding_obj.support_phone }}</dd>{% endif %}
+            {% if branding_obj.website %}<dt class="text-muted">{% trans "Website" %}</dt><dd>{{ branding_obj.website }}</dd>{% endif %}
+            {% if branding_obj.pdf_footer_note %}<dt class="text-muted">{% trans "PDF footer" %}</dt><dd>{{ branding_obj.pdf_footer_note }}</dd>{% endif %}
+            {% if branding_obj.updated_at %}
+              <dt class="text-muted mt-2">{% trans "Last updated" %}</dt>
+              <dd>{{ branding_obj.updated_at|date:"d M Y · H:i" }}{% if branding_obj.updated_by %} · {{ branding_obj.updated_by.get_full_name|default:branding_obj.updated_by.username }}{% endif %}</dd>
+            {% endif %}
+          </dl>
+
+          <div class="alert alert-info mt-3 py-2 small mb-0">
+            <i class="bi bi-info-circle-fill me-2" aria-hidden="true"></i>
+            {% trans "Branding is applied to the navbar, login, error pages and quotation PDFs. The built-in logo is used automatically if no logo is uploaded." %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</form>
+
+{% endblock %}

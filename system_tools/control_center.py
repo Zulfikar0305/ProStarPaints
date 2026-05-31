@@ -174,16 +174,37 @@ def get_setup_health() -> list[dict]:
             reverse("quotation:quotation_list"),
         ))
 
-    # Branding logo
-    if _logo_exists():
+    # Branding configuration
+    try:
+        from system_tools.models import BrandingSetting
+        bobj = BrandingSetting.load()
+    except Exception:
+        bobj = None
+    branding_url = reverse("system_tools:branding_settings")
+    has_uploaded_logo = bool(bobj and bobj.company_logo)
+    branding_fields_set = bool(
+        bobj and (
+            bobj.support_email or bobj.support_phone or bobj.website
+            or bobj.pdf_footer_note or bobj.company_tagline
+        )
+    )
+    if has_uploaded_logo and branding_fields_set:
         checks.append(_ok(
-            "Branding logo present",
-            "Static branding asset detected.",
+            "Branding configured",
+            "Custom logo and business details are set.",
+            branding_url,
+        ))
+    elif has_uploaded_logo or branding_fields_set or _logo_exists():
+        checks.append(_info(
+            "Branding partially configured",
+            "Add company logo, contact details and a PDF footer note for a fully branded experience.",
+            branding_url,
         ))
     else:
         checks.append(_warn(
-            "Branding logo missing",
-            "Drop prostar-logo.png into /static/images/ for PDFs and topbar.",
+            "Branding needs attention",
+            "Upload a company logo and fill in contact details for the navbar and PDF templates.",
+            branding_url,
         ))
 
     # User profile completion
