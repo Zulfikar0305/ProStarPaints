@@ -2420,7 +2420,7 @@ body {
 
 
 /* ---------------------------------------------------------------
-   39. UX micro-polish — button loading, transitions, links
+   39. UX micro-polish ï¿½ button loading, transitions, links
    --------------------------------------------------------------- */
 .psp-btn-loading {
   pointer-events: none;
@@ -2441,7 +2441,7 @@ a { transition: color .12s ease; }
 
 
 /* ---------------------------------------------------------------
-   40. Sidebar — stronger active state
+   40. Sidebar ï¿½ stronger active state
    --------------------------------------------------------------- */
 .psp-sidebar-link.active {
   position: relative;
@@ -3114,7 +3114,7 @@ body.psp-palette-open { overflow: hidden; }
 [data-reduce-motion="true"] .psp-help-topic { transition: none !important; }
 
 /* ------------------------------------------------------------
-   §45 Notification bell + dropdown
+   ï¿½45 Notification bell + dropdown
 -------------------------------------------------------------- */
 .psp-notify { position: relative; }
 .psp-notify-btn { position: relative; }
@@ -3248,7 +3248,7 @@ body.psp-palette-open { overflow: hidden; }
 [data-reduce-motion="true"] .psp-notify-panel { transition: none !important; }
 
 /* ------------------------------------------------------------
-   §46 Data quality widget
+   ï¿½46 Data quality widget
 -------------------------------------------------------------- */
 .psp-dq .card-header {
   background: linear-gradient(180deg, #ecfdf5, transparent);
@@ -3294,7 +3294,7 @@ a:hover > .psp-dq-item { transform: translateY(-2px); box-shadow: var(--psp-shad
 [data-reduce-motion="true"] .psp-dq-bar-fill { transition: none !important; }
 
 /* ------------------------------------------------------------
-   §45 Notification bell + dropdown
+   ï¿½45 Notification bell + dropdown
 -------------------------------------------------------------- */
 .psp-notify { position: relative; }
 .psp-notify-btn { position: relative; }
@@ -3428,7 +3428,7 @@ a:hover > .psp-dq-item { transform: translateY(-2px); box-shadow: var(--psp-shad
 [data-reduce-motion="true"] .psp-notify-panel { transition: none !important; }
 
 /* ------------------------------------------------------------
-   §46 Data quality widget
+   ï¿½46 Data quality widget
 -------------------------------------------------------------- */
 .psp-dq .card-header {
   background: linear-gradient(180deg, #ecfdf5, transparent);
@@ -3473,7 +3473,7 @@ a:hover > .psp-dq-item { transform: translateY(-2px); box-shadow: var(--psp-shad
 [data-reduce-motion="true"] .psp-dq-item,
 [data-reduce-motion="true"] .psp-dq-bar-fill { transition: none !important; }
 
-/* §47 Phase-8 integration fixes ---------------------------------
+/* ï¿½47 Phase-8 integration fixes ---------------------------------
    FAB lifts above the builder bottom summary bar on mobile so the
    two fixed elements do not overlap. */
 @media (max-width: 991.98px) {
@@ -3482,11 +3482,464 @@ a:hover > .psp-dq-item { transform: translateY(-2px); box-shadow: var(--psp-shad
   }
 }
 
-/* §47 Phase-8 integration fixes ---------------------------------
+/* ï¿½47 Phase-8 integration fixes ---------------------------------
    FAB lifts above the builder bottom summary bar on mobile so the
    two fixed elements do not overlap. */
 @media (max-width: 991.98px) {
   body:has(.psp-bottom-summary-bar) .psp-fab {
     bottom: 5rem;
+  }
+}
+
+
+/* ============================================================
+   ï¿½48  Premium Settings & Personalisation
+   Comprehensive coverage for:
+   - dark mode (offcanvas, dropdowns, modals, palette, notify
+     panel, dashboard cards, builder cards, pdf gallery, tables,
+     scrollbars, alerts, kbd)
+   - compact density (dashboard rows, recent lists, kpi cards)
+   - larger text
+   - high contrast mode
+   - compact navigation
+   ============================================================ */
+
+/* ---------- Settings page chrome --------------------------- */
+.psp-settings-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  padding: .35rem;
+  background: var(--psp-surface-2, #f1f5f9);
+  border-radius: 12px;
+  border: 1px solid var(--psp-border, #e2e8f0);
+  -webkit-overflow-scrolling: touch;
+}
+.psp-settings-nav-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .4rem .75rem;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--psp-text-soft, #475569);
+  font-size: .78rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background .15s ease, color .15s ease;
+  white-space: nowrap;
+}
+.psp-settings-nav-pill:hover,
+.psp-settings-nav-pill:focus {
+  background: rgba(124, 58, 237, .1);
+  color: var(--psp-purple, #7c3aed);
+}
+.psp-settings-nav-pill i {
+  font-size: .9rem;
+}
+
+.psp-settings-card {
+  border: 1px solid var(--psp-border, #e2e8f0);
+  border-radius: var(--psp-radius, 16px);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+  overflow: hidden;
+}
+.psp-settings-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .85rem 1.1rem;
+  background: linear-gradient(180deg, rgba(124, 58, 237, .04) 0%, rgba(255,255,255,0) 100%);
+  border-bottom: 1px solid var(--psp-border, #e2e8f0);
+  font-weight: 700;
+  font-size: .92rem;
+}
+.psp-settings-card-hint {
+  font-weight: 500;
+  font-size: .72rem;
+  color: var(--psp-text-soft, #64748b);
+}
+.psp-settings-divider {
+  margin: 1.25rem 0 1rem;
+  border: 0;
+  border-top: 1px dashed var(--psp-border, #e2e8f0);
+}
+.psp-settings-switch .form-check-input {
+  margin-top: .15rem;
+}
+.psp-settings-actions {
+  position: sticky;
+  bottom: 0;
+  padding: .6rem 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0) 0%, var(--psp-bg, #f8fafc) 60%);
+  z-index: 5;
+}
+
+/* PDF "Your default" highlight ----------------------------- */
+.psp-pdf-tpl-card.is-preferred {
+  border-color: var(--psp-purple, #7c3aed) !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, .12);
+}
+.psp-pdf-default-pill {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  padding: .2rem .55rem;
+  border-radius: 999px;
+  background: var(--psp-purple, #7c3aed);
+  color: #fff;
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  box-shadow: 0 2px 6px rgba(124, 58, 237, .35);
+}
+
+/* ============================================================
+   ï¿½49  Dark-mode expansion
+   ============================================================ */
+[data-theme="dark"],
+[data-theme="system"] {
+  /* Defaults are overridden below when prefers-color-scheme: dark */
+}
+
+[data-theme="dark"] {
+  --psp-bg:            #0f172a;
+  --psp-surface:       #1e293b;
+  --psp-surface-2:     #273449;
+  --psp-border:        #334155;
+  --psp-text:          #e2e8f0;
+  --psp-text-soft:     #cbd5e1;
+  --psp-text-muted:    #94a3b8;
+}
+
+[data-theme="dark"] .psp-body,
+[data-theme="dark"] body {
+  background-color: var(--psp-bg);
+  color: var(--psp-text);
+}
+
+/* Cards & generic surfaces */
+[data-theme="dark"] .card,
+[data-theme="dark"] .psp-settings-card,
+[data-theme="dark"] .modal-content,
+[data-theme="dark"] .offcanvas,
+[data-theme="dark"] .dropdown-menu,
+[data-theme="dark"] .psp-user-menu-dropdown,
+[data-theme="dark"] .psp-notify-panel,
+[data-theme="dark"] .psp-palette-panel,
+[data-theme="dark"] .psp-help-drawer,
+[data-theme="dark"] .psp-summary-offcanvas,
+[data-theme="dark"] .psp-continue-card,
+[data-theme="dark"] .psp-onboarding,
+[data-theme="dark"] .psp-page-help,
+[data-theme="dark"] .psp-pdf-tpl-card,
+[data-theme="dark"] .psp-bottom-summary-bar {
+  background-color: var(--psp-surface) !important;
+  color: var(--psp-text) !important;
+  border-color: var(--psp-border) !important;
+}
+
+[data-theme="dark"] .card-header,
+[data-theme="dark"] .card-footer,
+[data-theme="dark"] .modal-header,
+[data-theme="dark"] .modal-footer,
+[data-theme="dark"] .offcanvas-header,
+[data-theme="dark"] .offcanvas-footer,
+[data-theme="dark"] .psp-settings-card-header,
+[data-theme="dark"] .psp-notify-header,
+[data-theme="dark"] .psp-notify-footer,
+[data-theme="dark"] .psp-palette-footer {
+  background-color: var(--psp-surface-2) !important;
+  color: var(--psp-text) !important;
+  border-color: var(--psp-border) !important;
+}
+
+/* Tables */
+[data-theme="dark"] .table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--psp-text);
+  --bs-table-striped-bg: rgba(255,255,255,.025);
+  --bs-table-hover-bg: rgba(124,58,237,.08);
+  color: var(--psp-text);
+}
+[data-theme="dark"] .table > :not(caption) > * > * {
+  background-color: transparent;
+  color: var(--psp-text);
+  border-color: var(--psp-border);
+}
+[data-theme="dark"] .table-light,
+[data-theme="dark"] .table > thead {
+  --bs-table-bg: var(--psp-surface-2);
+  --bs-table-color: var(--psp-text);
+  background-color: var(--psp-surface-2);
+  color: var(--psp-text);
+}
+[data-theme="dark"] .table-hover > tbody > tr:hover > * {
+  background-color: rgba(124,58,237,.10);
+}
+
+/* Forms */
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select,
+[data-theme="dark"] .input-group-text {
+  background-color: var(--psp-surface-2);
+  border-color: var(--psp-border);
+  color: var(--psp-text);
+}
+[data-theme="dark"] .form-control::placeholder { color: var(--psp-text-muted); }
+[data-theme="dark"] .form-control:focus,
+[data-theme="dark"] .form-select:focus {
+  border-color: var(--psp-purple, #7c3aed);
+  box-shadow: 0 0 0 .15rem rgba(124,58,237,.35);
+  background-color: var(--psp-surface-2);
+  color: var(--psp-text);
+}
+[data-theme="dark"] .form-check-input {
+  background-color: var(--psp-surface-2);
+  border-color: var(--psp-border);
+}
+[data-theme="dark"] .form-check-input:checked {
+  background-color: var(--psp-purple, #7c3aed);
+  border-color: var(--psp-purple, #7c3aed);
+}
+[data-theme="dark"] .form-text,
+[data-theme="dark"] .text-muted { color: var(--psp-text-muted) !important; }
+
+/* Buttons (secondary / outline variants) */
+[data-theme="dark"] .btn-secondary,
+[data-theme="dark"] .btn-outline-secondary {
+  background-color: var(--psp-surface-2);
+  border-color: var(--psp-border);
+  color: var(--psp-text);
+}
+[data-theme="dark"] .btn-outline-secondary:hover {
+  background-color: #334155;
+  color: #fff;
+}
+[data-theme="dark"] .btn-close { filter: invert(1) grayscale(.5); }
+
+/* Sidebar + topbar reinforcement */
+[data-theme="dark"] .psp-sidebar {
+  background-color: #0b1220;
+  border-color: var(--psp-border);
+}
+[data-theme="dark"] .psp-topbar {
+  background-color: var(--psp-surface);
+  border-color: var(--psp-border);
+  color: var(--psp-text);
+}
+[data-theme="dark"] .psp-search-input {
+  background-color: var(--psp-surface-2);
+  border-color: var(--psp-border);
+  color: var(--psp-text);
+}
+
+/* Command palette */
+[data-theme="dark"] .psp-palette-search,
+[data-theme="dark"] .psp-palette-search input {
+  background-color: var(--psp-surface-2);
+  color: var(--psp-text);
+  border-color: var(--psp-border);
+}
+[data-theme="dark"] .psp-palette-item:hover,
+[data-theme="dark"] .psp-palette-item.is-active {
+  background-color: rgba(124,58,237,.18);
+  color: var(--psp-text);
+}
+[data-theme="dark"] kbd,
+[data-theme="dark"] .psp-palette-footer kbd,
+[data-theme="dark"] .psp-help-shortcuts kbd {
+  background-color: var(--psp-surface-2);
+  border-color: var(--psp-border);
+  color: var(--psp-text);
+}
+
+/* Notifications panel */
+[data-theme="dark"] .psp-notify-item:hover {
+  background-color: rgba(124,58,237,.10);
+}
+[data-theme="dark"] .psp-notify-empty,
+[data-theme="dark"] .psp-empty {
+  background-color: var(--psp-surface);
+  color: var(--psp-text-soft);
+}
+
+/* Data quality + dashboard helpers */
+[data-theme="dark"] .psp-dq-item {
+  background-color: var(--psp-surface-2);
+  border-color: var(--psp-border);
+}
+[data-theme="dark"] .psp-recent-item:hover,
+[data-theme="dark"] .psp-quick-action:hover {
+  background-color: rgba(124,58,237,.10);
+}
+[data-theme="dark"] .kpi-card,
+[data-theme="dark"] .psp-fab-item {
+  background-color: var(--psp-surface);
+  border-color: var(--psp-border);
+  color: var(--psp-text);
+}
+
+/* Alerts: keep meaning, soften surface */
+[data-theme="dark"] .alert {
+  background-color: var(--psp-surface-2);
+  border-color: var(--psp-border);
+  color: var(--psp-text);
+}
+[data-theme="dark"] .alert-info    { border-left: 4px solid #0ea5e9; }
+[data-theme="dark"] .alert-success { border-left: 4px solid #10b981; }
+[data-theme="dark"] .alert-warning { border-left: 4px solid #f59e0b; }
+[data-theme="dark"] .alert-danger  { border-left: 4px solid #ef4444; }
+
+/* Breadcrumb */
+[data-theme="dark"] .breadcrumb { color: var(--psp-text-soft); }
+[data-theme="dark"] .breadcrumb a { color: var(--psp-text); }
+[data-theme="dark"] .breadcrumb-item.active { color: var(--psp-text-muted); }
+
+/* Scrollbars (WebKit) */
+[data-theme="dark"] ::-webkit-scrollbar { width: 10px; height: 10px; }
+[data-theme="dark"] ::-webkit-scrollbar-track { background: var(--psp-bg); }
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 6px;
+  border: 2px solid var(--psp-bg);
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* System theme mirror */
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] {
+    --psp-bg:        #0f172a;
+    --psp-surface:   #1e293b;
+    --psp-surface-2: #273449;
+    --psp-border:    #334155;
+    --psp-text:      #e2e8f0;
+    --psp-text-soft: #cbd5e1;
+    --psp-text-muted:#94a3b8;
+  }
+  [data-theme="system"] .card,
+  [data-theme="system"] .modal-content,
+  [data-theme="system"] .offcanvas,
+  [data-theme="system"] .dropdown-menu,
+  [data-theme="system"] .psp-user-menu-dropdown,
+  [data-theme="system"] .psp-notify-panel,
+  [data-theme="system"] .psp-palette-panel,
+  [data-theme="system"] .psp-help-drawer,
+  [data-theme="system"] .psp-settings-card,
+  [data-theme="system"] .psp-bottom-summary-bar {
+    background-color: var(--psp-surface) !important;
+    color: var(--psp-text) !important;
+    border-color: var(--psp-border) !important;
+  }
+  [data-theme="system"] .psp-topbar,
+  [data-theme="system"] .psp-sidebar {
+    background-color: var(--psp-surface) !important;
+    border-color: var(--psp-border) !important;
+    color: var(--psp-text) !important;
+  }
+  [data-theme="system"] .form-control,
+  [data-theme="system"] .form-select {
+    background-color: var(--psp-surface-2);
+    border-color: var(--psp-border);
+    color: var(--psp-text);
+  }
+}
+
+/* ============================================================
+   ï¿½50  Compact density expansion
+   ============================================================ */
+[data-density="compact"] .row.g-3 { --bs-gutter-y: .5rem; --bs-gutter-x: .5rem; }
+[data-density="compact"] .psp-recent-list li { padding: .25rem .35rem; }
+[data-density="compact"] .psp-recent-item    { padding: .45rem .6rem; gap: .55rem; }
+[data-density="compact"] .psp-quick-action   { padding: .55rem; }
+[data-density="compact"] .kpi-card .card-body { padding: .85rem 1rem; }
+[data-density="compact"] .psp-dq-item        { padding: .55rem .75rem; }
+[data-density="compact"] .psp-notify-item    { padding: .55rem .75rem; }
+[data-density="compact"] .card-header        { padding: .55rem .9rem; }
+[data-density="compact"] .card-body          { padding: .85rem 1rem; }
+[data-density="compact"] .psp-settings-card-header { padding: .55rem .9rem; }
+
+/* ============================================================
+   ï¿½51  Larger text
+   ============================================================ */
+[data-larger-text="true"] {
+  font-size: 17px;
+}
+[data-larger-text="true"] .form-control,
+[data-larger-text="true"] .form-select,
+[data-larger-text="true"] .btn {
+  min-height: calc(2.25rem + 4px);
+  font-size: 1rem;
+}
+[data-larger-text="true"] .small,
+[data-larger-text="true"] small { font-size: .92rem; }
+
+/* ============================================================
+   ï¿½52  High contrast
+   ============================================================ */
+[data-high-contrast="true"] {
+  --psp-border: #0f172a;
+}
+[data-high-contrast="true"] .card,
+[data-high-contrast="true"] .psp-settings-card,
+[data-high-contrast="true"] .modal-content,
+[data-high-contrast="true"] .offcanvas {
+  border-width: 2px !important;
+}
+[data-high-contrast="true"] .form-control,
+[data-high-contrast="true"] .form-select {
+  border-width: 2px;
+}
+[data-high-contrast="true"] :focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 2px;
+}
+[data-high-contrast="true"] .btn-outline-secondary,
+[data-high-contrast="true"] .btn-outline-primary,
+[data-high-contrast="true"] .btn-outline-danger {
+  border-width: 2px;
+  font-weight: 600;
+}
+[data-high-contrast="true"][data-theme="dark"] {
+  --psp-border: #e2e8f0;
+}
+
+/* ============================================================
+   ï¿½53  Compact navigation
+   ============================================================ */
+@media (min-width: 992px) {
+  [data-compact-nav="true"] .psp-sidebar {
+    width: 208px;
+    min-width: 208px;
+  }
+  [data-compact-nav="true"] .psp-content-area:not(.psp-no-sidebar) {
+    margin-left: 208px;
+  }
+}
+[data-compact-nav="true"] .psp-topbar { padding-top: .35rem; padding-bottom: .35rem; }
+[data-compact-nav="true"] .psp-sidebar-link {
+  padding-top: .45rem;
+  padding-bottom: .45rem;
+}
+[data-compact-nav="true"] .psp-sidebar-section-label {
+  margin-top: .6rem;
+  font-size: .68rem;
+}
+
+/* ============================================================
+   ï¿½54  Builder summary quiet mode (mobile)
+   ============================================================ */
+@media (max-width: 991.98px) {
+  body[data-auto-collapse-summary="true"] .psp-bottom-summary-bar {
+    opacity: .92;
+    transform: translateY(0);
+    padding-top: .45rem;
+    padding-bottom: .45rem;
+  }
+  body[data-auto-collapse-summary="true"] .psp-bottom-summary-bar .psp-summary-secondary {
+    display: none;
   }
 }

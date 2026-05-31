@@ -224,6 +224,32 @@ class AppSettingsView(LoginRequiredMixin, View):
             "settings": settings_obj,
         })
 
+    # Map model fields to section groups for audit metadata.
+    _SETTINGS_SECTIONS = {
+        "appearance":      {"appearance", "accent_style"},
+        "dashboard":       {"default_landing_page", "default_dashboard_period",
+                            "show_onboarding_checklist", "show_data_quality_widget",
+                            "show_recent_activity_widget", "show_draft_quotations_widget"},
+        "quotation":       {"preferred_quotation_view", "default_quotation_sort",
+                            "rows_per_page", "builder_summary_default", "table_density",
+                            "auto_collapse_builder_summary_mobile", "show_builder_help_tips"},
+        "pdf":             {"preferred_pdf_template", "remember_last_pdf_template"},
+        "navigation":      {"show_quick_actions_fab", "show_command_palette_hint",
+                            "compact_navigation", "show_watermark", "show_help_text"},
+        "accessibility":   {"larger_text", "high_contrast_mode", "reduce_animations"},
+        "notifications":   {"email_notifications_enabled",
+                            "notify_profile_incomplete", "notify_draft_quotations",
+                            "notify_failed_pdfs", "notify_placeholder_sections",
+                            "notify_system_activity"},
+    }
+
+    def _changed_sections(self, changed_fields):
+        changed = set(changed_fields or [])
+        return sorted(
+            section for section, fields in self._SETTINGS_SECTIONS.items()
+            if fields & changed
+        )
+
     def post(self, request):
         settings_obj = self._get_or_create_settings(request.user)
         form = UserAppSettingsForm(request.POST, instance=settings_obj)
@@ -234,7 +260,12 @@ class AppSettingsView(LoginRequiredMixin, View):
                 action="APP_SETTINGS_UPDATED",
                 module="users",
                 description=f"User {request.user} updated their app settings.",
-                metadata={"user_id": request.user.pk},
+                metadata={
+                    "user_id":          request.user.pk,
+                    "username":         request.user.username,
+                    "changed_fields":   list(form.changed_data),
+                    "changed_sections": self._changed_sections(form.changed_data),
+                },
                 request=request,
             )
             messages.success(request, _("Your settings have been saved."))

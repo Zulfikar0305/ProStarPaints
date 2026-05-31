@@ -28,7 +28,11 @@
       data-theme="{{ user_app_settings.appearance }}"
       data-density="{{ user_app_settings.table_density }}"
       data-accent="{{ user_app_settings.accent_style }}"
-      data-reduce-motion="{{ user_app_settings.reduce_animations|yesno:'true,false' }}">
+      data-reduce-motion="{{ user_app_settings.reduce_animations|yesno:'true,false' }}"
+      data-compact-nav="{{ user_app_settings.compact_navigation|yesno:'true,false' }}"
+      data-larger-text="{{ user_app_settings.larger_text|yesno:'true,false' }}"
+      data-high-contrast="{{ user_app_settings.high_contrast_mode|yesno:'true,false' }}"
+      data-auto-collapse-summary="{{ user_app_settings.auto_collapse_builder_summary_mobile|yesno:'true,false' }}">
 
 <!-- Mobile sidebar overlay -->
 {% if user.is_authenticated %}<div class="psp-overlay" id="pspOverlay"></div>{% endif %}
@@ -183,6 +187,7 @@
         <input type="text" class="psp-search-input" placeholder="Search…">
       </div>
 
+      {% if user_app_settings.show_command_palette_hint %}
       <button class="psp-icon-btn psp-palette-trigger" type="button"
               id="pspPaletteTrigger"
               data-bs-toggle="tooltip"
@@ -190,6 +195,7 @@
               title="{% trans 'Quick actions (Ctrl+K)' %}">
         <i class="bi bi-command"></i>
       </button>
+      {% endif %}
 
       <button class="psp-icon-btn psp-help-trigger" type="button"
               data-bs-toggle="offcanvas"
@@ -271,7 +277,9 @@
 
 </div><!-- /.psp-content-area -->
 
-{% include "widgets/quick_actions_fab.html" %}
+{% if user.is_authenticated and user_app_settings.show_quick_actions_fab %}
+  {% include "widgets/quick_actions_fab.html" %}
+{% endif %}
 {% include "widgets/command_palette.html" %}
 {% include "widgets/help_drawer.html" %}
 

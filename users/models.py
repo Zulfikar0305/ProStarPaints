@@ -189,6 +189,26 @@ class UserAppSettings(models.Model):
         EXPANDED  = "expanded",  _("Expanded")
         COLLAPSED = "collapsed", _("Collapsed")
 
+    class LandingPage(models.TextChoices):
+        DASHBOARD     = "dashboard",     _("Dashboard")
+        QUOTATIONS    = "quotations",    _("Quotations list")
+        NEW_QUOTATION = "new_quotation", _("New quotation")
+        PROFILE       = "profile",       _("Profile")
+
+    class QuotationView(models.TextChoices):
+        TABLE = "table", _("Table")
+        CARDS = "cards", _("Cards")
+
+    class QuotationSort(models.TextChoices):
+        UPDATED_DESC = "updated_desc", _("Recently updated")
+        CREATED_DESC = "created_desc", _("Recently created")
+        CUSTOMER_ASC = "customer_asc", _("Customer (A → Z)")
+
+    class PdfTemplateChoice(models.TextChoices):
+        PROFESSIONAL  = "professional",  _("Professional")
+        DETAILED_SPEC = "detailed_spec", _("Detailed Specification")
+        COMPACT       = "compact",       _("Compact Estimate")
+
     ROWS_CHOICES = [(10, "10"), (25, "25"), (50, "50")]
 
     user = models.OneToOneField(
@@ -232,6 +252,81 @@ class UserAppSettings(models.Model):
     # ── Notifications (placeholder) ──────────────────────────────
     email_notifications_enabled = models.BooleanField(
         _("email notifications enabled"), default=False,
+    )
+
+    # ── Dashboard widget visibility ──────────────────────────────
+    show_onboarding_checklist = models.BooleanField(
+        _("show onboarding checklist"), default=True,
+    )
+    show_data_quality_widget = models.BooleanField(
+        _("show data quality widget"), default=True,
+    )
+    show_recent_activity_widget = models.BooleanField(
+        _("show recent activity widget"), default=True,
+    )
+    show_draft_quotations_widget = models.BooleanField(
+        _("show draft quotations widget"), default=True,
+    )
+    default_landing_page = models.CharField(
+        _("default landing page"), max_length=20,
+        choices=LandingPage.choices, default=LandingPage.DASHBOARD,
+    )
+
+    # ── Quotation preferences ────────────────────────────────────
+    preferred_quotation_view = models.CharField(
+        _("preferred quotation view"), max_length=10,
+        choices=QuotationView.choices, default=QuotationView.TABLE,
+    )
+    default_quotation_sort = models.CharField(
+        _("default quotation sort"), max_length=20,
+        choices=QuotationSort.choices, default=QuotationSort.UPDATED_DESC,
+    )
+    auto_collapse_builder_summary_mobile = models.BooleanField(
+        _("auto-collapse builder summary on mobile"), default=False,
+    )
+    show_builder_help_tips = models.BooleanField(
+        _("show builder help tips"), default=True,
+    )
+
+    # ── PDF preferences ──────────────────────────────────────────
+    preferred_pdf_template = models.CharField(
+        _("preferred PDF template"), max_length=30,
+        choices=PdfTemplateChoice.choices, default=PdfTemplateChoice.PROFESSIONAL,
+    )
+    remember_last_pdf_template = models.BooleanField(
+        _("remember last PDF template used"), default=True,
+    )
+
+    # ── Navigation preferences ───────────────────────────────────
+    show_quick_actions_fab = models.BooleanField(
+        _("show floating quick-actions button"), default=True,
+    )
+    show_command_palette_hint = models.BooleanField(
+        _("show command palette hint button"), default=True,
+    )
+    compact_navigation = models.BooleanField(
+        _("compact navigation"), default=False,
+    )
+
+    # ── Accessibility ────────────────────────────────────────────
+    larger_text = models.BooleanField(_("larger text"), default=False)
+    high_contrast_mode = models.BooleanField(_("high contrast mode"), default=False)
+
+    # ── Notification category preferences ────────────────────────
+    notify_profile_incomplete = models.BooleanField(
+        _("notify when profile is incomplete"), default=True,
+    )
+    notify_draft_quotations = models.BooleanField(
+        _("notify about draft quotations"), default=True,
+    )
+    notify_failed_pdfs = models.BooleanField(
+        _("notify about failed PDF exports"), default=True,
+    )
+    notify_placeholder_sections = models.BooleanField(
+        _("notify about placeholder quotation sections"), default=True,
+    )
+    notify_system_activity = models.BooleanField(
+        _("notify about system activity (admins)"), default=True,
     )
 
     updated_at = models.DateTimeField(auto_now=True)

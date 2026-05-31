@@ -996,11 +996,17 @@ class QuotationPdfTemplateSelectView(QuotationAccessMixin, View):
         for exp in recent_exports:
             exp.template_name = get_template_display_name(exp.template_key)
         summary = get_quotation_summary(quotation)
+        preferred_key = getattr(
+            getattr(request.user, "app_settings", None),
+            "preferred_pdf_template",
+            None,
+        )
         return render(request, self.template_name, {
             "quotation":         quotation,
             "pdf_templates":     templates,
             "recent_exports":    recent_exports,
             "quotation_summary": summary,
+            "preferred_pdf_template_key": preferred_key,
         })
 
 
@@ -1034,6 +1040,20 @@ class QuotationPdfGenerateView(QuotationAccessMixin, View):
         )
 
         if export.status == QuotationPdfExport.Status.GENERATED:
+            # Optionally remember the chosen template as the user's default.
+            try:
+                app_settings = getattr(request.user, "app_settings", None)
+                if (
+                    app_settings
+                    and getattr(app_settings, "remember_last_pdf_template", False)
+                    and template_key in PDF_TEMPLATES
+                    and app_settings.preferred_pdf_template != template_key
+                ):
+                    app_settings.preferred_pdf_template = template_key
+                    app_settings.save(update_fields=["preferred_pdf_template", "updated_at"])
+            except Exception:
+                pass
+
             log_action(
                 user=request.user,
                 action="QUOTATION_PDF_GENERATED",

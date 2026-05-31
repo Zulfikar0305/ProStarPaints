@@ -45,13 +45,15 @@
   </div>
 </div>
 
-{% if onboarding and not onboarding.complete %}
+{% if onboarding and not onboarding.complete and user_app_settings.show_onboarding_checklist %}
   <div id="pspOnboardingWrap" data-onboarding-key="psp-onboarding-{{ onboarding.role }}-{{ user.pk }}">
     {% include "widgets/onboarding_checklist.html" %}
   </div>
 {% endif %}
 
-{% include "widgets/data_quality.html" %}
+{% if user_app_settings.show_data_quality_widget %}
+  {% include "widgets/data_quality.html" %}
+{% endif %}
 
 
 {% if is_admin %}
@@ -336,6 +338,7 @@
 <!-- Command center row: Recent Drafts + System Activity -->
 <div class="row g-3 mb-2">
 
+  {% if user_app_settings.show_draft_quotations_widget %}
   <!-- Recent Draft Quotations -->
   <div class="col-12 col-xl-5">
     <div class="card h-100">
@@ -381,6 +384,9 @@
     </div>
   </div>
 
+  {% endif %}
+
+  {% if user_app_settings.show_recent_activity_widget %}
   <!-- System-wide Recent Activity -->
   <div class="col-12 col-xl-7">
     <div class="card h-100">
@@ -433,6 +439,8 @@
       </div>
     </div>
   </div>
+
+  {% endif %}
 
 </div><!-- /command center row -->
 
@@ -632,6 +640,7 @@
 
 <!-- Recent Activity + Recent Quotations -->
 <div class="row g-3">
+  {% if user_app_settings.show_recent_activity_widget %}
   <div class="col-12 col-xl-7">
     <div class="card h-100">
       <div class="card-header d-flex align-items-center">
@@ -683,7 +692,9 @@
       </div>
     </div>
   </div>
+  {% endif %}
 
+  {% if user_app_settings.show_draft_quotations_widget %}
   <div class="col-12 col-xl-5">
     <div class="card h-100">
       <div class="card-header d-flex align-items-center justify-content-between">
@@ -725,6 +736,7 @@
       </div>
     </div>
   </div>
+  {% endif %}
 </div><!-- /recent activity -->
 
 {% endif %}

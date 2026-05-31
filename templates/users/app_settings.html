@@ -10,14 +10,17 @@
 
 {% block content %}
 
-{% trans "Personalise your experience" as ph_title %}
-{% trans "Switch theme, table density, accent style or reduce motion. Settings apply only to your account." as ph_text %}
+{% trans "Your workspace preferences" as ph_title %}
+{% trans "These settings only affect your account. Appearance, dashboard widgets, builder defaults, PDF preferences, navigation and notifications — all yours." as ph_text %}
 {% include "widgets/page_help.html" with title=ph_title text=ph_text icon="bi-gear" tone="purple" %}
-<div class="d-flex align-items-center justify-content-between mb-4">
+
+<div class="d-flex align-items-center justify-content-between mb-3">
   <div>
-    <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">{% trans "App Settings" %}</h4>
+    <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">
+      <i class="bi bi-sliders me-2" style="color:var(--psp-purple);"></i>{% trans "App Settings" %}
+    </h4>
     <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">
-      {% trans "Personalise your ProStar Paints experience. Changes apply only to your account." %}
+      {% trans "These settings only affect your account. System-wide settings (VAT, branding) live under System Settings — admin only." %}
     </p>
   </div>
   <a href="{% url 'users:profile' %}" class="btn btn-sm btn-secondary">
@@ -33,178 +36,207 @@
   {% endfor %}
 {% endif %}
 
+{# Section nav (anchor pills) #}
+<div class="psp-settings-nav mb-3" role="tablist">
+  <a href="#sec-appearance"   class="psp-settings-nav-pill"><i class="bi bi-palette"></i>{% trans "Appearance" %}</a>
+  <a href="#sec-dashboard"    class="psp-settings-nav-pill"><i class="bi bi-speedometer2"></i>{% trans "Dashboard" %}</a>
+  <a href="#sec-quotation"    class="psp-settings-nav-pill"><i class="bi bi-grid-3x3-gap"></i>{% trans "Quotation Builder" %}</a>
+  <a href="#sec-pdf"          class="psp-settings-nav-pill"><i class="bi bi-file-earmark-pdf"></i>{% trans "PDF Defaults" %}</a>
+  <a href="#sec-navigation"   class="psp-settings-nav-pill"><i class="bi bi-compass"></i>{% trans "Navigation" %}</a>
+  <a href="#sec-notifications" class="psp-settings-nav-pill"><i class="bi bi-bell"></i>{% trans "Notifications" %}</a>
+  <a href="#sec-accessibility" class="psp-settings-nav-pill"><i class="bi bi-universal-access"></i>{% trans "Accessibility" %}</a>
+</div>
+
 <form method="post" novalidate id="appSettingsForm">
 {% csrf_token %}
 
-<div class="row g-4">
+{# Reusable macro-like includes use template snippets below #}
 
-  <!-- ── Left column ── -->
-  <div class="col-12 col-lg-6">
+<!-- ── Appearance ── -->
+<div class="card psp-settings-card mb-4" id="sec-appearance">
+  <div class="card-header psp-settings-card-header">
+    <span><i class="bi bi-palette-fill me-2" style="color:var(--psp-purple);"></i>{% trans "Appearance" %}</span>
+    <span class="psp-settings-card-hint">{% trans "Theme and accent colour" %}</span>
+  </div>
+  <div class="card-body p-4">
 
-    <!-- Appearance -->
-    <div class="card mb-4">
-      <div class="card-header bg-transparent fw-semibold py-2" style="font-size:.85rem;">
-        <i class="bi bi-palette-fill me-2" style="color:var(--psp-purple);"></i>{% trans "Appearance" %}
-      </div>
-      <div class="card-body p-4">
-
-        <p class="small fw-semibold mb-2">{% trans "Theme" %}</p>
-        <div class="row g-2 mb-4">
-          {% for val, label in form.appearance.field.choices %}
-          <div class="col-4">
-            <label class="psp-setting-card text-center w-100 position-relative"
-                   for="appearance_{{ val }}">
-              <input type="radio"
-                     name="{{ form.appearance.html_name }}"
-                     id="appearance_{{ val }}"
-                     value="{{ val }}"
-                     {% if form.appearance.value == val %}checked{% endif %}>
-              <div style="font-size:1.4rem;margin-bottom:.25rem;">
-                {% if val == "light" %}☀️{% elif val == "dark" %}🌙{% else %}💻{% endif %}
-              </div>
-              <div class="small fw-semibold">{{ label }}</div>
-            </label>
+    <p class="small fw-semibold mb-2">{% trans "Theme" %}</p>
+    <div class="row g-2 mb-4">
+      {% for val, label in form.appearance.field.choices %}
+      <div class="col-4">
+        <label class="psp-setting-card text-center w-100 position-relative" for="appearance_{{ val }}">
+          <input type="radio" name="{{ form.appearance.html_name }}" id="appearance_{{ val }}"
+                 value="{{ val }}" {% if form.appearance.value|stringformat:'s' == val %}checked{% endif %}>
+          <div style="font-size:1.4rem;margin-bottom:.25rem;">
+            {% if val == "light" %}<i class="bi bi-sun-fill text-warning"></i>
+            {% elif val == "dark" %}<i class="bi bi-moon-stars-fill" style="color:#475569;"></i>
+            {% else %}<i class="bi bi-display" style="color:var(--psp-purple);"></i>{% endif %}
           </div>
-          {% endfor %}
-        </div>
-        {% if form.appearance.errors %}<div class="text-danger small">{{ form.appearance.errors.0 }}</div>{% endif %}
+          <div class="small fw-semibold">{{ label }}</div>
+        </label>
+      </div>
+      {% endfor %}
+    </div>
 
-        <p class="small fw-semibold mb-2">{% trans "Accent Colour" %}</p>
-        <div class="row g-2">
-          {% for val, label in form.accent_style.field.choices %}
-          <div class="col-4">
-            <label class="psp-setting-card text-center w-100 position-relative"
-                   for="accent_{{ val }}">
-              <input type="radio"
-                     name="{{ form.accent_style.html_name }}"
-                     id="accent_{{ val }}"
-                     value="{{ val }}"
-                     {% if form.accent_style.value == val %}checked{% endif %}>
-              <div style="font-size:1.2rem;margin-bottom:.25rem;">
-                {% if val == "prostar_default" %}🟣{% elif val == "green" %}🟢{% else %}⬛{% endif %}
-              </div>
-              <div class="small fw-semibold" style="font-size:.72rem;">{{ label }}</div>
-            </label>
+    <p class="small fw-semibold mb-2">{% trans "Accent Colour" %}</p>
+    <div class="row g-2">
+      {% for val, label in form.accent_style.field.choices %}
+      <div class="col-4">
+        <label class="psp-setting-card text-center w-100 position-relative" for="accent_{{ val }}">
+          <input type="radio" name="{{ form.accent_style.html_name }}" id="accent_{{ val }}"
+                 value="{{ val }}" {% if form.accent_style.value|stringformat:'s' == val %}checked{% endif %}>
+          <div style="font-size:1.2rem;margin-bottom:.25rem;">
+            {% if val == "prostar_default" %}<i class="bi bi-circle-fill" style="color:#7c3aed;"></i>
+            {% elif val == "green" %}<i class="bi bi-circle-fill" style="color:#059669;"></i>
+            {% else %}<i class="bi bi-circle-half"></i>{% endif %}
           </div>
-          {% endfor %}
-        </div>
-        {% if form.accent_style.errors %}<div class="text-danger small">{{ form.accent_style.errors.0 }}</div>{% endif %}
+          <div class="small fw-semibold" style="font-size:.72rem;">{{ label }}</div>
+        </label>
+      </div>
+      {% endfor %}
+    </div>
 
+  </div>
+</div>
+
+<!-- ── Dashboard ── -->
+<div class="card psp-settings-card mb-4" id="sec-dashboard">
+  <div class="card-header psp-settings-card-header">
+    <span><i class="bi bi-speedometer2 me-2" style="color:var(--psp-purple);"></i>{% trans "Dashboard" %}</span>
+    <span class="psp-settings-card-hint">{% trans "What you see when you sign in" %}</span>
+  </div>
+  <div class="card-body p-4">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label for="{{ form.default_landing_page.id_for_label }}" class="form-label fw-semibold small">{% trans "Default landing page" %}</label>
+        {{ form.default_landing_page }}
+        <div class="form-text small">{% trans "Where to send you after sign in." %}</div>
+      </div>
+      <div class="col-md-6">
+        <label for="{{ form.default_dashboard_period.id_for_label }}" class="form-label fw-semibold small">{% trans "Default dashboard period" %}</label>
+        {{ form.default_dashboard_period }}
+        <div class="form-text small">{% trans "Scope of KPIs on first view." %}</div>
       </div>
     </div>
 
-    <!-- Display -->
-    <div class="card">
-      <div class="card-header bg-transparent fw-semibold py-2" style="font-size:.85rem;">
-        <i class="bi bi-table me-2" style="color:var(--psp-purple);"></i>{% trans "Display" %}
+    <hr class="psp-settings-divider">
+
+    <p class="small fw-semibold mb-2">{% trans "Widgets" %}</p>
+
+    {% include "users/_setting_switch.html" with field=form.show_onboarding_checklist title="Onboarding checklist" hint="Show the setup checklist until it's complete." %}
+    {% include "users/_setting_switch.html" with field=form.show_data_quality_widget title="Data quality widget" hint="Health bars for profile completeness, pricing, drafts, PDFs." %}
+    {% include "users/_setting_switch.html" with field=form.show_recent_activity_widget title="Recent activity" hint="Audit stream on the dashboard." %}
+    {% include "users/_setting_switch.html" with field=form.show_draft_quotations_widget title="Draft quotations widget" hint="Quick-jump list of open drafts." %}
+  </div>
+</div>
+
+<!-- ── Quotation Builder ── -->
+<div class="card psp-settings-card mb-4" id="sec-quotation">
+  <div class="card-header psp-settings-card-header">
+    <span><i class="bi bi-grid-3x3-gap me-2" style="color:var(--psp-purple);"></i>{% trans "Quotation Builder" %}</span>
+    <span class="psp-settings-card-hint">{% trans "How you build and review quotes" %}</span>
+  </div>
+  <div class="card-body p-4">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label for="{{ form.preferred_quotation_view.id_for_label }}" class="form-label fw-semibold small">{% trans "Quotation list view" %}</label>
+        {{ form.preferred_quotation_view }}
       </div>
-      <div class="card-body p-4">
-
-        <div class="mb-3">
-          <label for="{{ form.table_density.id_for_label }}" class="form-label fw-semibold small">
-            {% trans "Table Density" %}
-          </label>
-          {{ form.table_density }}
-          {% if form.table_density.errors %}<div class="text-danger small">{{ form.table_density.errors.0 }}</div>{% endif %}
-        </div>
-
-        <div class="mb-3">
-          <label for="{{ form.rows_per_page.id_for_label }}" class="form-label fw-semibold small">
-            {% trans "Rows per Page" %}
-          </label>
-          {{ form.rows_per_page }}
-          {% if form.rows_per_page.errors %}<div class="text-danger small">{{ form.rows_per_page.errors.0 }}</div>{% endif %}
-        </div>
-
-        <div class="mb-3">
-          <label for="{{ form.default_dashboard_period.id_for_label }}" class="form-label fw-semibold small">
-            {% trans "Default Dashboard Period" %}
-          </label>
-          {{ form.default_dashboard_period }}
-          {% if form.default_dashboard_period.errors %}<div class="text-danger small">{{ form.default_dashboard_period.errors.0 }}</div>{% endif %}
-        </div>
-
-        <div>
-          <label for="{{ form.builder_summary_default.id_for_label }}" class="form-label fw-semibold small">
-            {% trans "Quotation Builder Summary" %}
-          </label>
-          {{ form.builder_summary_default }}
-          {% if form.builder_summary_default.errors %}<div class="text-danger small">{{ form.builder_summary_default.errors.0 }}</div>{% endif %}
-        </div>
-
+      <div class="col-md-6">
+        <label for="{{ form.default_quotation_sort.id_for_label }}" class="form-label fw-semibold small">{% trans "Default sort" %}</label>
+        {{ form.default_quotation_sort }}
       </div>
-    </div>
-
-  </div><!-- /left col -->
-
-  <!-- ── Right column ── -->
-  <div class="col-12 col-lg-6">
-
-    <!-- Behaviour -->
-    <div class="card mb-4">
-      <div class="card-header bg-transparent fw-semibold py-2" style="font-size:.85rem;">
-        <i class="bi bi-toggles me-2" style="color:var(--psp-purple);"></i>{% trans "Behaviour" %}
+      <div class="col-md-6">
+        <label for="{{ form.rows_per_page.id_for_label }}" class="form-label fw-semibold small">{% trans "Rows per page" %}</label>
+        {{ form.rows_per_page }}
       </div>
-      <div class="card-body p-4">
-
-        <div class="form-check form-switch mb-3">
-          {{ form.reduce_animations }}
-          <label class="form-check-label small" for="{{ form.reduce_animations.id_for_label }}">
-            <span class="fw-semibold">{% trans "Reduce Animations" %}</span>
-            <br><span class="text-muted" style="font-size:.75rem;">{% trans "Minimises transitions and animations throughout the app." %}</span>
-          </label>
-        </div>
-
-        <div class="form-check form-switch mb-3">
-          {{ form.show_watermark }}
-          <label class="form-check-label small" for="{{ form.show_watermark.id_for_label }}">
-            <span class="fw-semibold">{% trans "Show Background Watermark" %}</span>
-            <br><span class="text-muted" style="font-size:.75rem;">{% trans "Displays a subtle ProStar Paints logo watermark in the content area." %}</span>
-          </label>
-        </div>
-
-        <div class="form-check form-switch">
-          {{ form.show_help_text }}
-          <label class="form-check-label small" for="{{ form.show_help_text.id_for_label }}">
-            <span class="fw-semibold">{% trans "Show Help Text" %}</span>
-            <br><span class="text-muted" style="font-size:.75rem;">{% trans "Shows contextual hints and descriptions on forms." %}</span>
-          </label>
-        </div>
-
+      <div class="col-md-6">
+        <label for="{{ form.builder_summary_default.id_for_label }}" class="form-label fw-semibold small">{% trans "Builder summary on load" %}</label>
+        {{ form.builder_summary_default }}
+      </div>
+      <div class="col-md-6">
+        <label for="{{ form.table_density.id_for_label }}" class="form-label fw-semibold small">{% trans "Table density" %}</label>
+        {{ form.table_density }}
       </div>
     </div>
 
-    <!-- Notifications -->
-    <div class="card mb-4">
-      <div class="card-header bg-transparent fw-semibold py-2" style="font-size:.85rem;">
-        <i class="bi bi-bell-fill me-2" style="color:var(--psp-purple);"></i>{% trans "Notifications" %}
-      </div>
-      <div class="card-body p-4">
+    <hr class="psp-settings-divider">
 
-        <div class="form-check form-switch">
-          {{ form.email_notifications_enabled }}
-          <label class="form-check-label small" for="{{ form.email_notifications_enabled.id_for_label }}">
-            <span class="fw-semibold">{% trans "Email Notifications" %}</span>
-            <br><span class="text-muted" style="font-size:.75rem;">{% trans "Receive summary emails for key events (coming soon)." %}</span>
-          </label>
+    {% include "users/_setting_switch.html" with field=form.auto_collapse_builder_summary_mobile title="Auto-collapse summary on mobile" hint="Keep the bottom summary minimal until you tap it." %}
+    {% include "users/_setting_switch.html" with field=form.show_builder_help_tips title="Show contextual help tips in builder" hint="The blue page-help cards inside the builder & review flow." %}
+  </div>
+</div>
+
+<!-- ── PDF Defaults ── -->
+<div class="card psp-settings-card mb-4" id="sec-pdf">
+  <div class="card-header psp-settings-card-header">
+    <span><i class="bi bi-file-earmark-pdf me-2" style="color:var(--psp-purple);"></i>{% trans "PDF Defaults" %}</span>
+    <span class="psp-settings-card-hint">{% trans "Your preferred template" %}</span>
+  </div>
+  <div class="card-body p-4">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label for="{{ form.preferred_pdf_template.id_for_label }}" class="form-label fw-semibold small">{% trans "Preferred PDF template" %}</label>
+        {{ form.preferred_pdf_template }}
+        <div class="form-text small">{% trans "Highlighted in the PDF gallery as 'Your default'." %}</div>
+      </div>
+      <div class="col-md-6 d-flex align-items-end">
+        <div class="w-100">
+          {% include "users/_setting_switch.html" with field=form.remember_last_pdf_template title="Remember last template used" hint="Auto-update your default when you generate a PDF." %}
         </div>
-
       </div>
     </div>
+  </div>
+</div>
 
-    <!-- Live preview hint -->
-    <div class="card" style="border-color:var(--psp-purple);background:var(--psp-purple-light);">
-      <div class="card-body p-3 small">
-        <i class="bi bi-lightbulb-fill me-2" style="color:var(--psp-purple);"></i>
-        <strong>{% trans "Live Preview" %}</strong> — {% trans "Theme and accent changes take effect after saving." %}
-      </div>
-    </div>
+<!-- ── Navigation ── -->
+<div class="card psp-settings-card mb-4" id="sec-navigation">
+  <div class="card-header psp-settings-card-header">
+    <span><i class="bi bi-compass me-2" style="color:var(--psp-purple);"></i>{% trans "Navigation" %}</span>
+    <span class="psp-settings-card-hint">{% trans "Topbar, sidebar, FAB" %}</span>
+  </div>
+  <div class="card-body p-4">
+    {% include "users/_setting_switch.html" with field=form.show_quick_actions_fab title="Floating quick-actions button" hint="The bottom-right purple + button." %}
+    {% include "users/_setting_switch.html" with field=form.show_command_palette_hint title="Command palette button in topbar" hint="Ctrl+K still works even if hidden." %}
+    {% include "users/_setting_switch.html" with field=form.compact_navigation title="Compact navigation" hint="Tighter sidebar and topbar spacing." %}
+    {% include "users/_setting_switch.html" with field=form.show_watermark title="Background watermark" hint="Subtle ProStar logo in the content area." %}
+    {% include "users/_setting_switch.html" with field=form.show_help_text title="Show form help text" hint="Helper sentences beneath form fields." %}
+  </div>
+</div>
 
-  </div><!-- /right col -->
+<!-- ── Notifications ── -->
+<div class="card psp-settings-card mb-4" id="sec-notifications">
+  <div class="card-header psp-settings-card-header">
+    <span><i class="bi bi-bell-fill me-2" style="color:var(--psp-purple);"></i>{% trans "Notifications" %}</span>
+    <span class="psp-settings-card-hint">{% trans "Bell categories" %}</span>
+  </div>
+  <div class="card-body p-4">
+    {% include "users/_setting_switch.html" with field=form.notify_profile_incomplete title="Profile completeness reminders" hint="Nudge when your profile is missing details." %}
+    {% include "users/_setting_switch.html" with field=form.notify_draft_quotations title="Draft quotations" hint="Show drafts that need attention." %}
+    {% include "users/_setting_switch.html" with field=form.notify_failed_pdfs title="Failed PDF exports" hint="Surface failed renders so they can be retried." %}
+    {% include "users/_setting_switch.html" with field=form.notify_placeholder_sections title="Placeholder quotation sections" hint="Surface sections still set to placeholder." %}
+    {% if user.is_superuser or user.role == "ADMIN" %}
+      {% include "users/_setting_switch.html" with field=form.notify_system_activity title="System activity (admin)" hint="Show the latest audit event and VAT / setup notices." %}
+    {% endif %}
+    <hr class="psp-settings-divider">
+    {% include "users/_setting_switch.html" with field=form.email_notifications_enabled title="Email notifications" hint="Receive summary emails for key events (coming soon)." %}
+  </div>
+</div>
 
-</div><!-- /row -->
+<!-- ── Accessibility ── -->
+<div class="card psp-settings-card mb-4" id="sec-accessibility">
+  <div class="card-header psp-settings-card-header">
+    <span><i class="bi bi-universal-access me-2" style="color:var(--psp-purple);"></i>{% trans "Accessibility" %}</span>
+    <span class="psp-settings-card-hint">{% trans "Make the app easier to read" %}</span>
+  </div>
+  <div class="card-body p-4">
+    {% include "users/_setting_switch.html" with field=form.larger_text title="Larger text" hint="Slightly increase base font and form controls." %}
+    {% include "users/_setting_switch.html" with field=form.high_contrast_mode title="High-contrast mode" hint="Stronger borders, focus rings and button outlines." %}
+    {% include "users/_setting_switch.html" with field=form.reduce_animations title="Reduce animations" hint="Minimise transitions and motion throughout the app." %}
+  </div>
+</div>
 
-<div class="d-flex justify-content-end gap-2 mt-3">
+<div class="d-flex justify-content-end gap-2 mt-3 sticky-bottom psp-settings-actions">
   <a href="{% url 'users:profile' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
   <button type="submit" class="btn btn-primary px-4">
     <i class="bi bi-check-lg me-1"></i>{% trans "Save Settings" %}
@@ -216,20 +248,20 @@
 
 {% block extra_js %}
 <script>
-/* Make psp-setting-card labels work like proper radio toggles */
+/* Radio-card click toggle (theme / accent). */
 (function () {
   document.querySelectorAll(".psp-setting-card").forEach(function (label) {
-    label.addEventListener("click", function () {
-      const inp = label.querySelector("input[type=radio]");
+    function mark() {
+      var inp = label.querySelector("input[type=radio]");
       if (!inp) return;
       document.querySelectorAll(".psp-setting-card").forEach(function (l) {
         if (l.querySelector("input[name='" + inp.name + "']")) l.classList.remove("active");
       });
       inp.checked = true;
       label.classList.add("active");
-    });
-    /* Mark initially active */
-    const inp = label.querySelector("input[type=radio]");
+    }
+    label.addEventListener("click", mark);
+    var inp = label.querySelector("input[type=radio]");
     if (inp && inp.checked) label.classList.add("active");
   });
 })();

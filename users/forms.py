@@ -289,31 +289,90 @@ class UserAppSettingsForm(forms.ModelForm):
     """Let users update their own appearance and display preferences."""
 
     VALID_ROWS = {10, 25, 50}
+    # Safe keys for the PDF template choice; mirrors quotation.pdf_templates
+    VALID_PDF_TEMPLATES = {"professional", "detailed_spec", "compact"}
+    VALID_LANDING_PAGES = {"dashboard", "quotations", "new_quotation", "profile"}
 
     class Meta:
         model = UserAppSettings
         fields = (
-            "appearance", "accent_style", "table_density",
-            "default_dashboard_period", "rows_per_page", "builder_summary_default",
+            # Appearance
+            "appearance", "accent_style",
+            # Display
+            "table_density", "default_dashboard_period",
+            "rows_per_page", "builder_summary_default",
+            # Dashboard
+            "default_landing_page",
+            "show_onboarding_checklist", "show_data_quality_widget",
+            "show_recent_activity_widget", "show_draft_quotations_widget",
+            # Quotation
+            "preferred_quotation_view", "default_quotation_sort",
+            "auto_collapse_builder_summary_mobile", "show_builder_help_tips",
+            # PDF
+            "preferred_pdf_template", "remember_last_pdf_template",
+            # Navigation
+            "show_quick_actions_fab", "show_command_palette_hint",
+            "compact_navigation",
+            # Behaviour
             "reduce_animations", "show_watermark", "show_help_text",
+            # Accessibility
+            "larger_text", "high_contrast_mode",
+            # Notifications
             "email_notifications_enabled",
+            "notify_profile_incomplete", "notify_draft_quotations",
+            "notify_failed_pdfs", "notify_placeholder_sections",
+            "notify_system_activity",
         )
         widgets = {
-            "appearance":               forms.Select(attrs={"class": "form-select"}),
-            "accent_style":             forms.Select(attrs={"class": "form-select"}),
-            "table_density":            forms.Select(attrs={"class": "form-select"}),
-            "default_dashboard_period": forms.Select(attrs={"class": "form-select"}),
-            "rows_per_page":            forms.Select(attrs={"class": "form-select"}),
-            "builder_summary_default":  forms.Select(attrs={"class": "form-select"}),
-            "reduce_animations":           forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "show_watermark":              forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "show_help_text":              forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "email_notifications_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "appearance":                forms.Select(attrs={"class": "form-select"}),
+            "accent_style":              forms.Select(attrs={"class": "form-select"}),
+            "table_density":             forms.Select(attrs={"class": "form-select"}),
+            "default_dashboard_period":  forms.Select(attrs={"class": "form-select"}),
+            "rows_per_page":             forms.Select(attrs={"class": "form-select"}),
+            "builder_summary_default":   forms.Select(attrs={"class": "form-select"}),
+            "default_landing_page":      forms.Select(attrs={"class": "form-select"}),
+            "preferred_quotation_view":  forms.Select(attrs={"class": "form-select"}),
+            "default_quotation_sort":    forms.Select(attrs={"class": "form-select"}),
+            "preferred_pdf_template":    forms.Select(attrs={"class": "form-select"}),
+            # Switches
+            "reduce_animations":                    forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_watermark":                       forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_help_text":                       forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "email_notifications_enabled":          forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_onboarding_checklist":            forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_data_quality_widget":             forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_recent_activity_widget":          forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_draft_quotations_widget":         forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "auto_collapse_builder_summary_mobile": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_builder_help_tips":               forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "remember_last_pdf_template":           forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_quick_actions_fab":               forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_command_palette_hint":            forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "compact_navigation":                   forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "larger_text":                          forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "high_contrast_mode":                   forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "notify_profile_incomplete":            forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "notify_draft_quotations":              forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "notify_failed_pdfs":                   forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "notify_placeholder_sections":          forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "notify_system_activity":               forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
 
     def clean_rows_per_page(self):
         val = self.cleaned_data.get("rows_per_page")
         if val not in self.VALID_ROWS:
             raise ValidationError(_("Rows per page must be 10, 25, or 50."))
+        return val
+
+    def clean_preferred_pdf_template(self):
+        val = self.cleaned_data.get("preferred_pdf_template")
+        if val not in self.VALID_PDF_TEMPLATES:
+            raise ValidationError(_("Please choose a valid PDF template."))
+        return val
+
+    def clean_default_landing_page(self):
+        val = self.cleaned_data.get("default_landing_page")
+        if val not in self.VALID_LANDING_PAGES:
+            raise ValidationError(_("Please choose a valid landing page."))
         return val
 

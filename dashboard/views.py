@@ -6,6 +6,7 @@ from .onboarding import get_admin_checklist, get_rep_checklist
 from .services import get_admin_metrics, get_rep_metrics
 
 _VALID_PERIODS = {"all", "this_month", "last_30_days"}
+_LANDING_PERIOD_MAP = {"all_time": "all", "this_month": "this_month", "last_30_days": "last_30_days"}
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):
@@ -15,7 +16,15 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         ctx = super().get_context_data(**kwargs)
         user = self.request.user
 
-        period = self.request.GET.get("period", "all")
+        # Honour the user's saved default dashboard period when no GET param.
+        default_period = "all"
+        try:
+            stored = user.app_settings.default_dashboard_period
+            default_period = _LANDING_PERIOD_MAP.get(stored, "all")
+        except Exception:
+            pass
+
+        period = self.request.GET.get("period", default_period)
         if period not in _VALID_PERIODS:
             period = "all"
         ctx["period"] = period

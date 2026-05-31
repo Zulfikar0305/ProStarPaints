@@ -1,0 +1,9 @@
+{% comment %}Bootstrap switch row used by app_settings page. Expects: field, title, hint.{% endcomment %}
+<div class="form-check form-switch psp-settings-switch mb-2">
+  {{ field }}
+  <label class="form-check-label small d-block" for="{{ field.id_for_label }}">
+    <span class="fw-semibold">{{ title }}</span>
+    {% if hint %}<br><span class="text-muted" style="font-size:.75rem;">{{ hint }}</span>{% endif %}
+  </label>
+  {% if field.errors %}<div class="text-danger small">{{ field.errors.0 }}</div>{% endif %}
+</div>

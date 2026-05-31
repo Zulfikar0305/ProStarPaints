@@ -65,12 +65,24 @@ def _profile_complete(user) -> bool:
     return bool(user and user.first_name and user.last_name and user.email)
 
 
+def _pref(user, name: str, default: bool = True) -> bool:
+    """Safely read a per-user notification preference."""
+    try:
+        return bool(getattr(getattr(user, "app_settings", None), name, default))
+    except Exception:
+        return default
+
+
 # ---------------------------------------------------------------------------
 # Notification builders
 # ---------------------------------------------------------------------------
 
-def _admin_notifications() -> list[Notification]:
+def _admin_notifications(user=None) -> list[Notification]:
     items: list[Notification] = []
+
+    sys_on    = _pref(user, "notify_system_activity")
+    drafts_on = _pref(user, "notify_draft_quotations")
+    pdf_on    = _pref(user, "notify_failed_pdfs")
 
     # Users with incomplete profiles
     incomplete = User.objects.filter(is_active=True).filter(
@@ -78,7 +90,7 @@ def _admin_notifications() -> list[Notification]:
     ).count() + User.objects.filter(is_active=True).filter(
         last_name=""
     ).exclude(first_name="").count()
-    if incomplete:
+    if incomplete and sys_on:
         items.append(Notification(
             title=f"{incomplete} user{'s' if incomplete != 1 else ''} with incomplete profile",
             description="Reps with missing name or email may show blank attribution on PDFs.",
@@ -94,7 +106,7 @@ def _admin_notifications() -> list[Notification]:
     ).count() + Paint.objects.filter(is_active=True).filter(
         price_incl_vat__isnull=True
     ).exclude(price_excl_vat__isnull=True).count()
-    if missing_price:
+    if missing_price and sys_on:
         items.append(Notification(
             title=f"{missing_price} active paint{'s' if missing_price != 1 else ''} missing pricing",
             description="Reps cannot generate accurate quotes without VAT-inclusive and exclusive prices.",
@@ -106,7 +118,7 @@ def _admin_notifications() -> list[Notification]:
 
     # Draft quotations pending across the system
     draft_count = Quotation.objects.filter(status=Quotation.Status.DRAFT).count()
-    if draft_count:
+    if draft_count and drafts_on:
         items.append(Notification(
             title=f"{draft_count} draft quotation{'s' if draft_count != 1 else ''} in progress",
             description="Drafts older than 7 days may need a nudge or to be cancelled.",
@@ -122,7 +134,7 @@ def _admin_notifications() -> list[Notification]:
         status=QuotationPdfExport.Status.FAILED,
         created_at__gte=since,
     ).count()
-    if failed:
+    if failed and pdf_on:
         items.append(Notification(
             title=f"{failed} failed PDF export{'s' if failed != 1 else ''} (30d)",
             description="Investigate template or data issues, then regenerate from the quotation.",
@@ -134,7 +146,7 @@ def _admin_notifications() -> list[Notification]:
 
     # VAT configured status
     has_vat = AppSetting.objects.filter(key=AppSetting.VAT_RATE_KEY).exists()
-    if not has_vat:
+    if sys_on and not has_vat:
         items.append(Notification(
             title="VAT rate not configured",
             description="Set the global VAT rate so quotations and invoices compute correctly.",
@@ -143,7 +155,7 @@ def _admin_notifications() -> list[Notification]:
             url=reverse("system_tools:vat_settings"),
             tag="system",
         ))
-    else:
+    elif sys_on:
         items.append(Notification(
             title="VAT rate configured",
             description="Global tax rate is set. Update it from System Settings if regulations change.",
@@ -155,7 +167,7 @@ def _admin_notifications() -> list[Notification]:
 
     # Recent audit actions (most recent 1)
     recent = AuditLog.objects.select_related("user").order_by("-created_at").first()
-    if recent:
+    if recent and sys_on:
         actor = (recent.user.get_full_name() or recent.user.username) if recent.user else "System"
         items.append(Notification(
             title=f"Latest activity: {recent.action}",
@@ -173,7 +185,12 @@ def _admin_notifications() -> list[Notification]:
 def _rep_notifications(user) -> list[Notification]:
     items: list[Notification] = []
 
-    if not _profile_complete(user):
+    profile_on     = _pref(user, "notify_profile_incomplete")
+    drafts_on      = _pref(user, "notify_draft_quotations")
+    placeholder_on = _pref(user, "notify_placeholder_sections")
+    pdf_on         = _pref(user, "notify_failed_pdfs")
+
+    if profile_on and not _profile_complete(user):
         items.append(Notification(
             title="Complete your profile",
             description="Add your full name and email so your work is attributed correctly.",
@@ -187,7 +204,7 @@ def _rep_notifications(user) -> list[Notification]:
         created_by=user, status=Quotation.Status.DRAFT
     )
     draft_count = my_drafts.count()
-    if draft_count:
+    if draft_count and drafts_on:
         items.append(Notification(
             title=f"{draft_count} draft{'s' if draft_count != 1 else ''} waiting for you",
             description="Pick up where you left off — your latest progress is auto-saved.",
@@ -203,7 +220,7 @@ def _rep_notifications(user) -> list[Notification]:
         quotation__status=Quotation.Status.DRAFT,
         is_placeholder=True,
     ).count()
-    if unconfigured:
+    if unconfigured and placeholder_on:
         items.append(Notification(
             title=f"{unconfigured} surface{'s' if unconfigured != 1 else ''} still placeholder",
             description="Open the builder to configure them so the quotation can be reviewed.",
@@ -220,7 +237,7 @@ def _rep_notifications(user) -> list[Notification]:
         status=QuotationPdfExport.Status.FAILED,
         created_at__gte=since,
     ).count()
-    if my_failed:
+    if my_failed and pdf_on:
         items.append(Notification(
             title=f"{my_failed} of your PDF export{'s' if my_failed != 1 else ''} failed",
             description="Open the quotation and try regenerating with a different template.",
@@ -238,7 +255,7 @@ def get_notifications(user) -> dict:
         return {"items": [], "count": 0, "by_severity": {}, "scope": "anon"}
 
     scope = "admin" if _is_admin(user) else "rep"
-    items = _admin_notifications() if scope == "admin" else _rep_notifications(user)
+    items = _admin_notifications(user) if scope == "admin" else _rep_notifications(user)
 
     items.sort(key=lambda n: (_SEVERITY_ORDER.get(n.severity, 99), 0))
     by_severity: dict[str, int] = {}
