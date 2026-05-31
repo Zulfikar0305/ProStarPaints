@@ -6,10 +6,16 @@
 {% block content %}
 
 <!-- Header -->
-<div class="d-flex align-items-center justify-content-between mb-4">
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
   <div>
     <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">{% trans "Audit Log" %}</h4>
     <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">{% trans "System activity and audit trail" %}</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'system_tools:audit_log_csv' %}{% if filter_querystring %}?{{ filter_querystring }}{% endif %}"
+       class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-download me-1"></i>{% trans "Export CSV" %}
+    </a>
   </div>
 </div>
 
@@ -43,6 +49,28 @@
         </select>
       </div>
 
+      <!-- Action filter -->
+      <div class="col-6 col-sm-3 col-md-2">
+        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Action" %}</label>
+        <select name="action" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="">{% trans "All" %}</option>
+          {% for act in action_choices %}
+            <option value="{{ act }}" {% if current_action == act %}selected{% endif %}>{{ act }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- User filter -->
+      <div class="col-6 col-sm-3 col-md-2">
+        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "User" %}</label>
+        <select name="user" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="">{% trans "Anyone" %}</option>
+          {% for u in user_choices %}
+            <option value="{{ u.id }}" {% if current_user == u.id|stringformat:"s" %}selected{% endif %}>{{ u.username }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
       <!-- Date from -->
       <div class="col-6 col-sm-3 col-md-2">
         <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "From" %}</label>
@@ -57,7 +85,7 @@
                class="form-control form-control-sm" onchange="this.form.submit()">
       </div>
 
-      {% if q or current_module or date_from or date_to %}
+      {% if has_active_filters %}
         <div class="col-auto align-self-end">
           <a href="{% url 'audit:audit_log_list' %}" class="btn btn-sm btn-outline-danger">
             <i class="bi bi-x-lg me-1"></i>{% trans "Clear" %}
@@ -117,7 +145,7 @@
           {% empty %}
             <tr>
               <td colspan="6" class="p-0">
-                {% if q or current_module or date_from or date_to %}
+                {% if has_active_filters %}
                   {% trans "No audit log entries match your filters" as es_title %}
                   {% trans "Try clearing the search or widening the date range." as es_text %}
                   {% trans "Clear filters" as es_action %}
@@ -143,7 +171,7 @@
     <ul class="pagination justify-content-center">
       {% if page_obj.has_previous %}
         <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&module={{ current_module }}&date_from={{ date_from }}&date_to={{ date_to }}">&laquo;</a>
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filter_querystring %}&{{ filter_querystring }}{% endif %}">&laquo;</a>
         </li>
       {% endif %}
       <li class="page-item disabled">
@@ -155,7 +183,7 @@
       </li>
       {% if page_obj.has_next %}
         <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}&module={{ current_module }}&date_from={{ date_from }}&date_to={{ date_to }}">&raquo;</a>
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filter_querystring %}&{{ filter_querystring }}{% endif %}">&raquo;</a>
         </li>
       {% endif %}
     </ul>

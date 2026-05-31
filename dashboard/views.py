@@ -1,6 +1,7 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView
 
+from .global_search import global_search
 from .notifications import get_data_quality
 from .onboarding import get_admin_checklist, get_rep_checklist
 from .services import get_admin_metrics, get_rep_metrics
@@ -41,4 +42,24 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         ctx["data_quality"] = get_data_quality(user)
 
+        return ctx
+
+class GlobalSearchView(LoginRequiredMixin, TemplateView):
+    """Global Search Center - cross-app, permission-aware results."""
+
+    template_name = "dashboard/global_search.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        user = self.request.user
+        q = (self.request.GET.get("q") or "").strip()
+        # cap length to avoid pathological inputs hitting the DB hard
+        if len(q) > 80:
+            q = q[:80]
+        ctx["q"] = q
+        ctx["is_admin"] = user.is_superuser or getattr(user, "role", None) == "ADMIN"
+        if q:
+            ctx["search"] = global_search(user, q, limit=8)
+        else:
+            ctx["search"] = None
         return ctx

@@ -4179,3 +4179,185 @@ a:hover > .psp-dq-item { transform: translateY(-2px); box-shadow: var(--psp-shad
   .psp-ws-stat { padding: .5rem .65rem; gap: .5rem; }
   .psp-ws-stat-icon { flex-basis: 30px; width: 30px; height: 30px; font-size: .85rem; }
 }
+
+
+/* ============================================================
+   §57  Global Search
+   ============================================================ */
+
+.psp-gs-tip {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .85rem 1rem;
+  background: var(--psp-surface, #fff);
+  border: 1px solid var(--psp-border, #e2e8f0);
+  border-radius: 12px;
+  height: 100%;
+}
+.psp-gs-tip-icon {
+  flex: 0 0 40px; width: 40px; height: 40px;
+  border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 1.05rem;
+}
+.psp-gs-tip-title { font-weight: 700; font-size: .9rem; color: var(--psp-text); }
+.psp-gs-tip-text  { font-size: .78rem; color: var(--psp-text-soft); margin-top: .15rem; line-height: 1.4; }
+
+/* Result rows */
+.psp-gs-list .list-group-item.psp-gs-row {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .65rem .85rem;
+}
+.psp-gs-row-icon {
+  flex: 0 0 32px; width: 32px; height: 32px;
+  border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--psp-surface-2, #f1f5f9);
+  color: var(--psp-purple, #7c3aed);
+  font-size: 1rem;
+}
+.psp-gs-row-body { flex: 1 1 auto; min-width: 0; }
+.psp-gs-row-label {
+  display: block; font-weight: 600; color: var(--psp-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.psp-gs-row-label:hover { color: var(--psp-purple, #7c3aed); }
+.psp-gs-row-subtitle {
+  font-size: .75rem; color: var(--psp-text-soft);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.psp-gs-row-badge { font-size: .68rem; font-weight: 600; }
+
+[data-theme="dark"] .psp-gs-tip,
+[data-theme="dark"] .psp-gs-list .list-group-item.psp-gs-row {
+  background-color: var(--psp-surface) !important;
+  border-color: var(--psp-border) !important;
+  color: var(--psp-text);
+}
+[data-theme="dark"] .psp-gs-row-icon { background: rgba(124,58,237,.18); }
+
+
+/* ============================================================
+   §58  Accessibility, Error pages & Mobile polish
+   ============================================================ */
+
+/* ---- Skip-to-content ---- */
+.psp-skip-link {
+  position: fixed;
+  top: -100px;
+  left: 12px;
+  z-index: 99999;
+  background: var(--psp-purple, #7c3aed);
+  color: #fff !important;
+  padding: .55rem .9rem;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 6px 22px rgba(0,0,0,.18);
+  transition: top .18s ease;
+}
+.psp-skip-link:focus,
+.psp-skip-link:focus-visible { top: 12px; outline: none; }
+
+/* ---- Stronger focus-visible across the app ---- */
+.psp-body :focus-visible {
+  outline: 3px solid rgba(124,58,237,.55) !important;
+  outline-offset: 2px !important;
+  border-radius: 4px;
+}
+.psp-body .btn:focus-visible,
+.psp-body .psp-icon-btn:focus-visible,
+.psp-body .psp-palette-trigger:focus-visible,
+.psp-body .psp-help-trigger:focus-visible,
+.psp-body .psp-fab-btn:focus-visible,
+.psp-body .psp-notify-btn:focus-visible,
+.psp-body .form-control:focus-visible,
+.psp-body .form-select:focus-visible {
+  box-shadow: 0 0 0 3px rgba(124,58,237,.35) !important;
+}
+
+/* main wrapper should not show outline when focused via skip-link */
+.psp-main:focus,
+.psp-main:focus-visible { outline: none; }
+
+/* ---- Mobile overflow guards ---- */
+.psp-body { overflow-x: hidden; }
+
+@media (max-width: 575.98px) {
+  .psp-palette-panel { width: calc(100vw - 24px) !important; max-width: 100%; }
+  .psp-notify-panel  { width: calc(100vw - 24px) !important; max-width: 360px; right: 8px; }
+  .psp-help-drawer, .offcanvas { max-width: 100vw; }
+  .psp-fab            { bottom: 96px !important; } /* clear mobile builder summary bar */
+  .psp-settings-nav   { flex-wrap: nowrap; overflow-x: auto; }
+  .psp-settings-nav-pill { white-space: nowrap; }
+  .table-responsive   { -webkit-overflow-scrolling: touch; }
+}
+
+/* ============================================================
+   §59  Branded error pages
+   ============================================================ */
+.psp-error-body {
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(1200px 600px at 110% -10%, rgba(124,58,237,.12), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(59,130,246,.10), transparent 55%),
+    var(--psp-bg, #f8fafc);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--psp-font, system-ui, -apple-system, "Segoe UI", sans-serif);
+  color: var(--psp-text, #0f172a);
+}
+.psp-error-shell {
+  width: 100%; max-width: 560px; padding: 1.5rem;
+}
+.psp-error-card {
+  background: #fff;
+  border: 1px solid var(--psp-border, #e2e8f0);
+  border-radius: 20px;
+  padding: 2rem 1.6rem 1.4rem;
+  box-shadow: 0 18px 50px rgba(15,23,42,.10);
+  text-align: center;
+}
+.psp-error-icon {
+  width: 72px; height: 72px; border-radius: 18px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 2rem; color: #fff;
+  margin: 0 auto .9rem;
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+}
+.psp-error-icon--purple { background: linear-gradient(135deg, #7c3aed, #4f46e5); }
+.psp-error-icon--amber  { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.psp-error-icon--danger { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+.psp-error-icon--info   { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+.psp-error-code {
+  font-size: .7rem; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--psp-text-soft, #64748b);
+  margin-bottom: .25rem;
+}
+.psp-error-title {
+  font-size: 1.4rem; font-weight: 800; letter-spacing: -.01em;
+  margin: 0 0 .4rem;
+}
+.psp-error-text {
+  font-size: .92rem; color: var(--psp-text-soft, #64748b);
+  margin: 0 auto 1.4rem; max-width: 36ch; line-height: 1.5;
+}
+.psp-error-actions {
+  display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center;
+  margin-bottom: 1.4rem;
+}
+.psp-error-foot {
+  display: inline-flex; align-items: center; gap: .45rem;
+  font-size: .72rem; color: var(--psp-text-soft, #64748b);
+  border-top: 1px solid var(--psp-border, #e2e8f0);
+  padding-top: .9rem; margin-top: .4rem;
+  width: 100%; justify-content: center;
+}
+.psp-error-logo { width: 18px; height: 18px; object-fit: contain; }
+
+@media (max-width: 575.98px) {
+  .psp-error-card { padding: 1.5rem 1rem 1.1rem; border-radius: 16px; }
+  .psp-error-icon { width: 64px; height: 64px; font-size: 1.7rem; }
+  .psp-error-title { font-size: 1.2rem; }
+}
+
+[data-reduce-motion="true"] .psp-skip-link { transition: none !important; }

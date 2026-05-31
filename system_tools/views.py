@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import View
 
+from audit.filters import apply_audit_filters
 from audit.models import AuditLog
 from audit.services import log_action
 from users.mixins import AdminRequiredMixin
@@ -209,30 +210,10 @@ class AuditLogCsvExportView(AdminRequiredMixin, View):
     MAX_ROWS = 5000
 
     def get(self, request):
-        from django.db.models import Q
         import csv
 
         qs = AuditLog.objects.select_related("user").order_by("-created_at")
-
-        q = request.GET.get("q", "").strip()
-        if q:
-            qs = qs.filter(
-                Q(action__icontains=q)
-                | Q(module__icontains=q)
-                | Q(description__icontains=q)
-                | Q(user__username__icontains=q)
-                | Q(user__email__icontains=q)
-            )
-        module = request.GET.get("module", "")
-        if module:
-            qs = qs.filter(module=module)
-        date_from = request.GET.get("date_from", "")
-        date_to = request.GET.get("date_to", "")
-        if date_from:
-            qs = qs.filter(created_at__date__gte=date_from)
-        if date_to:
-            qs = qs.filter(created_at__date__lte=date_to)
-
+        qs = apply_audit_filters(qs, request.GET)
         qs = qs[: self.MAX_ROWS]
 
         log_action(
@@ -242,7 +223,205 @@ class AuditLogCsvExportView(AdminRequiredMixin, View):
             description=f"Admin {request.user} exported audit log CSV.",
             metadata={
                 "filters": {
-                    "q": q, "module": module,
+                    k: request.GET.get(k, "")
+                    for k in ("q", "module", "action", "user", "date_from", "date_to")
+                },
+            },
+            request=request,
+        )
+
+        class _Echo:
+            def write(self, value):
+                return value
+
+        writer = csv.writer(_Echo())
+        header = [
+            "timestamp", "user", "action", "module",
+            "description", "ip_address", "user_agent",
+        ]
+
+        def _rows():
+            yield writer.writerow(header)
+            for log in qs.iterator(chunk_size=200):
+                yield writer.writerow([
+                    log.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                    (log.user.username if log.user else "system"),
+                    log.action,
+                    log.module,
+                    (log.description or "").replace("\n", " ")[:500],
+                    log.ip_address or "",
+                    (log.user_agent or "")[:200],
+                ])
+
+        ts = timezone.now().strftime("%Y%m%d-%H%M%S")
+        response = StreamingHttpResponse(_rows(), content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="audit-log-{ts}.csv"'
+        return response
+
+
+# ---------------------------------------------------------------------------
+# PDF Exports admin — list, filter, inspect, CSV
+# ---------------------------------------------------------------------------
+
+class PdfExportsAdminView(AdminRequiredMixin, View):
+    """Admin-only inspector for QuotationPdfExport rows."""
+
+    template_name = "system_tools/pdf_exports.html"
+    PAGE_SIZE = 50
+
+    def get(self, request):
+        from django.core.paginator import Paginator
+        from django.db.models import Q
+        from django.contrib.auth import get_user_model
+        from quotation.models import QuotationPdfExport
+        from quotation.pdf_templates import PDF_TEMPLATES
+
+        qs = (
+            QuotationPdfExport.objects
+            .select_related("quotation", "generated_by")
+            .order_by("-created_at")
+        )
+
+        q = (request.GET.get("q") or "").strip()
+        if q:
+            qs = qs.filter(
+                Q(quotation__reference__icontains=q)
+                | Q(quotation__customer_name__icontains=q)
+                | Q(quotation__project_name__icontains=q)
+                | Q(template_key__icontains=q)
+                | Q(generated_by__username__icontains=q)
+                | Q(generated_by__email__icontains=q)
+            )
+
+        status = (request.GET.get("status") or "").strip()
+        if status in {"GENERATED", "FAILED"}:
+            qs = qs.filter(status=status)
+
+        template_key = (request.GET.get("template") or "").strip()
+        if template_key:
+            qs = qs.filter(template_key=template_key)
+
+        user_id = (request.GET.get("generated_by") or "").strip()
+        if user_id.isdigit():
+            qs = qs.filter(generated_by_id=int(user_id))
+
+        date_from = (request.GET.get("date_from") or "").strip()
+        if date_from:
+            qs = qs.filter(created_at__date__gte=date_from)
+        date_to = (request.GET.get("date_to") or "").strip()
+        if date_to:
+            qs = qs.filter(created_at__date__lte=date_to)
+
+        total = qs.count()
+        paginator = Paginator(qs, self.PAGE_SIZE)
+        page_obj = paginator.get_page(request.GET.get("page"))
+
+        # Decorate page rows with display name + file size (best-effort)
+        rows = []
+        for exp in page_obj.object_list:
+            tpl = PDF_TEMPLATES.get(exp.template_key, {})
+            size = None
+            if exp.file:
+                try:
+                    size = exp.file.size
+                except (OSError, ValueError):
+                    size = None
+            rows.append({
+                "obj": exp,
+                "template_name": tpl.get("name", exp.template_key),
+                "file_size": size,
+            })
+
+        User = get_user_model()
+        params = request.GET.copy()
+        params.pop("page", None)
+
+        return render(request, self.template_name, {
+            "rows": rows,
+            "page_obj": page_obj,
+            "is_paginated": page_obj.has_other_pages(),
+            "total": total,
+            "q": q,
+            "current_status": status,
+            "current_template": template_key,
+            "current_user": user_id,
+            "date_from": date_from,
+            "date_to": date_to,
+            "template_choices": [
+                {"key": k, "name": v.get("name", k)}
+                for k, v in PDF_TEMPLATES.items()
+            ],
+            "user_choices": list(
+                User.objects.filter(pdf_exports__isnull=False)
+                .distinct()
+                .order_by("username")
+                .values("id", "username")
+            ),
+            "status_choices": [
+                ("GENERATED", _("Generated")),
+                ("FAILED", _("Failed")),
+            ],
+            "filter_querystring": params.urlencode(),
+            "has_active_filters": any(
+                [q, status, template_key, user_id, date_from, date_to]
+            ),
+        })
+
+
+class PdfExportsCsvView(AdminRequiredMixin, View):
+    """CSV export of the PDF Exports admin list, honouring filters."""
+
+    MAX_ROWS = 5000
+
+    def get(self, request):
+        import csv
+        from django.db.models import Q
+        from quotation.models import QuotationPdfExport
+        from quotation.pdf_templates import PDF_TEMPLATES
+
+        qs = (
+            QuotationPdfExport.objects
+            .select_related("quotation", "generated_by")
+            .order_by("-created_at")
+        )
+
+        q = (request.GET.get("q") or "").strip()
+        if q:
+            qs = qs.filter(
+                Q(quotation__reference__icontains=q)
+                | Q(quotation__customer_name__icontains=q)
+                | Q(quotation__project_name__icontains=q)
+                | Q(template_key__icontains=q)
+                | Q(generated_by__username__icontains=q)
+                | Q(generated_by__email__icontains=q)
+            )
+        status = (request.GET.get("status") or "").strip()
+        if status in {"GENERATED", "FAILED"}:
+            qs = qs.filter(status=status)
+        template_key = (request.GET.get("template") or "").strip()
+        if template_key:
+            qs = qs.filter(template_key=template_key)
+        user_id = (request.GET.get("generated_by") or "").strip()
+        if user_id.isdigit():
+            qs = qs.filter(generated_by_id=int(user_id))
+        date_from = (request.GET.get("date_from") or "").strip()
+        if date_from:
+            qs = qs.filter(created_at__date__gte=date_from)
+        date_to = (request.GET.get("date_to") or "").strip()
+        if date_to:
+            qs = qs.filter(created_at__date__lte=date_to)
+
+        qs = qs[: self.MAX_ROWS]
+
+        log_action(
+            user=request.user,
+            action="PDF_EXPORTS_EXPORTED",
+            module="system_tools",
+            description=f"Admin {request.user} exported PDF exports CSV.",
+            metadata={
+                "filters": {
+                    "q": q, "status": status, "template": template_key,
+                    "generated_by": user_id,
                     "date_from": date_from, "date_to": date_to,
                 },
             },
@@ -254,21 +433,30 @@ class AuditLogCsvExportView(AdminRequiredMixin, View):
                 return value
 
         writer = csv.writer(_Echo())
-        header = ["timestamp", "user", "module", "action", "description", "ip"]
+        header = [
+            "created_at", "quotation_reference", "customer_name",
+            "project_name", "template_key", "template_name",
+            "generated_by", "status", "error_message", "file",
+        ]
 
         def _rows():
             yield writer.writerow(header)
-            for log in qs.iterator(chunk_size=200):
+            for exp in qs.iterator(chunk_size=200):
+                tpl = PDF_TEMPLATES.get(exp.template_key, {})
                 yield writer.writerow([
-                    log.created_at.strftime("%Y-%m-%d %H:%M:%S"),
-                    (log.user.username if log.user else "system"),
-                    log.module,
-                    log.action,
-                    (log.description or "").replace("\n", " ")[:500],
-                    log.ip_address or "",
+                    exp.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                    exp.quotation.reference if exp.quotation_id else "",
+                    (exp.quotation.customer_name if exp.quotation_id else "") or "",
+                    (exp.quotation.project_name if exp.quotation_id else "") or "",
+                    exp.template_key,
+                    tpl.get("name", exp.template_key),
+                    (exp.generated_by.username if exp.generated_by_id else "system"),
+                    exp.status,
+                    (exp.error_message or "").replace("\n", " ")[:500],
+                    (exp.file.name if exp.file else ""),
                 ])
 
         ts = timezone.now().strftime("%Y%m%d-%H%M%S")
         response = StreamingHttpResponse(_rows(), content_type="text/csv")
-        response["Content-Disposition"] = f'attachment; filename="audit-log-{ts}.csv"'
+        response["Content-Disposition"] = f'attachment; filename="pdf-exports-{ts}.csv"'
         return response

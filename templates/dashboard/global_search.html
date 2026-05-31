@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Search" %} — ProStar Paints{% endblock %}
+
+{% block breadcrumbs %}
+  {% trans "Search" as bc_current %}
+  {% include "widgets/breadcrumbs.html" with current=bc_current %}
+{% endblock %}
+
+{% block content %}
+
+{% trans "Global Search" as ph_title %}
+{% trans "Search quotations, PDFs, paints, users and audit logs across the whole app — with role-aware results." as ph_text %}
+{% include "widgets/page_help.html" with title=ph_title text=ph_text icon="bi-search" tone="purple" %}
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+  <div>
+    <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">
+      <i class="bi bi-search me-2" style="color:var(--psp-purple);"></i>{% trans "Search" %}
+    </h4>
+    <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">
+      {% if is_admin %}{% trans "Searches every module in the app." %}{% else %}{% trans "Searches your quotations and PDF exports." %}{% endif %}
+    </p>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body py-3">
+    <form method="get" role="search">
+      <div class="input-group input-group-lg">
+        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+        <input type="search" name="q" value="{{ q }}"
+               class="form-control" autofocus maxlength="80"
+               placeholder="{% trans 'Type a reference, customer, project, paint, user…' %}">
+        <button class="btn btn-primary" type="submit">{% trans "Search" %}</button>
+      </div>
+      <div class="small text-muted mt-2">
+        {% if is_admin %}
+          <i class="bi bi-info-circle me-1"></i>{% trans "You can search quotations, PDFs, paints, users and audit logs." %}
+        {% else %}
+          <i class="bi bi-info-circle me-1"></i>{% trans "You can search your own quotations and PDF exports." %}
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if not q %}
+  {# Landing state #}
+  <div class="row g-3 psp-gs-tips">
+    <div class="col-12 col-md-6 col-xl-4">
+      <div class="psp-gs-tip">
+        <div class="psp-gs-tip-icon" style="background:var(--psp-grad-purple);"><i class="bi bi-file-earmark-text"></i></div>
+        <div>
+          <div class="psp-gs-tip-title">{% trans "Quotations" %}</div>
+          <div class="psp-gs-tip-text">{% trans "Reference, customer, project name or location." %}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-4">
+      <div class="psp-gs-tip">
+        <div class="psp-gs-tip-icon" style="background:var(--psp-grad-blue);"><i class="bi bi-file-earmark-pdf"></i></div>
+        <div>
+          <div class="psp-gs-tip-title">{% trans "PDF Exports" %}</div>
+          <div class="psp-gs-tip-text">{% trans "Quotation reference or template key." %}</div>
+        </div>
+      </div>
+    </div>
+    {% if is_admin %}
+    <div class="col-12 col-md-6 col-xl-4">
+      <div class="psp-gs-tip">
+        <div class="psp-gs-tip-icon" style="background:var(--psp-grad-green);"><i class="bi bi-palette"></i></div>
+        <div>
+          <div class="psp-gs-tip-title">{% trans "Paints" %}</div>
+          <div class="psp-gs-tip-text">{% trans "Name, category, paint type or base type." %}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-4">
+      <div class="psp-gs-tip">
+        <div class="psp-gs-tip-icon" style="background:var(--psp-grad-amber);"><i class="bi bi-people"></i></div>
+        <div>
+          <div class="psp-gs-tip-title">{% trans "Users" %}</div>
+          <div class="psp-gs-tip-text">{% trans "Username, full name or email." %}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-4">
+      <div class="psp-gs-tip">
+        <div class="psp-gs-tip-icon" style="background:#64748b;"><i class="bi bi-clock-history"></i></div>
+        <div>
+          <div class="psp-gs-tip-title">{% trans "Audit Logs" %}</div>
+          <div class="psp-gs-tip-text">{% trans "Action, module or description text." %}</div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+{% elif search.total == 0 %}
+  <div class="card">
+    <div class="card-body p-0">
+      <div class="psp-empty">
+        <div class="psp-empty-icon"><i class="bi bi-search"></i></div>
+        <div class="psp-empty-title">{% blocktrans %}No results for "{{ q }}"{% endblocktrans %}</div>
+        <div class="psp-empty-text">{% trans "Try a shorter or different keyword." %}</div>
+      </div>
+    </div>
+  </div>
+
+{% else %}
+  <div class="d-flex align-items-center mb-3 small text-muted">
+    {% blocktrans count counter=search.total %}{{ counter }} result for "{{ q }}"{% plural %}{{ counter }} results for "{{ q }}"{% endblocktrans %}
+  </div>
+
+  <div class="row g-3">
+    {% for group in search.groups %}
+      {% if group.total %}
+      <div class="col-12 col-lg-6">
+        <div class="card psp-settings-card h-100">
+          <div class="card-header psp-settings-card-header">
+            <span><i class="bi {{ group.icon }} me-2" style="color:var(--psp-purple);"></i>{{ group.label }}</span>
+            <span class="psp-settings-card-hint">{{ group.total }}</span>
+          </div>
+          <ul class="list-group list-group-flush psp-gs-list">
+            {% for r in group.results %}
+            <li class="list-group-item psp-gs-row">
+              <div class="psp-gs-row-icon"><i class="bi {{ r.icon }}"></i></div>
+              <div class="psp-gs-row-body">
+                <a href="{{ r.url }}" class="psp-gs-row-label text-decoration-none">{{ r.label }}</a>
+                {% if r.subtitle %}<div class="psp-gs-row-subtitle">{{ r.subtitle }}</div>{% endif %}
+              </div>
+              {% if r.badge %}
+                <span class="badge text-bg-light text-muted psp-gs-row-badge">{{ r.badge }}</span>
+              {% endif %}
+            </li>
+            {% endfor %}
+          </ul>
+          {% if group.more %}
+            <div class="card-footer text-center small text-muted">
+              {% blocktrans count more=group.more %}+ {{ more }} more match{% plural %}+ {{ more }} more matches{% endblocktrans %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% endblock %}

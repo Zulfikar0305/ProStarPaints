@@ -29,6 +29,11 @@ Includes a small live filter and keyboard navigation.
 
         <li class="psp-palette-group">{% trans "Navigation" %}</li>
 
+        <li><a href="{% url 'dashboard:global_search' %}" class="psp-palette-item" data-keywords="search everything global find lookup">
+          <span class="psp-palette-item-icon" style="background:var(--psp-grad-purple);color:#fff;"><i class="bi bi-search"></i></span>
+          <span class="psp-palette-item-label">{% trans "Search everything…" %}</span>
+        </a></li>
+
         <li><a href="{% url 'dashboard:dashboard' %}" class="psp-palette-item" data-keywords="dashboard home">
           <span class="psp-palette-item-icon"><i class="bi bi-speedometer2"></i></span>
           <span class="psp-palette-item-label">{% trans "Dashboard" %}</span>
@@ -84,6 +89,14 @@ Includes a small live filter and keyboard navigation.
           <li><a href="{% url 'audit:audit_log_list' %}" class="psp-palette-item" data-keywords="audit log history events">
             <span class="psp-palette-item-icon"><i class="bi bi-journal-text"></i></span>
             <span class="psp-palette-item-label">{% trans "Audit Log" %}</span>
+          </a></li>
+          <li><a href="{% url 'system_tools:pdf_exports' %}" class="psp-palette-item" data-keywords="pdf exports quotation download history failed">
+            <span class="psp-palette-item-icon"><i class="bi bi-file-earmark-pdf"></i></span>
+            <span class="psp-palette-item-label">{% trans "PDF Exports" %}</span>
+          </a></li>
+          <li><a href="{% url 'system_tools:audit_log_csv' %}" class="psp-palette-item" data-keywords="audit export csv download">
+            <span class="psp-palette-item-icon"><i class="bi bi-download"></i></span>
+            <span class="psp-palette-item-label">{% trans "Export Audit CSV" %}</span>
           </a></li>
         {% endif %}
 

@@ -1,0 +1,8 @@
+{% extends "errors/_error_base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Server error" %} — ProStar Paints{% endblock %}
+{% block tone %}danger{% endblock %}
+{% block icon %}bi-exclamation-octagon{% endblock %}
+{% block code %}500{% endblock %}
+{% block heading %}{% trans "Something went wrong on our side" %}{% endblock %}
+{% block message %}{% trans "An unexpected error has been logged. Please try again in a moment — if the issue persists, contact an administrator." %}{% endblock %}

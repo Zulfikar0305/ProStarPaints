@@ -34,6 +34,8 @@
       data-high-contrast="{{ user_app_settings.high_contrast_mode|yesno:'true,false' }}"
       data-auto-collapse-summary="{{ user_app_settings.auto_collapse_builder_summary_mobile|yesno:'true,false' }}">
 
+<a href="#pspMainContent" class="psp-skip-link">{% trans 'Skip to main content' %}</a>
+
 <!-- Mobile sidebar overlay -->
 {% if user.is_authenticated %}<div class="psp-overlay" id="pspOverlay"></div>{% endif %}
 
@@ -157,8 +159,8 @@
     </div>
     <form method="post" action="{% url 'logout' %}">
       {% csrf_token %}
-      <button type="submit" class="psp-sidebar-signout" title="Sign out">
-        <i class="bi bi-box-arrow-right"></i>
+      <button type="submit" class="psp-sidebar-signout" aria-label="{% trans 'Sign out' %}" title="{% trans 'Sign out' %}">
+        <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
       </button>
     </form>
   </div>
@@ -175,8 +177,8 @@
   <header class="psp-topbar">
 
     <!-- Mobile hamburger -->
-    <button class="psp-hamburger d-lg-none" id="pspHamburger" type="button" aria-label="Toggle navigation">
-      <i class="bi bi-list"></i>
+    <button class="psp-hamburger d-lg-none" id="pspHamburger" type="button" aria-label="{% trans 'Toggle navigation' %}" aria-controls="pspSidebar" aria-expanded="false">
+      <i class="bi bi-list" aria-hidden="true"></i>
     </button>
 
     <!-- Greeting -->
@@ -189,18 +191,21 @@
     <!-- Right: search + bell + user dropdown -->
     <div class="psp-topbar-right">
 
-      <div class="psp-search-wrap d-none d-md-flex">
+      <form class="psp-search-wrap d-none d-md-flex" method="get" action="{% url 'dashboard:global_search' %}" role="search">
         <i class="bi bi-search psp-search-icon"></i>
-        <input type="text" class="psp-search-input" placeholder="Search…">
-      </div>
+        <input type="search" name="q" class="psp-search-input" maxlength="80"
+               placeholder="{% trans 'Search quotations, paints, users…' %}"
+               aria-label="{% trans 'Global search' %}">
+      </form>
 
       {% if user_app_settings.show_command_palette_hint %}
       <button class="psp-icon-btn psp-palette-trigger" type="button"
               id="pspPaletteTrigger"
               data-bs-toggle="tooltip"
               data-bs-placement="bottom"
+              aria-label="{% trans 'Open quick actions (Ctrl+K)' %}"
               title="{% trans 'Quick actions (Ctrl+K)' %}">
-        <i class="bi bi-command"></i>
+        <i class="bi bi-command" aria-hidden="true"></i>
       </button>
       {% endif %}
 
@@ -208,8 +213,9 @@
               data-bs-toggle="offcanvas"
               data-bs-target="#pspHelpDrawer"
               aria-controls="pspHelpDrawer"
+              aria-label="{% trans 'Open help center' %}"
               title="{% trans 'Help Center' %}">
-        <i class="bi bi-question-circle"></i>
+        <i class="bi bi-question-circle" aria-hidden="true"></i>
       </button>
 
       {% include "widgets/notification_bell.html" %}
@@ -277,7 +283,7 @@
   {% endif %}
 
   <!-- ── Page content ─────────────────────────────────────────── -->
-  <main class="psp-main">
+  <main class="psp-main" id="pspMainContent" tabindex="-1">
     {% block breadcrumbs %}{% endblock %}
     {% block content %}{% endblock %}
   </main>
@@ -375,18 +381,34 @@
 
 <script>
 // ── Form submit loading state ──────────────────────────────────
+// Two opt-ins:
+//   1) <form data-psp-loading="true"> — whole form, primary submit btn
+//   2) <button class="psp-loading-btn">…</button> — single button (any form)
+// Inert against double-submit + accessible (aria-busy on the form).
 (function () {
+  function spin(btn) {
+    if (!btn || btn.disabled) return;
+    var label = btn.getAttribute('data-loading-text') || 'Working…';
+    btn.dataset.originalHtml = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>' + label;
+    btn.disabled = true;
+    btn.setAttribute('aria-busy', 'true');
+    btn.classList.add('psp-btn-loading');
+  }
+
   document.querySelectorAll('form[data-psp-loading="true"]').forEach(function (form) {
     form.addEventListener('submit', function () {
-      var btn = form.querySelector('button[type="submit"], input[type="submit"]');
-      if (!btn || btn.disabled) return;
-      var label = btn.getAttribute('data-loading-text') || 'Working…';
-      btn.dataset.originalHtml = btn.innerHTML;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>' + label;
-      btn.disabled = true;
-      btn.classList.add('psp-btn-loading');
+      spin(form.querySelector('button[type="submit"], input[type="submit"]'));
+      form.setAttribute('aria-busy', 'true');
     });
   });
+
+  document.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    var btn = form.querySelector('button.psp-loading-btn[type="submit"], button.psp-loading-btn:not([type])');
+    if (btn) spin(btn);
+  }, true);
 }());
 </script>
 

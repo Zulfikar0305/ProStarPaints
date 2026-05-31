@@ -1,0 +1,8 @@
+{% extends "errors/_error_base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Page not found" %} — ProStar Paints{% endblock %}
+{% block tone %}purple{% endblock %}
+{% block icon %}bi-compass{% endblock %}
+{% block code %}404{% endblock %}
+{% block heading %}{% trans "We can't find that page" %}{% endblock %}
+{% block message %}{% trans "The page you're looking for has moved, been removed, or never existed. Try heading back to the dashboard." %}{% endblock %}

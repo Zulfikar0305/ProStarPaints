@@ -1,0 +1,8 @@
+{% extends "errors/_error_base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Access denied" %} — ProStar Paints{% endblock %}
+{% block tone %}amber{% endblock %}
+{% block icon %}bi-shield-lock{% endblock %}
+{% block code %}403{% endblock %}
+{% block heading %}{% trans "You don't have access to that" %}{% endblock %}
+{% block message %}{% trans "This area is restricted to authorised users. If you think you should have access, please contact an administrator." %}{% endblock %}

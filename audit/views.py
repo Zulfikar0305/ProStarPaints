@@ -1,8 +1,9 @@
-from django.db.models import Q
+from django.contrib.auth import get_user_model
 from django.views.generic import ListView
 
 from users.mixins import AdminRequiredMixin
 
+from .filters import apply_audit_filters, get_filter_choices
 from .models import AuditLog
 
 
@@ -16,42 +17,34 @@ class AuditLogListView(AdminRequiredMixin, ListView):
 
     def get_queryset(self):
         qs = AuditLog.objects.select_related("user").order_by("-created_at")
-
-        # Free-text search across key fields
-        q = self.request.GET.get("q", "").strip()
-        if q:
-            qs = qs.filter(
-                Q(action__icontains=q)
-                | Q(module__icontains=q)
-                | Q(description__icontains=q)
-                | Q(user__username__icontains=q)
-                | Q(user__email__icontains=q)
-            )
-
-        # Module filter
-        module = self.request.GET.get("module", "")
-        if module:
-            qs = qs.filter(module=module)
-
-        # Date-range filters (YYYY-MM-DD from date inputs)
-        date_from = self.request.GET.get("date_from", "")
-        date_to = self.request.GET.get("date_to", "")
-        if date_from:
-            qs = qs.filter(created_at__date__gte=date_from)
-        if date_to:
-            qs = qs.filter(created_at__date__lte=date_to)
-
-        return qs
+        return apply_audit_filters(qs, self.request.GET)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["q"] = self.request.GET.get("q", "")
-        ctx["current_module"] = self.request.GET.get("module", "")
-        ctx["date_from"] = self.request.GET.get("date_from", "")
-        ctx["date_to"] = self.request.GET.get("date_to", "")
-        ctx["module_choices"] = (
-            AuditLog.objects.values_list("module", flat=True)
+        get = self.request.GET
+        ctx["q"] = get.get("q", "")
+        ctx["current_module"] = get.get("module", "")
+        ctx["current_action"] = get.get("action", "")
+        ctx["current_user"] = get.get("user", "")
+        ctx["date_from"] = get.get("date_from", "")
+        ctx["date_to"] = get.get("date_to", "")
+
+        choices = get_filter_choices()
+        ctx["module_choices"] = choices["modules"]
+        ctx["action_choices"] = choices["actions"]
+        ctx["user_choices"] = list(
+            get_user_model()
+            .objects.filter(audit_logs__isnull=False)
             .distinct()
-            .order_by("module")
+            .order_by("username")
+            .values("id", "username")
         )
+
+        params = get.copy()
+        params.pop("page", None)
+        ctx["filter_querystring"] = params.urlencode()
+        ctx["has_active_filters"] = any([
+            ctx["q"], ctx["current_module"], ctx["current_action"],
+            ctx["current_user"], ctx["date_from"], ctx["date_to"],
+        ])
         return ctx

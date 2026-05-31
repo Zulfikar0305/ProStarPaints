@@ -1,0 +1,8 @@
+{% extends "errors/_error_base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Bad request" %} — ProStar Paints{% endblock %}
+{% block tone %}amber{% endblock %}
+{% block icon %}bi-exclamation-triangle{% endblock %}
+{% block code %}400{% endblock %}
+{% block heading %}{% trans "We couldn't process that request" %}{% endblock %}
+{% block message %}{% trans "The request looked malformed. Please go back and try again." %}{% endblock %}

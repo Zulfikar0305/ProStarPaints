@@ -1,0 +1,41 @@
+{% load static %}{% load i18n %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}{% trans "Something went wrong" %} — ProStar Paints{% endblock %}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body class="psp-body psp-error-body" data-theme="light">
+  <main class="psp-error-shell" role="main">
+    <div class="psp-error-card">
+      <div class="psp-error-icon psp-error-icon--{% block tone %}info{% endblock %}" aria-hidden="true">
+        <i class="bi {% block icon %}bi-exclamation-circle{% endblock %}"></i>
+      </div>
+      <div class="psp-error-code">{% block code %}Error{% endblock %}</div>
+      <h1 class="psp-error-title">{% block heading %}{% trans "Something went wrong" %}{% endblock %}</h1>
+      <p class="psp-error-text">{% block message %}{% trans "An unexpected error occurred." %}{% endblock %}</p>
+
+      <div class="psp-error-actions">
+        <a href="{% url 'dashboard:dashboard' %}" class="btn btn-primary">
+          <i class="bi bi-speedometer2 me-1" aria-hidden="true"></i>{% trans "Go to dashboard" %}
+        </a>
+        <button type="button" class="btn btn-outline-secondary" onclick="if(history.length>1){history.back()}else{location.href='/'}">
+          <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{% trans "Go back" %}
+        </button>
+        <a href="mailto:support@prostarpaints.local" class="btn btn-outline-secondary">
+          <i class="bi bi-life-preserver me-1" aria-hidden="true"></i>{% trans "Help" %}
+        </a>
+      </div>
+
+      <div class="psp-error-foot">
+        <img src="{% static 'images/prostar-logo.png' %}" alt="" class="psp-error-logo"
+             onerror="this.style.display='none';">
+        <span>ProStar Paints</span>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
