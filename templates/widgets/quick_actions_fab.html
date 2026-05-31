@@ -11,6 +11,10 @@ Role-aware: superuser/admin see admin shortcuts, reps see rep shortcuts.
       <span class="psp-fab-item-label">{% trans "New Quotation" %}</span>
     </a>
     {% if user.is_superuser or user.role == "ADMIN" %}
+      <a href="{% url 'system_tools:control_center' %}" class="psp-fab-item" role="menuitem">
+        <span class="psp-fab-item-icon" style="background:var(--psp-grad-purple);"><i class="bi bi-shield-check"></i></span>
+        <span class="psp-fab-item-label">{% trans "Control Center" %}</span>
+      </a>
       <a href="{% url 'paints:paint_list' %}" class="psp-fab-item" role="menuitem">
         <span class="psp-fab-item-icon" style="background:var(--psp-grad-green);"><i class="bi bi-palette"></i></span>
         <span class="psp-fab-item-label">{% trans "Manage Paints" %}</span>

@@ -106,6 +106,13 @@
       {% if user.is_superuser or user.role == "ADMIN" %}
         <li class="psp-sidebar-section-label">System</li>
         <li>
+          <a href="{% url 'system_tools:control_center' %}"
+             class="psp-sidebar-link {% if request.resolver_match.url_name == 'control_center' %}active{% endif %}">
+            <i class="bi bi-shield-check"></i>
+            <span>Control Center</span>
+          </a>
+        </li>
+        <li>
           <a href="{% url 'audit:audit_log_list' %}"
              class="psp-sidebar-link {% if request.resolver_match.app_name == 'audit' %}active{% endif %}">
             <i class="bi bi-journal-text"></i>

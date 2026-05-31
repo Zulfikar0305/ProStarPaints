@@ -1,12 +1,24 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import View
 
+from audit.models import AuditLog
 from audit.services import log_action
 from users.mixins import AdminRequiredMixin
 
+from .control_center import (
+    get_paint_catalogue_quality,
+    get_pdf_export_health,
+    get_quotation_quality,
+    get_recent_system_activity,
+    get_setup_health,
+    get_staff_readiness,
+)
 from .forms import VATSettingsForm
 from .models import AppSetting, SystemToolRun
 from .services import TOOL_REGISTRY, get_tool_display_name, run_tool
@@ -144,3 +156,119 @@ class AppSettingsView(LoginRequiredMixin, View):
         from django.shortcuts import redirect as _redirect
         return _redirect("users:app_settings")
 
+
+
+# ---------------------------------------------------------------------------
+# Admin Control Center
+# ---------------------------------------------------------------------------
+
+class ControlCenterView(AdminRequiredMixin, View):
+    """Executive system health cockpit. Admin/superuser only, read-only."""
+
+    template_name = "system_tools/control_center.html"
+
+    def get(self, request):
+        setup_health           = get_setup_health()
+        paint_quality          = get_paint_catalogue_quality()
+        quotation_quality      = get_quotation_quality()
+        staff_readiness        = get_staff_readiness()
+        pdf_health             = get_pdf_export_health()
+        recent_activity        = get_recent_system_activity()
+
+        # Aggregate severity counts for the header
+        all_statuses = (
+            [c["status"]   for c in setup_health]
+            + [i["severity"] for i in paint_quality["items"]]
+            + [i["severity"] for i in quotation_quality["items"]]
+            + [i["severity"] for i in staff_readiness["items"]]
+        )
+        summary = {
+            "ready":   all_statuses.count("ready"),
+            "warning": all_statuses.count("warning"),
+            "info":    all_statuses.count("info"),
+        }
+
+        return render(request, self.template_name, {
+            "setup_health":       setup_health,
+            "paint_quality":      paint_quality,
+            "quotation_quality":  quotation_quality,
+            "staff_readiness":    staff_readiness,
+            "pdf_health":         pdf_health,
+            "recent_activity":    recent_activity,
+            "summary":            summary,
+        })
+
+
+# ---------------------------------------------------------------------------
+# Audit log CSV export (admin-only, honours existing filters)
+# ---------------------------------------------------------------------------
+
+class AuditLogCsvExportView(AdminRequiredMixin, View):
+    """Stream a CSV of the audit log, applying the same filters as the list page."""
+
+    MAX_ROWS = 5000
+
+    def get(self, request):
+        from django.db.models import Q
+        import csv
+
+        qs = AuditLog.objects.select_related("user").order_by("-created_at")
+
+        q = request.GET.get("q", "").strip()
+        if q:
+            qs = qs.filter(
+                Q(action__icontains=q)
+                | Q(module__icontains=q)
+                | Q(description__icontains=q)
+                | Q(user__username__icontains=q)
+                | Q(user__email__icontains=q)
+            )
+        module = request.GET.get("module", "")
+        if module:
+            qs = qs.filter(module=module)
+        date_from = request.GET.get("date_from", "")
+        date_to = request.GET.get("date_to", "")
+        if date_from:
+            qs = qs.filter(created_at__date__gte=date_from)
+        if date_to:
+            qs = qs.filter(created_at__date__lte=date_to)
+
+        qs = qs[: self.MAX_ROWS]
+
+        log_action(
+            user=request.user,
+            action="AUDIT_LOG_EXPORTED",
+            module="system_tools",
+            description=f"Admin {request.user} exported audit log CSV.",
+            metadata={
+                "filters": {
+                    "q": q, "module": module,
+                    "date_from": date_from, "date_to": date_to,
+                },
+            },
+            request=request,
+        )
+
+        class _Echo:
+            def write(self, value):
+                return value
+
+        writer = csv.writer(_Echo())
+        header = ["timestamp", "user", "module", "action", "description", "ip"]
+
+        def _rows():
+            yield writer.writerow(header)
+            for log in qs.iterator(chunk_size=200):
+                yield writer.writerow([
+                    log.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                    (log.user.username if log.user else "system"),
+                    log.module,
+                    log.action,
+                    (log.description or "").replace("\n", " ")[:500],
+                    log.ip_address or "",
+                ])
+
+        ts = timezone.now().strftime("%Y%m%d-%H%M%S")
+        response = StreamingHttpResponse(_rows(), content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="audit-log-{ts}.csv"'
+        return response

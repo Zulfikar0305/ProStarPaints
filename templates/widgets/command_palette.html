@@ -64,6 +64,10 @@ Includes a small live filter and keyboard navigation.
         {% if is_admin or user.role == "ADMIN" %}
           <li class="psp-palette-group">{% trans "System" %}</li>
 
+          <li><a href="{% url 'system_tools:control_center' %}" class="psp-palette-item" data-keywords="control center health diagnostics admin cockpit">
+            <span class="psp-palette-item-icon"><i class="bi bi-shield-check"></i></span>
+            <span class="psp-palette-item-label">{% trans "Control Center" %}</span>
+          </a></li>
           <li><a href="{% url 'system_tools:system_settings' %}" class="psp-palette-item" data-keywords="system settings config vat">
             <span class="psp-palette-item-icon"><i class="bi bi-sliders"></i></span>
             <span class="psp-palette-item-label">{% trans "System Settings" %}</span>

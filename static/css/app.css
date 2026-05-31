@@ -3943,3 +3943,148 @@ a:hover > .psp-dq-item { transform: translateY(-2px); box-shadow: var(--psp-shad
     display: none;
   }
 }
+
+
+/* ============================================================
+   §55  Admin Control Center
+   ============================================================ */
+
+.psp-cc-summary {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+}
+.psp-cc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .3rem .65rem;
+  border-radius: 999px;
+  font-size: .72rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+  background: var(--psp-surface-2, #f1f5f9);
+  color: var(--psp-text, #0f172a);
+}
+.psp-cc-chip i { font-size: .8rem; }
+.psp-cc-chip.is-ready    { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+.psp-cc-chip.is-warning  { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+.psp-cc-chip.is-info     { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+
+/* Card-style readiness checks */
+.psp-cc-card {
+  display: flex;
+  gap: .85rem;
+  padding: .9rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--psp-border, #e2e8f0);
+  background: var(--psp-surface, #fff);
+  height: 100%;
+  position: relative;
+}
+.psp-cc-card-icon {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  color: #fff;
+  background: #94a3b8;
+}
+.psp-cc-card--ready    .psp-cc-card-icon { background: #10b981; }
+.psp-cc-card--warning  .psp-cc-card-icon { background: #f59e0b; }
+.psp-cc-card--info     .psp-cc-card-icon { background: #3b82f6; }
+.psp-cc-card--warning  { border-color: #fde68a; background: #fffbeb40; }
+.psp-cc-card--ready    { border-color: #a7f3d0; background: #ecfdf540; }
+.psp-cc-card-body { flex: 1 1 auto; min-width: 0; }
+.psp-cc-card-title {
+  font-weight: 700;
+  font-size: .9rem;
+  letter-spacing: -.01em;
+  color: var(--psp-text, #0f172a);
+}
+.psp-cc-card-hint {
+  font-size: .78rem;
+  color: var(--psp-text-soft, #475569);
+  margin-top: .2rem;
+  line-height: 1.4;
+}
+.psp-cc-card-link {
+  display: inline-flex;
+  align-items: center;
+  gap: .15rem;
+  margin-top: .45rem;
+  font-size: .75rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--psp-purple, #7c3aed);
+}
+.psp-cc-card-link:hover { text-decoration: underline; }
+
+/* Compact metric tiles (catalogue / quotation / staff) */
+.psp-cc-metric {
+  display: block;
+  padding: .85rem .9rem;
+  border-radius: 12px;
+  border: 1px solid var(--psp-border, #e2e8f0);
+  background: var(--psp-surface, #fff);
+  color: inherit;
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  height: 100%;
+}
+.psp-cc-metric:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, .06);
+  border-color: var(--psp-purple, #7c3aed);
+}
+.psp-cc-metric-count {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -.02em;
+  color: var(--psp-text, #0f172a);
+}
+.psp-cc-metric-label {
+  margin-top: .25rem;
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--psp-text, #0f172a);
+}
+.psp-cc-metric-hint {
+  margin-top: .15rem;
+  font-size: .72rem;
+  color: var(--psp-text-soft, #64748b);
+  line-height: 1.4;
+}
+.psp-cc-metric--ready   .psp-cc-metric-count { color: #047857; }
+.psp-cc-metric--warning .psp-cc-metric-count { color: #b45309; }
+.psp-cc-metric--info    .psp-cc-metric-count { color: #1d4ed8; }
+.psp-cc-metric--warning { border-left: 4px solid #f59e0b; }
+.psp-cc-metric--ready   { border-left: 4px solid #10b981; }
+
+/* Dark mode adjustments */
+[data-theme="dark"] .psp-cc-card,
+[data-theme="dark"] .psp-cc-metric {
+  background-color: var(--psp-surface) !important;
+  border-color: var(--psp-border) !important;
+  color: var(--psp-text);
+}
+[data-theme="dark"] .psp-cc-card--ready,
+[data-theme="dark"] .psp-cc-card--warning { background-color: var(--psp-surface) !important; }
+[data-theme="dark"] .psp-cc-metric-label,
+[data-theme="dark"] .psp-cc-card-title { color: var(--psp-text) !important; }
+[data-theme="dark"] .psp-cc-metric-hint,
+[data-theme="dark"] .psp-cc-card-hint { color: var(--psp-text-soft) !important; }
+[data-theme="dark"] .psp-cc-chip.is-ready    { background: #064e3b; color: #6ee7b7; border-color: #065f46; }
+[data-theme="dark"] .psp-cc-chip.is-warning  { background: #78350f; color: #fcd34d; border-color: #92400e; }
+[data-theme="dark"] .psp-cc-chip.is-info     { background: #1e3a8a; color: #93c5fd; border-color: #1e40af; }
+
+/* Mobile: tighten metric tiles */
+@media (max-width: 575.98px) {
+  .psp-cc-metric-count { font-size: 1.35rem; }
+  .psp-cc-card { padding: .75rem .85rem; gap: .65rem; }
+  .psp-cc-card-icon { flex-basis: 32px; width: 32px; height: 32px; }
+}

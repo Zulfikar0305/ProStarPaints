@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Control Center" %} — ProStar Paints{% endblock %}
+
+{% block breadcrumbs %}
+  {% trans "Control Center" as bc_current %}
+  {% include "widgets/breadcrumbs.html" with current=bc_current %}
+{% endblock %}
+
+{% block content %}
+
+{% trans "Admin Control Center" as ph_title %}
+{% trans "Read-only system health, catalogue quality, quotation integrity, staff readiness, PDF pipeline and the latest audit activity. Nothing here writes, deletes or changes data." as ph_text %}
+{% include "widgets/page_help.html" with title=ph_title text=ph_text icon="bi-shield-check" tone="purple" %}
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+  <div>
+    <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">
+      <i class="bi bi-shield-check me-2" style="color:var(--psp-purple);"></i>{% trans "Control Center" %}
+    </h4>
+    <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">
+      {% trans "Executive view of system health. Admin / superuser only." %}
+    </p>
+  </div>
+  <div class="psp-cc-summary">
+    <span class="psp-cc-chip is-ready"   title="{% trans 'Ready checks' %}"><i class="bi bi-check-circle-fill"></i>{{ summary.ready }} {% trans "ready" %}</span>
+    <span class="psp-cc-chip is-warning" title="{% trans 'Needs attention' %}"><i class="bi bi-exclamation-triangle-fill"></i>{{ summary.warning }} {% trans "to review" %}</span>
+    <span class="psp-cc-chip is-info"    title="{% trans 'Informational' %}"><i class="bi bi-info-circle-fill"></i>{{ summary.info }} {% trans "info" %}</span>
+  </div>
+</div>
+
+{# Section nav #}
+<div class="psp-settings-nav mb-3" role="tablist">
+  <a href="#cc-setup"      class="psp-settings-nav-pill"><i class="bi bi-clipboard-check"></i>{% trans "Setup" %}</a>
+  <a href="#cc-paints"     class="psp-settings-nav-pill"><i class="bi bi-palette2"></i>{% trans "Catalogue" %}</a>
+  <a href="#cc-quotations" class="psp-settings-nav-pill"><i class="bi bi-file-earmark-text"></i>{% trans "Quotations" %}</a>
+  <a href="#cc-staff"      class="psp-settings-nav-pill"><i class="bi bi-people"></i>{% trans "Staff" %}</a>
+  <a href="#cc-pdf"        class="psp-settings-nav-pill"><i class="bi bi-file-earmark-pdf"></i>{% trans "PDFs" %}</a>
+  <a href="#cc-activity"   class="psp-settings-nav-pill"><i class="bi bi-clock-history"></i>{% trans "Activity" %}</a>
+</div>
+
+{# ── Setup Health ── #}
+<section class="card psp-settings-card mb-4" id="cc-setup">
+  <div class="card-header psp-settings-card-header">
+    <span><i class="bi bi-clipboard-check me-2" style="color:var(--psp-purple);"></i>{% trans "Setup health" %}</span>
+    <span class="psp-settings-card-hint">{% trans "Production-readiness checklist" %}</span>
+  </div>
+  <div class="card-body p-3">
+    <div class="row g-3">
+      {% for c in setup_health %}
+      <div class="col-12 col-md-6 col-xl-4">
+        <div class="psp-cc-card psp-cc-card--{{ c.status }} h-100">
+          <div class="psp-cc-card-icon">
+            {% if c.status == "ready" %}<i class="bi bi-check-circle-fill"></i>
+            {% elif c.status == "warning" %}<i class="bi bi-exclamation-triangle-fill"></i>
+            {% else %}<i class="bi bi-info-circle-fill"></i>{% endif %}
+          </div>
+          <div class="psp-cc-card-body">
+            <div class="psp-cc-card-title">{{ c.title }}</div>
+            {% if c.hint %}<div class="psp-cc-card-hint">{{ c.hint }}</div>{% endif %}
+            {% if c.url %}
+              <a href="{{ c.url }}" class="psp-cc-card-link"><i class="bi bi-arrow-right-short"></i>{% trans "Open" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{# ── Paint catalogue ── #}
+<section class="card psp-settings-card mb-4" id="cc-paints">
+  <div class="card-header psp-settings-card-header">
+    <span><i class="bi bi-palette2 me-2" style="color:var(--psp-purple);"></i>{% trans "Paint catalogue quality" %}</span>
+    <span class="psp-settings-card-hint">{% blocktrans with total=paint_quality.total %}{{ total }} paints total{% endblocktrans %}</span>
+  </div>
+  <div class="card-body p-3">
+    <div class="row g-3">
+      {% for i in paint_quality.items %}
+      <div class="col-6 col-md-4 col-xl-3">
+        <a href="{{ i.url }}" class="psp-cc-metric psp-cc-metric--{{ i.severity }} d-block text-decoration-none">
+          <div class="psp-cc-metric-count">{{ i.count }}</div>
+          <div class="psp-cc-metric-label">{{ i.label }}</div>
+          <div class="psp-cc-metric-hint">{{ i.hint }}</div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{# ── Quotation quality ── #}
+<section class="card psp-settings-card mb-4" id="cc-quotations">
+  <div class="card-header psp-settings-card-header">
+    <span><i class="bi bi-file-earmark-text me-2" style="color:var(--psp-purple);"></i>{% trans "Quotation quality" %}</span>
+    <span class="psp-settings-card-hint">{% blocktrans with total=quotation_quality.total %}{{ total }} quotations total{% endblocktrans %}</span>
+  </div>
+  <div class="card-body p-3">
+    <div class="row g-3">
+      {% for i in quotation_quality.items %}
+      <div class="col-6 col-md-4 col-xl-3">
+        <a href="{{ i.url }}" class="psp-cc-metric psp-cc-metric--{{ i.severity }} d-block text-decoration-none">
+          <div class="psp-cc-metric-count">{{ i.count }}</div>
+          <div class="psp-cc-metric-label">{{ i.label }}</div>
+          <div class="psp-cc-metric-hint">{{ i.hint }}</div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{# ── Staff readiness ── #}
+<section class="card psp-settings-card mb-4" id="cc-staff">
+  <div class="card-header psp-settings-card-header">
+    <span><i class="bi bi-people me-2" style="color:var(--psp-purple);"></i>{% trans "Staff readiness" %}</span>
+    <span class="psp-settings-card-hint">{% blocktrans with total=staff_readiness.total %}{{ total }} active reps{% endblocktrans %}</span>
+  </div>
+  <div class="card-body p-3">
+    <div class="row g-3">
+      {% for i in staff_readiness.items %}
+      <div class="col-6 col-md-4 col-xl-3">
+        <a href="{{ i.url }}" class="psp-cc-metric psp-cc-metric--{{ i.severity }} d-block text-decoration-none">
+          <div class="psp-cc-metric-count">{{ i.count }}</div>
+          <div class="psp-cc-metric-label">{{ i.label }}</div>
+          <div class="psp-cc-metric-hint">{{ i.hint }}</div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{# ── PDF export health ── #}
+<section class="card psp-settings-card mb-4" id="cc-pdf">
+  <div class="card-header psp-settings-card-header">
+    <span><i class="bi bi-file-earmark-pdf me-2" style="color:var(--psp-purple);"></i>{% trans "PDF export pipeline" %}</span>
+    <span class="psp-settings-card-hint">
+      {% blocktrans with total=pdf_health.total_generated failed=pdf_health.failed_30d %}{{ total }} generated · {{ failed }} failed (30d){% endblocktrans %}
+    </span>
+  </div>
+  <div class="card-body p-3">
+
+    <div class="row g-3 mb-3">
+      <div class="col-md-4">
+        <div class="psp-cc-metric psp-cc-metric--info">
+          <div class="psp-cc-metric-count">{{ pdf_health.total_generated }}</div>
+          <div class="psp-cc-metric-label">{% trans "PDFs generated" %}</div>
+          <div class="psp-cc-metric-hint">{% trans "Lifetime total." %}</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="psp-cc-metric psp-cc-metric--{% if pdf_health.failed_30d %}warning{% else %}ready{% endif %}">
+          <div class="psp-cc-metric-count">{{ pdf_health.failed_30d }}</div>
+          <div class="psp-cc-metric-label">{% trans "Failed (last 30 days)" %}</div>
+          <div class="psp-cc-metric-hint">{% trans "Investigate template or data issues." %}</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="psp-cc-metric psp-cc-metric--info">
+          <div class="psp-cc-metric-count">{{ pdf_health.template_counts|length }}</div>
+          <div class="psp-cc-metric-label">{% trans "Templates in use" %}</div>
+          <div class="psp-cc-metric-hint">{% trans "Distinct templates with at least one render." %}</div>
+        </div>
+      </div>
+    </div>
+
+    {% if pdf_health.template_counts %}
+    <h6 class="fw-semibold mb-2" style="font-size:.78rem;color:var(--psp-text-soft);text-transform:uppercase;letter-spacing:.06em;">
+      {% trans "Template usage" %}
+    </h6>
+    <div class="table-responsive mb-3">
+      <table class="table table-sm mb-0 align-middle" style="font-size:.85rem;">
+        <thead class="table-light">
+          <tr><th class="ps-3">{% trans "Template key" %}</th><th class="text-end pe-3">{% trans "Renders" %}</th></tr>
+        </thead>
+        <tbody>
+          {% for t in pdf_health.template_counts %}
+          <tr>
+            <td class="ps-3"><code>{{ t.template_key }}</code></td>
+            <td class="text-end pe-3 fw-semibold">{{ t.count }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    <h6 class="fw-semibold mb-2" style="font-size:.78rem;color:var(--psp-text-soft);text-transform:uppercase;letter-spacing:.06em;">
+      {% trans "Latest PDFs" %}
+    </h6>
+    {% if pdf_health.latest %}
+    <div class="table-responsive">
+      <table class="table table-sm mb-0 align-middle" style="font-size:.85rem;">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3">{% trans "Generated" %}</th>
+            <th>{% trans "Quotation" %}</th>
+            <th>{% trans "Template" %}</th>
+            <th>{% trans "By" %}</th>
+            <th class="text-end pe-3"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in pdf_health.latest %}
+          <tr>
+            <td class="ps-3 text-muted text-nowrap" title="{{ e.created_at|date:'d M Y H:i' }}">{{ e.created_at|timesince }} {% trans "ago" %}</td>
+            <td>
+              <a href="{% url 'quotation:quotation_detail' e.quotation.pk %}" class="text-decoration-none fw-semibold">
+                {{ e.quotation.reference }}
+              </a>
+              <span class="text-muted small d-block">{{ e.quotation.customer_name|default:'—' }}</span>
+            </td>
+            <td><code>{{ e.template_key }}</code></td>
+            <td class="text-muted">
+              {% if e.generated_by %}{{ e.generated_by.get_full_name|default:e.generated_by.username }}{% else %}—{% endif %}
+            </td>
+            <td class="text-end pe-3">
+              {% if e.file %}
+                <a href="{% url 'quotation:pdf_download' e.pk %}" class="btn btn-sm btn-outline-secondary"
+                   style="font-size:.7rem;padding:.15rem .55rem;">
+                  <i class="bi bi-download me-1"></i>{% trans "Download" %}
+                </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="text-muted small">{% trans "No PDFs generated yet." %}</div>
+    {% endif %}
+
+  </div>
+</section>
+
+{# ── Recent activity ── #}
+<section class="card psp-settings-card mb-4" id="cc-activity">
+  <div class="card-header psp-settings-card-header d-flex align-items-center justify-content-between">
+    <span><i class="bi bi-clock-history me-2" style="color:var(--psp-purple);"></i>{% trans "Recent system activity" %}</span>
+    <span class="d-flex gap-2">
+      <a href="{% url 'system_tools:audit_log_csv' %}" class="btn btn-sm btn-outline-secondary"
+         style="font-size:.72rem;padding:.2rem .6rem;"
+         title="{% trans 'Export the full audit log as CSV (current filters apply when triggered from the audit page)' %}">
+        <i class="bi bi-download me-1"></i>{% trans "Export CSV" %}
+      </a>
+      <a href="{% url 'audit:audit_log_list' %}" class="btn btn-sm btn-outline-secondary"
+         style="font-size:.72rem;padding:.2rem .6rem;">
+        <i class="bi bi-journal-text me-1"></i>{% trans "Audit log" %}
+      </a>
+    </span>
+  </div>
+  <div class="card-body p-0">
+    {% if recent_activity %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 small">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3">{% trans "When" %}</th>
+            <th>{% trans "User" %}</th>
+            <th>{% trans "Module" %}</th>
+            <th>{% trans "Action" %}</th>
+            <th>{% trans "Description" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in recent_activity %}
+          <tr>
+            <td class="ps-3 text-muted text-nowrap" title="{{ r.created_at|date:'d M Y H:i' }}">{{ r.created_at|timesince }} {% trans "ago" %}</td>
+            <td class="text-nowrap">{{ r.user }}</td>
+            <td>
+              <span class="badge text-bg-{% if r.module == 'users' %}primary{% elif r.module == 'paints' %}success{% elif r.module == 'quotation' %}info{% else %}secondary{% endif %}">
+                {{ r.module|capfirst }}
+              </span>
+            </td>
+            <td>
+              <a href="{{ r.url }}" class="text-decoration-none">
+                <code class="text-dark">{{ r.action }}</code>
+              </a>
+            </td>
+            <td class="text-muted">{{ r.description|truncatechars:90|default:'—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="psp-empty">
+        <div class="psp-empty-icon"><i class="bi bi-clock-history"></i></div>
+        <div class="psp-empty-title">{% trans "No activity recorded yet" %}</div>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<p class="text-center small mb-4" style="color:var(--psp-text-muted);">
+  <i class="bi bi-shield-lock me-1"></i>{% trans "Read-only diagnostics. No data is modified by this page." %}
+</p>
+
+{% endblock %}
