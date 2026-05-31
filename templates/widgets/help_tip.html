@@ -1,0 +1,18 @@
+{% comment %}
+Inline contextual help tip.
+
+Usage:
+  {% include "widgets/help_tip.html" with text="Quick explanation goes here." %}
+  Optionally: title="Section title"
+
+Renders a small (i) icon. Hover/focus shows a Bootstrap tooltip.
+Tooltips are auto-initialised in base.html.
+{% endcomment %}
+<span class="psp-help-tip"
+      tabindex="0"
+      data-bs-toggle="tooltip"
+      data-bs-placement="{{ placement|default:'top' }}"
+      data-bs-html="true"
+      title="{% if title %}<strong>{{ title }}</strong><br>{% endif %}{{ text }}">
+  <i class="bi bi-info-circle"></i>
+</span>

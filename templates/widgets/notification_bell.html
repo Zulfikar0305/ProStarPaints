@@ -1,0 +1,83 @@
+{% comment %}
+Notification bell + dropdown.
+Reads `notifications` from context processor.
+{% endcomment %}
+{% load i18n %}
+{% if user.is_authenticated %}
+<div class="psp-notify" id="pspNotify">
+  <button class="psp-icon-btn psp-notify-btn" type="button"
+          id="pspNotifyBtn"
+          aria-haspopup="true"
+          aria-expanded="false"
+          aria-controls="pspNotifyPanel"
+          title="{% trans 'Notifications' %}">
+    <i class="bi bi-bell"></i>
+    {% if notifications.count %}
+      {% with warn=notifications.by_severity.warning|default:0 %}
+        <span class="psp-notify-badge psp-notify-badge--{% if warn %}warning{% else %}info{% endif %}">
+          {% if notifications.count > 9 %}9+{% else %}{{ notifications.count }}{% endif %}
+        </span>
+      {% endwith %}
+    {% endif %}
+  </button>
+
+  <div class="psp-notify-panel" id="pspNotifyPanel" role="menu" aria-hidden="true">
+
+    <div class="psp-notify-header">
+      <div>
+        <div class="psp-notify-title">
+          {% if notifications.scope == 'admin' %}{% trans "Things to look at" %}{% else %}{% trans "Your inbox" %}{% endif %}
+        </div>
+        <div class="psp-notify-sub">
+          {% if notifications.count %}
+            {% blocktrans count counter=notifications.count %}{{ counter }} item needs your attention.{% plural %}{{ counter }} items need your attention.{% endblocktrans %}
+          {% else %}
+            {% trans "All clear — nothing needs attention." %}
+          {% endif %}
+        </div>
+      </div>
+      <span class="psp-notify-scope">{% if notifications.scope == 'admin' %}{% trans "system" %}{% else %}{% trans "you" %}{% endif %}</span>
+    </div>
+
+    <div class="psp-notify-body">
+      {% if notifications.items %}
+        <ul class="psp-notify-list">
+          {% for n in notifications.items %}
+            <li>
+              {% if n.url %}<a href="{{ n.url }}" class="psp-notify-item psp-notify-item--{{ n.severity }}">{% else %}<div class="psp-notify-item psp-notify-item--{{ n.severity }}">{% endif %}
+                <span class="psp-notify-icon"><i class="bi {{ n.icon }}"></i></span>
+                <div class="psp-notify-meta">
+                  <div class="psp-notify-item-title">{{ n.title }}</div>
+                  <div class="psp-notify-item-desc">{{ n.description }}</div>
+                  {% if n.timestamp %}<div class="psp-notify-item-time">{{ n.timestamp|timesince }} {% trans "ago" %}</div>{% endif %}
+                </div>
+                {% if n.url %}<i class="bi bi-chevron-right psp-notify-chev"></i>{% endif %}
+              {% if n.url %}</a>{% else %}</div>{% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="psp-notify-empty">
+          <div class="psp-notify-empty-icon"><i class="bi bi-check2-circle"></i></div>
+          <div class="psp-notify-empty-title">{% trans "You're all caught up" %}</div>
+          <div class="psp-notify-empty-text">
+            {% if notifications.scope == 'admin' %}
+              {% trans "When the system needs attention — failed PDFs, missing prices, stale drafts — alerts will land here." %}
+            {% else %}
+              {% trans "Items needing your attention — draft quotes, failed exports, profile gaps — will appear here." %}
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="psp-notify-footer">
+      {% if notifications.scope == 'admin' %}
+        <a href="{% url 'audit:audit_log_list' %}">{% trans "View full audit log" %} <i class="bi bi-arrow-right"></i></a>
+      {% else %}
+        <a href="{% url 'dashboard:dashboard' %}">{% trans "Open dashboard" %} <i class="bi bi-arrow-right"></i></a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}

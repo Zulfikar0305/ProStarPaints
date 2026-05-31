@@ -3,7 +3,16 @@
 
 {% block title %}System Settings — ProStar Paints{% endblock %}
 
+{% block breadcrumbs %}
+  {% trans "System Settings" as bc_current %}
+  {% include "widgets/breadcrumbs.html" with current=bc_current %}
+{% endblock %}
+
 {% block content %}
+
+{% trans "Admin-only global settings" as ph_title %}
+{% trans "Configure business-wide values like the VAT rate. Changes affect every user and every new quotation." as ph_text %}
+{% include "widgets/page_help.html" with title=ph_title text=ph_text icon="bi-sliders" tone="amber" %}
 <div class="d-flex align-items-center mb-4 gap-3">
   <a href="{% url 'system_tools:dashboard' %}" class="btn btn-sm btn-outline-secondary">
     <i class="bi bi-arrow-left"></i>

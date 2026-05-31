@@ -1,0 +1,14 @@
+{% comment %}
+Page-help card.
+
+Usage:
+  {% include "widgets/page_help.html" with title="What can I do here?" text="..." %}
+  Optional: icon="bi-question-circle" tone="purple" (purple|green|blue|amber)
+{% endcomment %}
+<div class="psp-page-help psp-page-help--{{ tone|default:'purple' }}">
+  <div class="psp-page-help-icon"><i class="bi {{ icon|default:'bi-info-circle-fill' }}"></i></div>
+  <div class="psp-page-help-body">
+    {% if title %}<div class="psp-page-help-title">{{ title }}</div>{% endif %}
+    <div class="psp-page-help-text">{{ text }}</div>
+  </div>
+</div>

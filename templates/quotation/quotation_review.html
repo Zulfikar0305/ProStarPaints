@@ -3,23 +3,15 @@
 
 {% block title %}Review — {{ quotation.reference }} — ProStar Paints{% endblock %}
 
-{% block content %}
+{% block breadcrumbs %}
+  {% trans "Quotations" as bc_quotes %}
+  {% trans "Review" as bc_current %}
+  {% url 'quotation:quotation_list' as bc_quotes_url %}
+  {% url 'quotation:quotation_detail' quotation.pk as bc_q_url %}
+  {% include "widgets/breadcrumbs.html" with grandparent_label=bc_quotes grandparent_url=bc_quotes_url parent_label=quotation.reference parent_url=bc_q_url current=bc_current %}
+{% endblock %}
 
-<!-- Breadcrumb -->
-<nav aria-label="breadcrumb" class="mb-3">
-  <ol class="breadcrumb mb-0 small">
-    <li class="breadcrumb-item">
-      <a href="{% url 'quotation:quotation_list' %}" class="text-decoration-none">{% trans "Quotations" %}</a>
-    </li>
-    <li class="breadcrumb-item">
-      <a href="{% url 'quotation:quotation_detail' quotation.pk %}" class="text-decoration-none">{{ quotation.reference }}</a>
-    </li>
-    <li class="breadcrumb-item">
-      <a href="{% url 'quotation:quotation_builder' quotation.pk %}" class="text-decoration-none">{% trans "Builder" %}</a>
-    </li>
-    <li class="breadcrumb-item active" aria-current="page">{% trans "Review" %}</li>
-  </ol>
-</nav>
+{% block content %}
 
 <!-- Page header -->
 <div class="d-flex align-items-start justify-content-between mb-4 gap-2 flex-wrap">

@@ -1,0 +1,18 @@
+{% comment %}
+Quick-action tile.
+
+Usage:
+  {% include "widgets/quick_action.html" with url="..." icon="bi-plus-lg" title="New Quotation" sub="Start a draft" tone="purple" badge=5 %}
+
+Tones: purple, green, blue, amber.
+{% endcomment %}
+<a href="{{ url }}" class="psp-quick-action">
+  <div class="psp-quick-action-icon psp-quick-action-icon--{{ tone|default:'purple' }}"><i class="bi {{ icon }}"></i></div>
+  <div>
+    <div class="psp-quick-action-title">
+      {{ title }}
+      {% if badge %}<span class="badge text-bg-light text-dark ms-1" style="font-size:.65rem;">{{ badge }}</span>{% endif %}
+    </div>
+    {% if sub %}<div class="psp-quick-action-sub">{{ sub }}</div>{% endif %}
+  </div>
+</a>

@@ -1,0 +1,164 @@
+{% comment %}
+Global Help Center drawer (Bootstrap offcanvas).
+Role-aware: admin-only sections gated by `user.is_superuser or user.role == "ADMIN"`.
+Trigger via the topbar Help button (toggles offcanvas with id="pspHelpDrawer").
+{% endcomment %}
+{% load i18n %}
+{% if user.is_authenticated %}
+{% with is_admin=user.is_superuser %}
+<div class="offcanvas offcanvas-end psp-help-drawer"
+     tabindex="-1"
+     id="pspHelpDrawer"
+     aria-labelledby="pspHelpDrawerLabel">
+  <div class="offcanvas-header psp-help-drawer-header">
+    <div class="d-flex align-items-center gap-2">
+      <span class="psp-help-drawer-badge"><i class="bi bi-life-preserver"></i></span>
+      <div>
+        <h5 class="offcanvas-title mb-0" id="pspHelpDrawerLabel">{% trans "Help Center" %}</h5>
+        <div class="text-muted" style="font-size:.75rem;">{% trans "What every page does, in plain English." %}</div>
+      </div>
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="{% trans 'Close' %}"></button>
+  </div>
+
+  <div class="offcanvas-body psp-help-drawer-body">
+
+    <div class="psp-help-search-wrap">
+      <i class="bi bi-search"></i>
+      <input type="text" class="psp-help-search" id="pspHelpSearch"
+             placeholder="{% trans 'Search help topics…' %}" autocomplete="off">
+    </div>
+
+    <ul class="psp-help-topics" id="pspHelpTopics">
+
+      <li class="psp-help-topic" data-keywords="dashboard home overview kpi activity">
+        <div class="psp-help-topic-head">
+          <span class="psp-help-topic-icon"><i class="bi bi-speedometer2"></i></span>
+          <span class="psp-help-topic-title">{% trans "Dashboard" %}</span>
+        </div>
+        <p>{% trans "Your command center. Track recent activity, continue drafts, and jump into common actions with one click. Use the period filter to scope KPIs." %}</p>
+        <div class="psp-help-topic-actions">
+          <a href="{% url 'dashboard:dashboard' %}" data-bs-dismiss="offcanvas">{% trans "Open Dashboard" %} <i class="bi bi-arrow-right"></i></a>
+        </div>
+      </li>
+
+      <li class="psp-help-topic" data-keywords="quotations list drafts completed">
+        <div class="psp-help-topic-head">
+          <span class="psp-help-topic-icon"><i class="bi bi-file-earmark-text"></i></span>
+          <span class="psp-help-topic-title">{% trans "Quotations" %}</span>
+        </div>
+        <p>{% trans "Browse, filter and search every quotation. Drafts can be reopened in the builder. Completed quotes can be re-exported as PDFs at any time." %}</p>
+        <div class="psp-help-topic-actions">
+          <a href="{% url 'quotation:quotation_list' %}" data-bs-dismiss="offcanvas">{% trans "View quotations" %} <i class="bi bi-arrow-right"></i></a>
+          <a href="{% url 'quotation:quotation_start' %}" data-bs-dismiss="offcanvas">{% trans "Start a new quotation" %} <i class="bi bi-plus-lg"></i></a>
+        </div>
+      </li>
+
+      <li class="psp-help-topic" data-keywords="builder sections surfaces configure interior exterior">
+        <div class="psp-help-topic-head">
+          <span class="psp-help-topic-icon"><i class="bi bi-grid-3x3-gap"></i></span>
+          <span class="psp-help-topic-title">{% trans "Quotation Builder" %}</span>
+        </div>
+        <p>{% trans "Configure each selected surface (interior, exterior or custom). The summary panel updates as sections are saved. Move to Review when every section is configured." %}</p>
+      </li>
+
+      <li class="psp-help-topic" data-keywords="review readiness summary progress">
+        <div class="psp-help-topic-head">
+          <span class="psp-help-topic-icon"><i class="bi bi-clipboard-check"></i></span>
+          <span class="psp-help-topic-title">{% trans "Review" %}</span>
+        </div>
+        <p>{% trans "Final check before generating a PDF. The readiness hero tells you how many sections are configured. Once you're happy, hit Generate PDF." %}</p>
+      </li>
+
+      <li class="psp-help-topic" data-keywords="pdf template gallery generate export">
+        <div class="psp-help-topic-head">
+          <span class="psp-help-topic-icon"><i class="bi bi-file-earmark-pdf"></i></span>
+          <span class="psp-help-topic-title">{% trans "PDF Templates" %}</span>
+        </div>
+        <p>{% trans "Pick how the customer-facing document is laid out. Templates differ in style, not data. You can regenerate with a different template at any time from the quotation detail page." %}</p>
+      </li>
+
+      {% if is_admin or user.role == "ADMIN" %}
+      <li class="psp-help-topic" data-keywords="paints catalogue products materials prices">
+        <div class="psp-help-topic-head">
+          <span class="psp-help-topic-icon"><i class="bi bi-palette"></i></span>
+          <span class="psp-help-topic-title">{% trans "Paints" %}</span>
+          <span class="psp-help-topic-pill">{% trans "Admin" %}</span>
+        </div>
+        <p>{% trans "Manage the paint catalogue your reps select from. Deactivate items instead of deleting to preserve history on existing quotations." %}</p>
+        <div class="psp-help-topic-actions">
+          <a href="{% url 'paints:paint_list' %}" data-bs-dismiss="offcanvas">{% trans "Manage paints" %} <i class="bi bi-arrow-right"></i></a>
+        </div>
+      </li>
+
+      <li class="psp-help-topic" data-keywords="users team reps admins invite roles">
+        <div class="psp-help-topic-head">
+          <span class="psp-help-topic-icon"><i class="bi bi-people"></i></span>
+          <span class="psp-help-topic-title">{% trans "Users" %}</span>
+          <span class="psp-help-topic-pill">{% trans "Admin" %}</span>
+        </div>
+        <p>{% trans "Add reps and admins, assign roles, deactivate accounts when teammates leave. Active accounts retain history; deactivation simply removes their ability to sign in." %}</p>
+        <div class="psp-help-topic-actions">
+          <a href="{% url 'users:user_list' %}" data-bs-dismiss="offcanvas">{% trans "Manage users" %} <i class="bi bi-arrow-right"></i></a>
+        </div>
+      </li>
+      {% endif %}
+
+      <li class="psp-help-topic" data-keywords="profile account name email avatar password">
+        <div class="psp-help-topic-head">
+          <span class="psp-help-topic-icon"><i class="bi bi-person-circle"></i></span>
+          <span class="psp-help-topic-title">{% trans "Profile" %}</span>
+        </div>
+        <p>{% trans "Keep your name, email and photo up to date — these appear on quotations and audit logs you generate." %}</p>
+        <div class="psp-help-topic-actions">
+          <a href="{% url 'users:profile' %}" data-bs-dismiss="offcanvas">{% trans "Open profile" %} <i class="bi bi-arrow-right"></i></a>
+        </div>
+      </li>
+
+      <li class="psp-help-topic" data-keywords="app settings theme density accent motion preferences">
+        <div class="psp-help-topic-head">
+          <span class="psp-help-topic-icon"><i class="bi bi-gear"></i></span>
+          <span class="psp-help-topic-title">{% trans "App Settings" %}</span>
+        </div>
+        <p>{% trans "Personalise the experience: switch theme, table density, accent style, or reduce motion for accessibility." %}</p>
+        <div class="psp-help-topic-actions">
+          <a href="{% url 'users:app_settings' %}" data-bs-dismiss="offcanvas">{% trans "Open app settings" %} <i class="bi bi-arrow-right"></i></a>
+        </div>
+      </li>
+
+      {% if is_admin or user.role == "ADMIN" %}
+      <li class="psp-help-topic" data-keywords="system settings vat global admin">
+        <div class="psp-help-topic-head">
+          <span class="psp-help-topic-icon"><i class="bi bi-sliders"></i></span>
+          <span class="psp-help-topic-title">{% trans "System Settings" %}</span>
+          <span class="psp-help-topic-pill">{% trans "Admin" %}</span>
+        </div>
+        <p>{% trans "Global, business-wide configuration — the VAT rate and other application-level switches that affect every user." %}</p>
+        <div class="psp-help-topic-actions">
+          <a href="{% url 'system_tools:system_settings' %}" data-bs-dismiss="offcanvas">{% trans "Open system settings" %} <i class="bi bi-arrow-right"></i></a>
+        </div>
+      </li>
+      {% endif %}
+
+    </ul>
+
+    <div class="psp-help-empty" id="pspHelpEmpty" hidden>
+      <i class="bi bi-search"></i>
+      <div>{% trans "No topics match that search." %}</div>
+    </div>
+
+    <div class="psp-help-shortcuts">
+      <div class="psp-help-shortcuts-title">{% trans "Keyboard shortcuts" %}</div>
+      <ul>
+        <li><kbd>Ctrl</kbd> + <kbd>K</kbd> <span>{% trans "Open quick actions" %}</span></li>
+        <li><kbd>N</kbd> <span>{% trans "New quotation" %}</span></li>
+        <li><kbd>D</kbd> <span>{% trans "Dashboard" %}</span></li>
+        <li><kbd>Esc</kbd> <span>{% trans "Close modals" %}</span></li>
+      </ul>
+      <div class="psp-help-shortcuts-note">{% trans "Single-key shortcuts are disabled while typing in a form." %}</div>
+    </div>
+
+  </div>
+</div>
+{% endwith %}
+{% endif %}

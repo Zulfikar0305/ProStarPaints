@@ -1,0 +1,39 @@
+{% comment %}
+Draft quotations list widget.
+
+Usage:
+  {% include "widgets/draft_quotations.html" with items=recent_draft_quotations title="Recent Drafts" show_owner=True %}
+{% endcomment %}
+{% load i18n %}
+<div class="card h-100">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <span class="fw-semibold" style="font-size:.9rem;">
+      <i class="bi bi-file-earmark-text me-2 text-warning"></i>{{ title|default:_("Recent Drafts") }}
+    </span>
+    <a href="{% url 'quotation:quotation_list' %}?status=DRAFT" class="small text-decoration-none">{% trans "View all" %} <i class="bi bi-arrow-right"></i></a>
+  </div>
+  <div class="card-body p-0">
+    {% if items %}
+      <ul class="psp-recent-list">
+        {% for q in items %}
+          <li>
+            <a href="{% url 'quotation:quotation_builder' q.pk %}" class="psp-recent-item">
+              <div class="psp-recent-item-icon"><i class="bi bi-pencil-square"></i></div>
+              <div class="psp-recent-item-meta">
+                <div class="psp-recent-item-title">{{ q.customer_name|default:q.reference }}</div>
+                <div class="psp-recent-item-sub">
+                  {{ q.reference }} &middot;
+                  {% if show_owner and q.created_by %}{{ q.created_by.get_full_name|default:q.created_by.username }} &middot; {% endif %}
+                  {{ q.updated_at|timesince }} {% trans "ago" %}
+                </div>
+              </div>
+              <span class="badge text-bg-warning text-dark">{% trans "Draft" %}</span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      {% include "widgets/empty_state.html" with icon="bi-file-earmark-plus" title=_("No draft quotations yet") text=_("Start a quotation to see drafts here.") action_url="/quotations/start/" action_label=_("New Quotation") action_icon="bi-plus-lg" %}
+    {% endif %}
+  </div>
+</div>

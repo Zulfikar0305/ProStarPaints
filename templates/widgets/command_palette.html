@@ -1,0 +1,112 @@
+{% comment %}
+Command palette modal — Ctrl/Cmd+K.
+
+Role-aware: admins see all admin actions, reps see rep actions.
+Pure client-side; actions are static <a> links to existing URLs.
+Includes a small live filter and keyboard navigation.
+{% endcomment %}
+{% load i18n %}
+{% if user.is_authenticated %}
+{% with is_admin=user.is_superuser %}
+<div class="psp-palette" id="pspPalette" role="dialog" aria-modal="true" aria-labelledby="pspPaletteLabel" aria-hidden="true">
+  <div class="psp-palette-backdrop" data-palette-close></div>
+  <div class="psp-palette-panel" role="document">
+
+    <div class="psp-palette-search">
+      <i class="bi bi-search"></i>
+      <input type="text"
+             id="pspPaletteInput"
+             class="psp-palette-input"
+             placeholder="{% trans 'Type to search actions…' %}"
+             autocomplete="off"
+             spellcheck="false"
+             aria-label="{% trans 'Search actions' %}">
+      <kbd class="psp-palette-kbd">esc</kbd>
+    </div>
+
+    <div class="psp-palette-body" id="pspPaletteBody">
+      <ul class="psp-palette-list" id="pspPaletteList" role="listbox" aria-label="{% trans 'Quick actions' %}">
+
+        <li class="psp-palette-group">{% trans "Navigation" %}</li>
+
+        <li><a href="{% url 'dashboard:dashboard' %}" class="psp-palette-item" data-keywords="dashboard home">
+          <span class="psp-palette-item-icon"><i class="bi bi-speedometer2"></i></span>
+          <span class="psp-palette-item-label">{% trans "Dashboard" %}</span>
+          <kbd class="psp-palette-shortcut">D</kbd>
+        </a></li>
+
+        <li><a href="{% url 'quotation:quotation_list' %}" class="psp-palette-item" data-keywords="quotations list quotes">
+          <span class="psp-palette-item-icon"><i class="bi bi-file-earmark-text"></i></span>
+          <span class="psp-palette-item-label">
+            {% if is_admin or user.role == "ADMIN" %}{% trans "Quotations" %}{% else %}{% trans "My Quotations" %}{% endif %}
+          </span>
+        </a></li>
+
+        {% if is_admin or user.role == "ADMIN" %}
+          <li><a href="{% url 'paints:paint_list' %}" class="psp-palette-item" data-keywords="paints catalogue products">
+            <span class="psp-palette-item-icon"><i class="bi bi-palette"></i></span>
+            <span class="psp-palette-item-label">{% trans "Paints" %}</span>
+          </a></li>
+          <li><a href="{% url 'users:user_list' %}" class="psp-palette-item" data-keywords="users team reps admins">
+            <span class="psp-palette-item-icon"><i class="bi bi-people"></i></span>
+            <span class="psp-palette-item-label">{% trans "Users" %}</span>
+          </a></li>
+        {% endif %}
+
+        <li class="psp-palette-group">{% trans "Create" %}</li>
+
+        <li><a href="{% url 'quotation:quotation_start' %}" class="psp-palette-item" data-keywords="new quotation draft create">
+          <span class="psp-palette-item-icon" style="background:var(--psp-grad-purple);color:#fff;"><i class="bi bi-plus-lg"></i></span>
+          <span class="psp-palette-item-label">{% trans "New Quotation" %}</span>
+          <kbd class="psp-palette-shortcut">N</kbd>
+        </a></li>
+
+        {% if is_admin or user.role == "ADMIN" %}
+          <li class="psp-palette-group">{% trans "System" %}</li>
+
+          <li><a href="{% url 'system_tools:system_settings' %}" class="psp-palette-item" data-keywords="system settings config vat">
+            <span class="psp-palette-item-icon"><i class="bi bi-sliders"></i></span>
+            <span class="psp-palette-item-label">{% trans "System Settings" %}</span>
+          </a></li>
+          <li><a href="{% url 'system_tools:dashboard' %}" class="psp-palette-item" data-keywords="system tools maintenance">
+            <span class="psp-palette-item-icon"><i class="bi bi-tools"></i></span>
+            <span class="psp-palette-item-label">{% trans "System Tools" %}</span>
+          </a></li>
+          <li><a href="{% url 'audit:audit_log_list' %}" class="psp-palette-item" data-keywords="audit log history events">
+            <span class="psp-palette-item-icon"><i class="bi bi-journal-text"></i></span>
+            <span class="psp-palette-item-label">{% trans "Audit Log" %}</span>
+          </a></li>
+        {% endif %}
+
+        <li class="psp-palette-group">{% trans "Account" %}</li>
+
+        <li><a href="{% url 'users:profile' %}" class="psp-palette-item" data-keywords="profile account me">
+          <span class="psp-palette-item-icon"><i class="bi bi-person-circle"></i></span>
+          <span class="psp-palette-item-label">{% trans "Profile" %}</span>
+        </a></li>
+        <li><a href="{% url 'users:app_settings' %}" class="psp-palette-item" data-keywords="app settings preferences theme density">
+          <span class="psp-palette-item-icon"><i class="bi bi-gear"></i></span>
+          <span class="psp-palette-item-label">{% trans "App Settings" %}</span>
+        </a></li>
+
+      </ul>
+
+      <div class="psp-palette-empty" id="pspPaletteEmpty" hidden>
+        <i class="bi bi-search"></i>
+        <div>{% trans "No actions match that search." %}</div>
+      </div>
+    </div>
+
+    <div class="psp-palette-footer">
+      <span><kbd>↑</kbd><kbd>↓</kbd> {% trans "navigate" %}</span>
+      <span><kbd>↵</kbd> {% trans "open" %}</span>
+      <span><kbd>esc</kbd> {% trans "close" %}</span>
+      <span class="ms-auto">
+        <kbd>{% if request.META.HTTP_USER_AGENT|lower|slice:":3" == "mac" %}⌘{% else %}Ctrl{% endif %}</kbd>+<kbd>K</kbd>
+      </span>
+    </div>
+
+  </div>
+</div>
+{% endwith %}
+{% endif %}

@@ -1,0 +1,31 @@
+{% comment %}
+Breadcrumb partial — flat-param style for shallow nav.
+
+Usage:
+  {% include "widgets/breadcrumbs.html" with current="Quotations" %}
+  {% include "widgets/breadcrumbs.html" with parent_label="Quotations" parent_url="..." current="New" %}
+
+Home (Dashboard) is auto-prepended.
+{% endcomment %}
+{% load i18n %}
+<nav class="psp-breadcrumb" aria-label="breadcrumb">
+  <ol>
+    <li>
+      <a href="{% url 'dashboard:dashboard' %}" title="{% trans 'Dashboard' %}">
+        <i class="bi bi-house-door-fill"></i>
+      </a>
+    </li>
+    {% if grandparent_label %}
+      <li class="psp-breadcrumb-sep" aria-hidden="true"><i class="bi bi-chevron-right"></i></li>
+      <li>{% if grandparent_url %}<a href="{{ grandparent_url }}">{{ grandparent_label }}</a>{% else %}{{ grandparent_label }}{% endif %}</li>
+    {% endif %}
+    {% if parent_label %}
+      <li class="psp-breadcrumb-sep" aria-hidden="true"><i class="bi bi-chevron-right"></i></li>
+      <li>{% if parent_url %}<a href="{{ parent_url }}">{{ parent_label }}</a>{% else %}{{ parent_label }}{% endif %}</li>
+    {% endif %}
+    {% if current %}
+      <li class="psp-breadcrumb-sep" aria-hidden="true"><i class="bi bi-chevron-right"></i></li>
+      <li class="psp-breadcrumb-current" aria-current="page">{{ current }}</li>
+    {% endif %}
+  </ol>
+</nav>

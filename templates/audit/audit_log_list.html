@@ -116,11 +116,17 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="6" class="text-center text-muted py-5">
-                <i class="bi bi-inbox fs-4 d-block mb-2"></i>
-                {% trans "No audit log entries found." %}
+              <td colspan="6" class="p-0">
                 {% if q or current_module or date_from or date_to %}
-                  <br><a href="{% url 'audit:audit_log_list' %}" class="text-decoration-none">{% trans "Clear filters" %}</a>
+                  {% trans "No audit log entries match your filters" as es_title %}
+                  {% trans "Try clearing the search or widening the date range." as es_text %}
+                  {% trans "Clear filters" as es_action %}
+                  {% url 'audit:audit_log_list' as es_url %}
+                  {% include "widgets/empty_state.html" with icon="bi-funnel" title=es_title text=es_text action_url=es_url action_label=es_action action_icon="bi-x-lg" %}
+                {% else %}
+                  {% trans "No audit events recorded yet" as es_title %}
+                  {% trans "As users sign in and act inside the app, every meaningful event will stream into this log automatically." as es_text %}
+                  {% include "widgets/empty_state.html" with icon="bi-journal-text" title=es_title text=es_text %}
                 {% endif %}
               </td>
             </tr>

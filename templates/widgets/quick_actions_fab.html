@@ -1,0 +1,53 @@
+{% comment %}
+Floating Quick Actions FAB. Renders globally from base.html for authenticated users.
+Role-aware: superuser/admin see admin shortcuts, reps see rep shortcuts.
+{% endcomment %}
+{% load i18n %}
+{% if user.is_authenticated %}
+<div class="psp-fab" id="pspFab">
+  <div class="psp-fab-menu" id="pspFabMenu" role="menu" aria-hidden="true">
+    <a href="{% url 'quotation:quotation_start' %}" class="psp-fab-item" role="menuitem">
+      <span class="psp-fab-item-icon" style="background:var(--psp-grad-purple);"><i class="bi bi-plus-lg"></i></span>
+      <span class="psp-fab-item-label">{% trans "New Quotation" %}</span>
+    </a>
+    {% if user.is_superuser or user.role == "ADMIN" %}
+      <a href="{% url 'paints:paint_list' %}" class="psp-fab-item" role="menuitem">
+        <span class="psp-fab-item-icon" style="background:var(--psp-grad-green);"><i class="bi bi-palette"></i></span>
+        <span class="psp-fab-item-label">{% trans "Manage Paints" %}</span>
+      </a>
+      <a href="{% url 'users:user_list' %}" class="psp-fab-item" role="menuitem">
+        <span class="psp-fab-item-icon" style="background:var(--psp-grad-blue);"><i class="bi bi-people"></i></span>
+        <span class="psp-fab-item-label">{% trans "Manage Users" %}</span>
+      </a>
+      <a href="{% url 'system_tools:system_settings' %}" class="psp-fab-item" role="menuitem">
+        <span class="psp-fab-item-icon" style="background:var(--psp-grad-amber);"><i class="bi bi-sliders"></i></span>
+        <span class="psp-fab-item-label">{% trans "System Settings" %}</span>
+      </a>
+    {% else %}
+      <a href="{% url 'quotation:quotation_list' %}?status=DRAFT" class="psp-fab-item" role="menuitem">
+        <span class="psp-fab-item-icon" style="background:var(--psp-grad-amber);"><i class="bi bi-pencil-square"></i></span>
+        <span class="psp-fab-item-label">{% trans "My Drafts" %}</span>
+      </a>
+      <a href="{% url 'users:profile' %}" class="psp-fab-item" role="menuitem">
+        <span class="psp-fab-item-icon" style="background:var(--psp-grad-blue);"><i class="bi bi-person-circle"></i></span>
+        <span class="psp-fab-item-label">{% trans "Profile" %}</span>
+      </a>
+      <a href="{% url 'users:app_settings' %}" class="psp-fab-item" role="menuitem">
+        <span class="psp-fab-item-icon" style="background:var(--psp-grad-green);"><i class="bi bi-gear"></i></span>
+        <span class="psp-fab-item-label">{% trans "App Settings" %}</span>
+      </a>
+    {% endif %}
+  </div>
+  <button type="button"
+          class="psp-fab-btn"
+          id="pspFabBtn"
+          aria-label="{% trans 'Quick actions' %}"
+          aria-expanded="false"
+          aria-controls="pspFabMenu"
+          data-bs-toggle="tooltip"
+          data-bs-placement="left"
+          title="{% trans 'Quick actions' %}">
+    <i class="bi bi-plus-lg psp-fab-btn-icon"></i>
+  </button>
+</div>
+{% endif %}

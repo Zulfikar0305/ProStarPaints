@@ -17,6 +17,7 @@
   <div>
     <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">
       {% if is_admin %}{% trans "Platform Dashboard" %}{% else %}{% trans "My Dashboard" %}{% endif %}
+      {% include "widgets/help_tip.html" with text="Switch the period filter to scope KPIs to this month or the last 30 days." %}
     </h4>
     <p class="text-muted mb-0 mt-1" style="font-size:.82rem;">
       {% if is_admin %}
@@ -43,6 +44,14 @@
     </a>
   </div>
 </div>
+
+{% if onboarding and not onboarding.complete %}
+  <div id="pspOnboardingWrap" data-onboarding-key="psp-onboarding-{{ onboarding.role }}-{{ user.pk }}">
+    {% include "widgets/onboarding_checklist.html" %}
+  </div>
+{% endif %}
+
+{% include "widgets/data_quality.html" %}
 
 
 {% if is_admin %}

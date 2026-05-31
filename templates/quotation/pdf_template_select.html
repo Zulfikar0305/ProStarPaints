@@ -3,23 +3,19 @@
 
 {% block title %}{% trans "Choose PDF Template" %} — {{ quotation.reference }} — ProStar Paints{% endblock %}
 
+{% block breadcrumbs %}
+  {% trans "Quotations" as bc_quotes %}
+  {% trans "Generate PDF" as bc_current %}
+  {% url 'quotation:quotation_list' as bc_quotes_url %}
+  {% url 'quotation:quotation_detail' quotation.pk as bc_q_url %}
+  {% include "widgets/breadcrumbs.html" with grandparent_label=bc_quotes grandparent_url=bc_quotes_url parent_label=quotation.reference parent_url=bc_q_url current=bc_current %}
+{% endblock %}
+
 {% block content %}
 
-<!-- Breadcrumb -->
-<nav aria-label="breadcrumb" class="mb-3">
-  <ol class="breadcrumb mb-0 small">
-    <li class="breadcrumb-item">
-      <a href="{% url 'quotation:quotation_list' %}" class="text-decoration-none">{% trans "Quotations" %}</a>
-    </li>
-    <li class="breadcrumb-item">
-      <a href="{% url 'quotation:quotation_detail' quotation.pk %}" class="text-decoration-none">{{ quotation.reference }}</a>
-    </li>
-    <li class="breadcrumb-item">
-      <a href="{% url 'quotation:quotation_review' quotation.pk %}" class="text-decoration-none">{% trans "Review" %}</a>
-    </li>
-    <li class="breadcrumb-item active" aria-current="page">{% trans "Generate PDF" %}</li>
-  </ol>
-</nav>
+{% trans "PDF templates" as ph_title %}
+{% trans "Pick how the customer-facing document is laid out. Templates differ in style, not data — you can regenerate with a different one anytime." as ph_text %}
+{% include "widgets/page_help.html" with title=ph_title text=ph_text icon="bi-file-earmark-pdf" tone="green" %}
 
 <!-- Header -->
 <div class="d-flex align-items-start justify-content-between mb-3 gap-2 flex-wrap">
@@ -71,6 +67,7 @@
 
 <h6 class="fw-semibold mb-3" style="font-size:.78rem;color:var(--psp-text-soft);text-transform:uppercase;letter-spacing:.06em;">
   <i class="bi bi-grid-3x3-gap-fill me-1"></i>{% trans "Template gallery" %}
+  {% include "widgets/help_tip.html" with text="Each template produces the same data in a different layout. Pick one to generate a PDF — you can always re-generate with another." %}
 </h6>
 
 <div class="row g-4">
@@ -78,7 +75,7 @@
   <!-- ── Template cards ── -->
   {% for tpl in pdf_templates %}
   <div class="col-12 col-md-6 col-xl-4">
-    <form method="post" action="{% url 'quotation:pdf_generate' quotation.pk %}" class="h-100">
+    <form method="post" action="{% url 'quotation:pdf_generate' quotation.pk %}" class="h-100" data-psp-loading="true">
       {% csrf_token %}
       <input type="hidden" name="template_key" value="{{ tpl.key }}">
       <div class="card h-100 psp-pdf-tpl-card"
@@ -139,7 +136,8 @@
 
         <div class="card-footer bg-transparent border-0 pt-0 pb-3 px-4">
           <button type="submit" class="btn w-100 fw-semibold"
-                  style="background:{{ tpl.preview_color }};color:#fff;border:none;border-radius:10px;">
+                  style="background:{{ tpl.preview_color }};color:#fff;border:none;border-radius:10px;"
+                  data-loading-text="{% trans 'Generating PDF…' %}">
             <i class="bi bi-file-earmark-pdf-fill me-1"></i>{% trans "Generate this PDF" %}
           </button>
         </div>

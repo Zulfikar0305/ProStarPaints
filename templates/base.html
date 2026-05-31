@@ -1,4 +1,5 @@
 {% load static %}
+{% load i18n %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -182,9 +183,23 @@
         <input type="text" class="psp-search-input" placeholder="Search…">
       </div>
 
-      <button class="psp-icon-btn" type="button" title="Notifications">
-        <i class="bi bi-bell"></i>
+      <button class="psp-icon-btn psp-palette-trigger" type="button"
+              id="pspPaletteTrigger"
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              title="{% trans 'Quick actions (Ctrl+K)' %}">
+        <i class="bi bi-command"></i>
       </button>
+
+      <button class="psp-icon-btn psp-help-trigger" type="button"
+              data-bs-toggle="offcanvas"
+              data-bs-target="#pspHelpDrawer"
+              aria-controls="pspHelpDrawer"
+              title="{% trans 'Help Center' %}">
+        <i class="bi bi-question-circle"></i>
+      </button>
+
+      {% include "widgets/notification_bell.html" %}
 
       {% if user.is_authenticated %}
       <div class="psp-user-menu" id="pspUserMenu">
@@ -250,10 +265,15 @@
 
   <!-- ── Page content ─────────────────────────────────────────── -->
   <main class="psp-main">
+    {% block breadcrumbs %}{% endblock %}
     {% block content %}{% endblock %}
   </main>
 
 </div><!-- /.psp-content-area -->
+
+{% include "widgets/quick_actions_fab.html" %}
+{% include "widgets/command_palette.html" %}
+{% include "widgets/help_drawer.html" %}
 
 <!-- Bootstrap 5 JS bundle -->
 <script
@@ -280,6 +300,15 @@
   if (menuBtn && menuDrop) {
     menuBtn.addEventListener('click', function (e) {
       e.stopPropagation();
+      // Close notification bell if open
+      var notify = document.getElementById('pspNotify');
+      if (notify) {
+        notify.classList.remove('psp-notify--open');
+        var nb = document.getElementById('pspNotifyBtn');
+        var np = document.getElementById('pspNotifyPanel');
+        if (nb) nb.setAttribute('aria-expanded', 'false');
+        if (np) np.setAttribute('aria-hidden', 'true');
+      }
       var open = menuDrop.classList.toggle('show');
       menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
     });
@@ -289,6 +318,249 @@
     });
     menuDrop.addEventListener('click', function (e) { e.stopPropagation(); });
   }
+}());
+</script>
+
+<script>
+// ── Global tooltip init (Bootstrap 5) ──────────────────────────
+(function () {
+  if (!window.bootstrap || !bootstrap.Tooltip) return;
+  var triggers = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+  triggers.forEach(function (el) {
+    try { new bootstrap.Tooltip(el, { container: 'body' }); } catch (e) {}
+  });
+}());
+</script>
+
+<script>
+// ── Floating Quick Actions FAB ─────────────────────────────────
+(function () {
+  var fab    = document.getElementById('pspFab');
+  if (!fab) return;
+  var btn    = document.getElementById('pspFabBtn');
+  var menu   = document.getElementById('pspFabMenu');
+  function setOpen(open) {
+    fab.classList.toggle('psp-fab--open', open);
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    menu.setAttribute('aria-hidden', open ? 'false' : 'true');
+  }
+  btn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    setOpen(!fab.classList.contains('psp-fab--open'));
+  });
+  document.addEventListener('click', function (e) {
+    if (!fab.contains(e.target)) setOpen(false);
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') setOpen(false);
+  });
+}());
+</script>
+
+
+<script>
+// ── Form submit loading state ──────────────────────────────────
+(function () {
+  document.querySelectorAll('form[data-psp-loading="true"]').forEach(function (form) {
+    form.addEventListener('submit', function () {
+      var btn = form.querySelector('button[type="submit"], input[type="submit"]');
+      if (!btn || btn.disabled) return;
+      var label = btn.getAttribute('data-loading-text') || 'Working…';
+      btn.dataset.originalHtml = btn.innerHTML;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>' + label;
+      btn.disabled = true;
+      btn.classList.add('psp-btn-loading');
+    });
+  });
+}());
+</script>
+
+<script>
+// ── Command palette + global keyboard shortcuts ────────────────
+(function () {
+  var palette  = document.getElementById('pspPalette');
+  if (!palette) return;
+  var input    = document.getElementById('pspPaletteInput');
+  var list     = document.getElementById('pspPaletteList');
+  var empty    = document.getElementById('pspPaletteEmpty');
+  var trigger  = document.getElementById('pspPaletteTrigger');
+  var items    = Array.prototype.slice.call(list.querySelectorAll('.psp-palette-item'));
+  var groups   = Array.prototype.slice.call(list.querySelectorAll('.psp-palette-group'));
+  var activeIdx = 0;
+
+  function isTyping(target) {
+    if (!target) return false;
+    var tag = target.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable;
+  }
+
+  function setActive(idx) {
+    var visible = items.filter(function (el) { return !el.hidden; });
+    if (!visible.length) return;
+    if (idx < 0) idx = visible.length - 1;
+    if (idx >= visible.length) idx = 0;
+    visible.forEach(function (el, i) {
+      el.classList.toggle('is-active', i === idx);
+      if (i === idx) el.scrollIntoView({ block: 'nearest' });
+    });
+    activeIdx = idx;
+  }
+
+  function applyFilter() {
+    var q = (input.value || '').trim().toLowerCase();
+    var anyVisible = false;
+    items.forEach(function (el) {
+      if (!q) { el.hidden = false; anyVisible = true; return; }
+      var label = (el.querySelector('.psp-palette-item-label').textContent || '').toLowerCase();
+      var kw    = (el.getAttribute('data-keywords') || '').toLowerCase();
+      var match = label.indexOf(q) !== -1 || kw.indexOf(q) !== -1;
+      el.hidden = !match;
+      if (match) anyVisible = true;
+    });
+    // Hide group headers whose siblings all gone
+    groups.forEach(function (g) {
+      var sib = g.nextElementSibling;
+      var seen = false;
+      while (sib && !sib.classList.contains('psp-palette-group')) {
+        if (!sib.hidden) { seen = true; break; }
+        sib = sib.nextElementSibling;
+      }
+      g.hidden = !!q && !seen;
+    });
+    empty.hidden = anyVisible;
+    setActive(0);
+  }
+
+  function open() {
+    palette.classList.add('is-open');
+    palette.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('psp-palette-open');
+    input.value = '';
+    applyFilter();
+    setTimeout(function () { input.focus(); }, 30);
+  }
+  function close() {
+    palette.classList.remove('is-open');
+    palette.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('psp-palette-open');
+  }
+  function toggle() { palette.classList.contains('is-open') ? close() : open(); }
+
+  if (trigger) trigger.addEventListener('click', open);
+  palette.querySelectorAll('[data-palette-close]').forEach(function (el) {
+    el.addEventListener('click', close);
+  });
+
+  input.addEventListener('input', applyFilter);
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActive(activeIdx + 1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(activeIdx - 1); }
+    else if (e.key === 'Enter') {
+      e.preventDefault();
+      var visible = items.filter(function (el) { return !el.hidden; });
+      var target = visible[activeIdx];
+      if (target) window.location.assign(target.getAttribute('href'));
+    }
+  });
+
+  // Global keyboard shortcuts
+  document.addEventListener('keydown', function (e) {
+    // Ctrl/Cmd+K always opens palette
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+      e.preventDefault();
+      toggle();
+      return;
+    }
+    // Esc closes palette
+    if (e.key === 'Escape' && palette.classList.contains('is-open')) {
+      e.preventDefault();
+      close();
+      return;
+    }
+    // Single-key shortcuts only when not typing and palette closed and no modifiers
+    if (isTyping(e.target)) return;
+    if (palette.classList.contains('is-open')) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === 'n' || e.key === 'N') {
+      var n = document.querySelector('a[data-shortcut="new-quotation"]');
+      if (n) { e.preventDefault(); window.location.assign(n.getAttribute('href')); }
+      else {
+        var el = items.find(function (el) {
+          var k = el.querySelector('.psp-palette-shortcut');
+          return k && k.textContent.trim() === 'N';
+        });
+        if (el) { e.preventDefault(); window.location.assign(el.getAttribute('href')); }
+      }
+    } else if (e.key === 'd' || e.key === 'D') {
+      var el = items.find(function (el) {
+        var k = el.querySelector('.psp-palette-shortcut');
+        return k && k.textContent.trim() === 'D';
+      });
+      if (el) { e.preventDefault(); window.location.assign(el.getAttribute('href')); }
+    }
+  });
+}());
+</script>
+
+<script>
+// ── Help drawer search ────────────────────────────────────────
+(function () {
+  var input = document.getElementById('pspHelpSearch');
+  if (!input) return;
+  var topics = Array.prototype.slice.call(document.querySelectorAll('#pspHelpTopics .psp-help-topic'));
+  var empty  = document.getElementById('pspHelpEmpty');
+  function applyFilter() {
+    var q = (input.value || '').trim().toLowerCase();
+    var anyVisible = false;
+    topics.forEach(function (el) {
+      if (!q) { el.hidden = false; anyVisible = true; return; }
+      var title = (el.querySelector('.psp-help-topic-title').textContent || '').toLowerCase();
+      var body  = (el.querySelector('p') ? el.querySelector('p').textContent : '').toLowerCase();
+      var kw    = (el.getAttribute('data-keywords') || '').toLowerCase();
+      var match = title.indexOf(q) !== -1 || body.indexOf(q) !== -1 || kw.indexOf(q) !== -1;
+      el.hidden = !match;
+      if (match) anyVisible = true;
+    });
+    if (empty) empty.hidden = anyVisible;
+  }
+  input.addEventListener('input', applyFilter);
+  // Reset filter every time the drawer opens
+  var drawer = document.getElementById('pspHelpDrawer');
+  if (drawer) drawer.addEventListener('shown.bs.offcanvas', function () {
+    input.value = '';
+    applyFilter();
+    input.focus();
+  });
+}());
+</script>
+
+<script>
+// ── Notification bell dropdown ────────────────────────────────
+(function () {
+  var wrap = document.getElementById('pspNotify');
+  if (!wrap) return;
+  var btn   = document.getElementById('pspNotifyBtn');
+  var panel = document.getElementById('pspNotifyPanel');
+  function setOpen(open) {
+    wrap.classList.toggle('psp-notify--open', open);
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+  }
+  btn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    // Close sibling dropdowns to avoid two panels open at once
+    var menuDrop = document.getElementById('pspUserMenuDropdown');
+    var menuBtn  = document.getElementById('pspUserMenuBtn');
+    if (menuDrop) { menuDrop.classList.remove('show'); }
+    if (menuBtn)  { menuBtn.setAttribute('aria-expanded', 'false'); }
+    setOpen(!wrap.classList.contains('psp-notify--open'));
+  });
+  document.addEventListener('click', function (e) {
+    if (!wrap.contains(e.target)) setOpen(false);
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && wrap.classList.contains('psp-notify--open')) setOpen(false);
+  });
 }());
 </script>
 

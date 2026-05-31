@@ -1,0 +1,52 @@
+{% comment %}
+Recent activity list widget.
+
+Usage:
+  {% include "widgets/recent_activity.html" with items=recent_activity_system title="Recent Activity" subtitle="system-wide" view_all_url="..." %}
+
+Expects each item to be an AuditLog with .user, .module, .action, .description, .created_at.
+{% endcomment %}
+{% load i18n %}
+<div class="card h-100">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <span class="fw-semibold" style="font-size:.9rem;">
+      <i class="bi bi-clock-history me-2 text-info"></i>{{ title|default:_("Recent Activity") }}
+      {% if subtitle %}<span class="ms-1" style="font-size:.72rem;color:var(--psp-text-soft);">({{ subtitle }})</span>{% endif %}
+    </span>
+    {% if view_all_url %}
+      <a href="{{ view_all_url }}" class="small text-decoration-none">{% trans "View all" %} <i class="bi bi-arrow-right"></i></a>
+    {% endif %}
+  </div>
+  <div class="card-body p-0">
+    {% if items %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 small">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">{% trans "When" %}</th>
+              <th>{% trans "User" %}</th>
+              <th>{% trans "Module" %}</th>
+              <th>{% trans "Action" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in items %}
+              <tr>
+                <td class="ps-3 text-nowrap text-muted" title="{{ log.created_at|date:'d M Y H:i' }}">{{ log.created_at|timesince }}</td>
+                <td class="text-nowrap">
+                  {% if log.user %}{{ log.user.get_full_name|default:log.user.username }}{% else %}<span class="text-muted">{% trans "system" %}</span>{% endif %}
+                </td>
+                <td>
+                  <span class="badge text-bg-{% if log.module == 'users' %}primary{% elif log.module == 'paints' %}success{% elif log.module == 'quotation' %}info{% else %}secondary{% endif %}">{{ log.module|capfirst }}</span>
+                </td>
+                <td><code class="text-dark">{{ log.action }}</code></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      {% include "widgets/empty_state.html" with icon="bi-clock-history" title=_("No recent activity") text=_("Audit events will stream into this panel as the team uses the app.") %}
+    {% endif %}
+  </div>
+</div>

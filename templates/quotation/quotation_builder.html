@@ -5,6 +5,10 @@
 
 {% block content %}
 
+{% trans "Quotation builder" as ph_title %}
+{% trans "Configure each selected surface. The summary updates as sections are saved. Move to Review when every section is complete." as ph_text %}
+{% include "widgets/page_help.html" with title=ph_title text=ph_text icon="bi-grid-3x3-gap" tone="purple" %}
+
 <!-- Breadcrumb -->
 <nav aria-label="breadcrumb" class="mb-3">
   <ol class="breadcrumb mb-0 small">

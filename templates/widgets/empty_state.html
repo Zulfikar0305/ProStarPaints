@@ -1,0 +1,18 @@
+{% comment %}
+Empty-state widget.
+
+Usage:
+  {% include "widgets/empty_state.html" with icon="bi-inbox" title="No items" text="..." action_url="..." action_label="Add one" %}
+{% endcomment %}
+<div class="psp-empty">
+  <div class="psp-empty-icon"><i class="bi {{ icon|default:'bi-inbox' }}"></i></div>
+  <div class="psp-empty-title">{{ title }}</div>
+  {% if text %}<div class="psp-empty-text">{{ text }}</div>{% endif %}
+  {% if action_url and action_label %}
+    <div class="psp-empty-actions">
+      <a href="{{ action_url }}" class="btn btn-primary btn-sm">
+        {% if action_icon %}<i class="bi {{ action_icon }} me-1"></i>{% endif %}{{ action_label }}
+      </a>
+    </div>
+  {% endif %}
+</div>

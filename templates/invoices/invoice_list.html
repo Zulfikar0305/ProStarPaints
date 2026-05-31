@@ -128,12 +128,17 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="{% if is_admin %}8{% else %}7{% endif %}"
-                  class="text-center text-muted py-5">
-                <i class="bi bi-inbox fs-4 d-block mb-2"></i>
-                {% trans "No invoices found." %}
+              <td colspan="{% if is_admin %}8{% else %}7{% endif %}" class="p-0">
                 {% if q or current_status or current_rep %}
-                  <br><a href="{% url 'invoices:invoice_list' %}" class="text-decoration-none">{% trans "Clear filters" %}</a>
+                  {% trans "No invoices match your filters" as es_title %}
+                  {% trans "Try clearing the search or pick a different status." as es_text %}
+                  {% trans "Clear filters" as es_action %}
+                  {% url 'invoices:invoice_list' as es_url %}
+                  {% include "widgets/empty_state.html" with icon="bi-funnel" title=es_title text=es_text action_url=es_url action_label=es_action action_icon="bi-x-lg" %}
+                {% else %}
+                  {% trans "No invoices yet" as es_title %}
+                  {% trans "Invoices generated from quotations will appear here." as es_text %}
+                  {% include "widgets/empty_state.html" with icon="bi-receipt" title=es_title text=es_text %}
                 {% endif %}
               </td>
             </tr>

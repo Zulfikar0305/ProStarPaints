@@ -1,0 +1,43 @@
+{% comment %}
+Data quality widget.
+
+Expects `data_quality` in context = list of:
+  {label, value, total, percent, severity, hint, url, icon}
+{% endcomment %}
+{% load i18n %}
+{% if data_quality %}
+<div class="card psp-dq mb-4">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <span class="fw-semibold" style="font-size:.9rem;">
+      <i class="bi bi-shield-check me-2 text-success"></i>{% trans "Data quality" %}
+    </span>
+    <span class="small text-muted">{% trans "Read-only health checks" %}</span>
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      {% for m in data_quality %}
+        <div class="col-12 col-md-6 col-xl-4">
+          {% if m.url %}<a href="{{ m.url }}" class="text-decoration-none">{% endif %}
+          <div class="psp-dq-item psp-dq-item--{{ m.severity }}">
+            <div class="psp-dq-item-head">
+              <span class="psp-dq-icon"><i class="bi {{ m.icon }}"></i></span>
+              <span class="psp-dq-label">{{ m.label }}</span>
+              <span class="psp-dq-pct">{{ m.percent }}%</span>
+            </div>
+            <div class="psp-dq-bar">
+              <div class="psp-dq-bar-fill" style="width: {{ m.percent }}%;"></div>
+            </div>
+            <div class="psp-dq-foot">
+              <span class="psp-dq-frac">
+                {% if m.total %}{{ m.value }} / {{ m.total }}{% else %}{{ m.value }}{% endif %}
+              </span>
+              <span class="psp-dq-hint">{{ m.hint }}</span>
+            </div>
+          </div>
+          {% if m.url %}</a>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}

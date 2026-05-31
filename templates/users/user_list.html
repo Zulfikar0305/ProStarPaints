@@ -3,7 +3,16 @@
 
 {% block title %}User Management — ProStar Paints{% endblock %}
 
+{% block breadcrumbs %}
+  {% trans "Users" as bc_current %}
+  {% include "widgets/breadcrumbs.html" with current=bc_current %}
+{% endblock %}
+
 {% block content %}
+
+{% trans "Team members" as ph_title %}
+{% trans "Add reps and admins, assign roles, and deactivate accounts when teammates leave. Deactivation preserves history but removes sign-in access." as ph_text %}
+{% include "widgets/page_help.html" with title=ph_title text=ph_text icon="bi-people" tone="blue" %}
 <div class="d-flex align-items-center justify-content-between mb-4">
   <div>
     <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">{% trans "User Management" %}</h4>
@@ -88,8 +97,12 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="8" class="text-center text-muted py-4">
-                <i class="bi bi-inbox me-2"></i>{% trans "No users found." %}
+              <td colspan="8" class="p-0">
+                {% trans "No team members yet" as es_title %}
+                {% trans "Invite reps and admins so the full workflow is end-to-end." as es_text %}
+                {% trans "Add first user" as es_action %}
+                {% url 'users:user_create' as es_url %}
+                {% include "widgets/empty_state.html" with icon="bi-people" title=es_title text=es_text action_url=es_url action_label=es_action action_icon="bi-person-plus" %}
               </td>
             </tr>
           {% endfor %}
