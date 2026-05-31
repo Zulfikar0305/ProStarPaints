@@ -129,20 +129,35 @@ def build_pdf_context(quotation, request=None) -> dict:
     }
 
 
+# Cache the logo data URI for the lifetime of the process — the logo is a
+# static asset that does not change at runtime, so we avoid re-reading and
+# re-encoding it on every PDF render. Sentinel object distinguishes "not yet
+# loaded" from "loaded but missing" (None).
+_LOGO_SENTINEL = object()
+_LOGO_DATA_URI_CACHE = _LOGO_SENTINEL
+
+
 def _load_logo_data_uri() -> str | None:
     """
-    Attempt to load the ProStar Paints logo as a base64 data-URI.
-    Returns None silently if the file cannot be found or read.
+    Return the ProStar Paints logo as a base64 data-URI, cached after the
+    first call. Returns None silently if the file cannot be found or read.
     """
+    global _LOGO_DATA_URI_CACHE
+    if _LOGO_DATA_URI_CACHE is not _LOGO_SENTINEL:
+        return _LOGO_DATA_URI_CACHE
+
+    result: str | None = None
     try:
         from django.contrib.staticfiles.finders import find as static_find
         logo_path = static_find("images/prostar-logo.png")
         if logo_path and os.path.exists(logo_path):
             with open(logo_path, "rb") as fh:
-                return "data:image/png;base64," + base64.b64encode(fh.read()).decode()
+                result = "data:image/png;base64," + base64.b64encode(fh.read()).decode()
     except Exception:
-        pass
-    return None
+        result = None
+
+    _LOGO_DATA_URI_CACHE = result
+    return result
 
 
 # ---------------------------------------------------------------------------

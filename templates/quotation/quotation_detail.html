@@ -188,48 +188,62 @@
 </div>
 
 <!-- PDF Export History -->
-{% if pdf_exports %}
 <div class="mt-4">
   <div class="card">
     <div class="card-header bg-transparent py-2 d-flex align-items-center justify-content-between">
       <span class="fw-semibold">
         <i class="bi bi-file-earmark-pdf-fill me-2" style="color:var(--psp-purple);"></i>{% trans "PDF Export History" %}
+        {% if pdf_exports %}
+          <span class="badge text-bg-light text-dark border ms-1" style="font-size:.65rem;">{{ pdf_exports|length }}</span>
+        {% endif %}
       </span>
       <a href="{% url 'quotation:pdf_select' quotation.pk %}" class="btn btn-sm btn-outline-success">
         <i class="bi bi-plus me-1"></i>{% trans "Generate New" %}
       </a>
     </div>
+    {% if pdf_exports %}
     <div class="table-responsive">
-      <table class="table table-sm mb-0" style="font-size:.82rem;">
+      <table class="table table-sm mb-0 align-middle" style="font-size:.82rem;">
         <thead>
           <tr style="color:var(--psp-text-muted,#6b7280);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;">
             <th class="px-3 py-2">{% trans "Template" %}</th>
             <th class="px-3 py-2">{% trans "Status" %}</th>
             <th class="px-3 py-2">{% trans "Generated" %}</th>
             <th class="px-3 py-2">{% trans "By" %}</th>
-            <th class="px-3 py-2"></th>
+            <th class="px-3 py-2 text-end"></th>
           </tr>
         </thead>
         <tbody>
           {% for export in pdf_exports %}
-          <tr>
-            <td class="px-3 py-2 fw-semibold">{{ export.template_key }}</td>
+          <tr class="psp-pdf-history-row">
+            <td class="px-3 py-2">
+              <span class="psp-pdf-template-pill"><span class="dot"></span>{{ export.template_name }}</span>
+            </td>
             <td class="px-3 py-2">
               {% if export.status == "GENERATED" %}
-                <span class="badge text-bg-success" style="font-size:.7rem;">{% trans "Ready" %}</span>
+                <span class="badge text-bg-success" style="font-size:.7rem;"><i class="bi bi-check-circle-fill me-1"></i>{% trans "Ready" %}</span>
               {% else %}
-                <span class="badge text-bg-danger" style="font-size:.7rem;">{% trans "Failed" %}</span>
+                <span class="badge text-bg-danger" style="font-size:.7rem;" title="{{ export.error_message|default:'' }}">
+                  <i class="bi bi-exclamation-triangle-fill me-1"></i>{% trans "Failed" %}
+                </span>
               {% endif %}
             </td>
-            <td class="px-3 py-2 text-muted">{{ export.created_at|date:"d M Y, H:i" }}</td>
-            <td class="px-3 py-2 text-muted">{{ export.generated_by.get_full_name|default:export.generated_by.username }}</td>
+            <td class="px-3 py-2 text-muted" title="{{ export.created_at|date:'d M Y H:i' }}">
+              {{ export.created_at|date:"d M Y, H:i" }}
+              <div style="font-size:.7rem;">{{ export.created_at|timesince }} {% trans "ago" %}</div>
+            </td>
+            <td class="px-3 py-2 text-muted">{{ export.generated_by.get_full_name|default:export.generated_by.username|default:"—" }}</td>
             <td class="px-3 py-2 text-end">
               {% if export.status == "GENERATED" and export.file %}
                 <a href="{% url 'quotation:pdf_download' export.pk %}"
-                   class="btn btn-xs btn-outline-secondary"
-                   style="font-size:.72rem;padding:.1rem .5rem;">
+                   class="btn btn-sm btn-outline-secondary"
+                   style="font-size:.72rem;padding:.15rem .55rem;">
                   <i class="bi bi-download me-1"></i>{% trans "Download" %}
                 </a>
+              {% elif export.status == "FAILED" and export.error_message %}
+                <span class="text-danger" style="font-size:.7rem;" title="{{ export.error_message }}">
+                  <i class="bi bi-info-circle"></i> {% trans "details" %}
+                </span>
               {% endif %}
             </td>
           </tr>
@@ -237,8 +251,19 @@
         </tbody>
       </table>
     </div>
+    {% else %}
+    <div class="psp-empty">
+      <div class="psp-empty-icon"><i class="bi bi-file-earmark-pdf"></i></div>
+      <div class="psp-empty-title">{% trans "No PDFs generated yet" %}</div>
+      <div class="psp-empty-text">{% trans "Choose a template to generate the first customer-ready PDF for this quotation." %}</div>
+      <div class="psp-empty-actions">
+        <a href="{% url 'quotation:pdf_select' quotation.pk %}" class="btn btn-success btn-sm">
+          <i class="bi bi-file-earmark-pdf me-1"></i>{% trans "Generate first PDF" %}
+        </a>
+      </div>
+    </div>
+    {% endif %}
   </div>
 </div>
-{% endif %}
 
 {% endblock %}

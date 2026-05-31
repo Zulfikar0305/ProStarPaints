@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import DetailView, ListView, View
@@ -78,6 +78,11 @@ class QuotationListView(QuotationAccessMixin, ListView):
         status = self.request.GET.get("status", "")
         if status in Quotation.Status.values:
             qs = qs.filter(status=status)
+        qs = qs.annotate(
+            section_count=Count(
+                "sections", filter=Q(sections__is_placeholder=False), distinct=True
+            )
+        )
         return qs.order_by("-created_at")
 
     def get_context_data(self, **kwargs):
@@ -86,6 +91,7 @@ class QuotationListView(QuotationAccessMixin, ListView):
         ctx["current_status"] = self.request.GET.get("status", "")
         ctx["status_choices"] = Quotation.Status.choices
         ctx["is_admin"]       = self._is_admin()
+        ctx["has_filters"]    = bool(ctx["q"] or ctx["current_status"])
         return ctx
 
 
@@ -914,12 +920,25 @@ class QuotationReviewView(QuotationAccessMixin, View):
             request = request,
         )
 
+        # Most recent successful PDF for the "last generated" panel
+        from .pdf_templates import get_template_display_name
+        last_pdf_export = (
+            quotation.pdf_exports
+            .filter(status=QuotationPdfExport.Status.GENERATED)
+            .select_related("generated_by")
+            .order_by("-created_at")
+            .first()
+        )
+        if last_pdf_export:
+            last_pdf_export.template_name = get_template_display_name(last_pdf_export.template_key)
+
         return render(request, self.template_name, {
             "quotation":         quotation,
             "section_data":      section_data,
             "subtotal":          subtotal,
             "is_admin":          self._is_admin(),
             "quotation_summary": get_quotation_summary(quotation),
+            "last_pdf_export":   last_pdf_export,
         })
 
 
@@ -938,11 +957,15 @@ class QuotationDetailView(QuotationAccessMixin, DetailView):
         ctx = super().get_context_data(**kwargs)
         ctx["is_admin"] = self._is_admin()
         ctx["sections"] = self.object.sections.order_by("substrate_type", "sort_order")
-        ctx["pdf_exports"] = (
+        from .pdf_templates import get_template_display_name
+        exports = list(
             self.object.pdf_exports
             .select_related("generated_by")
             .order_by("-created_at")[:10]
         )
+        for exp in exports:
+            exp.template_name = get_template_display_name(exp.template_key)
+        ctx["pdf_exports"] = exports
         return ctx
 
 
@@ -960,20 +983,24 @@ class QuotationPdfTemplateSelectView(QuotationAccessMixin, View):
 
     def get(self, request, pk):
         quotation = get_object_or_404(self.get_base_qs(), pk=pk)
-        from .pdf_templates import PDF_TEMPLATES
+        from .pdf_templates import PDF_TEMPLATES, get_template_display_name
         templates = [
             {"key": k, **v}
             for k, v in PDF_TEMPLATES.items()
         ]
-        recent_exports = (
+        recent_exports = list(
             quotation.pdf_exports
             .select_related("generated_by")
             .order_by("-created_at")[:5]
         )
+        for exp in recent_exports:
+            exp.template_name = get_template_display_name(exp.template_key)
+        summary = get_quotation_summary(quotation)
         return render(request, self.template_name, {
-            "quotation":      quotation,
-            "pdf_templates":  templates,
-            "recent_exports": recent_exports,
+            "quotation":         quotation,
+            "pdf_templates":     templates,
+            "recent_exports":    recent_exports,
+            "quotation_summary": summary,
         })
 
 

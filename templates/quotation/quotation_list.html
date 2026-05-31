@@ -65,24 +65,34 @@
             <th>{% trans "Customer" %}</th>
             {% if is_admin %}<th>{% trans "Rep" %}</th>{% endif %}
             <th>{% trans "Project" %}</th>
+            <th>{% trans "Sections" %}</th>
             <th>{% trans "Status" %}</th>
-            <th>{% trans "Created" %}</th>
+            <th>{% trans "Updated" %}</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
           {% for q in quotations %}
             <tr>
-              <td class="ps-3 fw-semibold text-nowrap">
-                <a href="{% url 'quotation:quotation_detail' q.pk %}" class="text-decoration-none text-dark">
+              <td class="ps-3 text-nowrap">
+                <a href="{% url 'quotation:quotation_detail' q.pk %}" class="psp-q-ref text-decoration-none">
                   {{ q.reference }}
                 </a>
               </td>
-              <td>{{ q.customer_name }}</td>
+              <td>
+                <div class="fw-semibold">{{ q.customer_name|default:"—" }}</div>
+                <div class="text-muted" style="font-size:.72rem;">{{ q.created_at|date:"d M Y" }}</div>
+              </td>
               {% if is_admin %}
                 <td class="text-muted">{{ q.created_by.get_full_name|default:q.created_by.username }}</td>
               {% endif %}
               <td class="text-muted">{{ q.project_name|default:"—" }}</td>
+              <td>
+                <span class="psp-q-progress">
+                  <span class="psp-q-progress-dot {% if q.section_count %}psp-q-progress-dot--on{% endif %}"></span>
+                  {% blocktrans count counter=q.section_count %}{{ counter }} section{% plural %}{{ counter }} sections{% endblocktrans %}
+                </span>
+              </td>
               <td>
                 {% if q.status == "COMPLETED" %}
                   <span class="badge text-bg-success">{{ q.get_status_display }}</span>
@@ -92,7 +102,9 @@
                   <span class="badge text-bg-warning text-dark">{{ q.get_status_display }}</span>
                 {% endif %}
               </td>
-              <td class="text-muted text-nowrap">{{ q.created_at|date:"d M Y" }}</td>
+              <td class="text-muted text-nowrap" title="{{ q.updated_at|date:'d M Y H:i' }}">
+                {{ q.updated_at|timesince }} {% trans "ago" %}
+              </td>
               <td class="text-end pe-3">
                 <a href="{% url 'quotation:quotation_builder' q.pk %}"
                    class="btn btn-sm btn-outline-primary me-1" title="{% trans 'Builder' %}">
@@ -106,17 +118,29 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="{% if is_admin %}7{% else %}6{% endif %}"
-                  class="text-center text-muted py-5">
-                <i class="bi bi-file-earmark-text fs-4 d-block mb-2"></i>
-                {% trans "No quotations found." %}
-                {% if q or current_status %}
-                  <br><a href="{% url 'quotation:quotation_list' %}" class="text-decoration-none">{% trans "Clear filters" %}</a>
+              <td colspan="{% if is_admin %}8{% else %}7{% endif %}" class="p-0">
+                {% if has_filters %}
+                  <div class="psp-empty">
+                    <div class="psp-empty-icon"><i class="bi bi-funnel"></i></div>
+                    <div class="psp-empty-title">{% trans "No quotations match your filters" %}</div>
+                    <div class="psp-empty-text">{% trans "Try a broader search term or clear the status filter to see all quotations." %}</div>
+                    <div class="psp-empty-actions">
+                      <a href="{% url 'quotation:quotation_list' %}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-x-lg me-1"></i>{% trans "Clear filters" %}
+                      </a>
+                    </div>
+                  </div>
                 {% else %}
-                  <br>
-                  <a href="{% url 'quotation:quotation_start' %}" class="btn btn-sm btn-primary mt-2">
-                    <i class="bi bi-plus-lg me-1"></i>{% trans "Create your first quotation" %}
-                  </a>
+                  <div class="psp-empty">
+                    <div class="psp-empty-icon"><i class="bi bi-file-earmark-plus"></i></div>
+                    <div class="psp-empty-title">{% trans "No quotations yet" %}</div>
+                    <div class="psp-empty-text">{% trans "Quotations let you scope a customer project across rooms, surfaces and finishes — then export a polished PDF." %}</div>
+                    <div class="psp-empty-actions">
+                      <a href="{% url 'quotation:quotation_start' %}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-plus-lg me-1"></i>{% trans "Create your first quotation" %}
+                      </a>
+                    </div>
+                  </div>
                 {% endif %}
               </td>
             </tr>

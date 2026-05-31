@@ -60,6 +60,53 @@
   {% endfor %}
 {% endif %}
 
+<!-- Readiness + Generate PDF hero -->
+{% with pct=quotation_summary.progress_pct unconf=quotation_summary.unconfigured_count %}
+<div class="psp-review-hero mb-4">
+  <div class="psp-review-hero-main">
+    <div class="psp-review-hero-eyebrow">
+      {% if unconf > 0 %}
+        <i class="bi bi-hourglass-split"></i>{% trans "Almost ready" %}
+      {% else %}
+        <i class="bi bi-check-circle-fill"></i>{% trans "Ready to send" %}
+      {% endif %}
+    </div>
+    <div class="psp-review-hero-title">
+      {% if unconf > 0 %}
+        {% blocktrans count counter=unconf %}{{ counter }} section still needs configuration before generating a polished PDF.{% plural %}{{ counter }} sections still need configuration before generating a polished PDF.{% endblocktrans %}
+      {% else %}
+        {% trans "All sections are configured. Generate a customer-ready PDF whenever you're ready." %}
+      {% endif %}
+    </div>
+    <div class="psp-review-progress">
+      <div class="psp-review-progress-bar" style="width: {{ pct }}%;"></div>
+    </div>
+    <div class="psp-review-progress-meta">
+      <span>{{ quotation_summary.configured_count }} / {{ quotation_summary.total_sections }} {% trans "sections configured" %}</span>
+      <span>{{ pct }}%</span>
+    </div>
+  </div>
+  <div class="psp-review-hero-cta">
+    <a href="{% url 'quotation:pdf_select' quotation.pk %}" class="btn btn-lg fw-semibold psp-review-cta-btn">
+      <i class="bi bi-file-earmark-pdf-fill me-2"></i>{% trans "Generate PDF" %}
+    </a>
+    {% if last_pdf_export %}
+      <a href="{% url 'quotation:pdf_download' last_pdf_export.pk %}" class="psp-review-last-pdf">
+        <i class="bi bi-download me-1"></i>
+        <span>
+          <strong>{% trans "Last PDF" %}:</strong> {{ last_pdf_export.template_name }}
+          <span class="text-muted">&middot; {{ last_pdf_export.created_at|timesince }} {% trans "ago" %}</span>
+        </span>
+      </a>
+    {% else %}
+      <div class="psp-review-last-pdf psp-review-last-pdf--none">
+        <i class="bi bi-info-circle me-1"></i>{% trans "No PDFs generated yet." %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endwith %}
+
 <div class="row g-4">
 
   {# ── Left column: Customer + Project details ── #}

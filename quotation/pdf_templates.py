@@ -23,6 +23,12 @@ PDF_TEMPLATES: dict[str, dict] = {
     "professional": {
         "name": "Professional Quotation",
         "description": "Clean, customer-facing quotation layout with branding, sections, and a professional signature block.",
+        "best_for": "Sending the final quotation to your customer — polished, branded, and easy to read.",
+        "highlights": [
+            "Cover header with logo & customer block",
+            "Section-by-section breakdown",
+            "Signature & acceptance area",
+        ],
         "template_path": "quotation/pdf/professional.html",
         "preview_label": "Recommended",
         "preview_icon": "bi-award-fill",
@@ -31,6 +37,12 @@ PDF_TEMPLATES: dict[str, dict] = {
     "detailed_spec": {
         "name": "Detailed Specification",
         "description": "Technical section-by-section specification sheet — includes surface type, conditions, coats, and paint details.",
+        "best_for": "Site teams, painters, or quantity surveyors who need full surface and coating specs.",
+        "highlights": [
+            "Per-section surface conditions",
+            "Coat-by-coat paint specs",
+            "Prep + waterproofing detail",
+        ],
         "template_path": "quotation/pdf/detailed_spec.html",
         "preview_label": "Technical",
         "preview_icon": "bi-list-columns-reverse",
@@ -39,6 +51,12 @@ PDF_TEMPLATES: dict[str, dict] = {
     "compact": {
         "name": "Compact Estimate",
         "description": "Shorter one-page layout for fast quoting and overview presentations.",
+        "best_for": "Quick estimates, walk-in customers, or first-pass conversations with a prospect.",
+        "highlights": [
+            "One-page summary",
+            "Headline totals & scope",
+            "Lightweight branding",
+        ],
         "template_path": "quotation/pdf/compact.html",
         "preview_label": "Fast",
         "preview_icon": "bi-lightning-charge-fill",
@@ -60,3 +78,10 @@ def get_template_config(template_key: str) -> dict:
             f"Allowed keys: {list(PDF_TEMPLATES)}"
         )
     return PDF_TEMPLATES[template_key]
+
+
+def get_template_display_name(template_key: str) -> str:
+    """Safe human-readable name for a template key, even if it was retired."""
+    cfg = PDF_TEMPLATES.get(template_key)
+    return cfg["name"] if cfg else template_key
+

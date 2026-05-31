@@ -12,7 +12,9 @@ from django.db.models.functions import TruncMonth
 from django.utils import timezone
 
 from audit.models import AuditLog
+from invoices.models import Invoice
 from paints.models import Paint
+from quotation.models import Quotation
 from users.models import User
 
 
@@ -50,6 +52,41 @@ def get_admin_metrics(period: str = "all") -> dict:
     total_active_paints = Paint.objects.filter(is_active=True).count()
     total_audit_actions = qs.count()
     total_users = User.objects.filter(is_active=True).count()
+    total_quotations = Quotation.objects.count()
+    total_draft_quotations = Quotation.objects.filter(status=Quotation.Status.DRAFT).count()
+    total_invoices = Invoice.objects.count()
+
+    # Latest activity panels (system-wide)
+    recent_activity_system = list(
+        AuditLog.objects.select_related("user").order_by("-created_at")[:10]
+    )
+
+    recent_quotations = list(
+        Quotation.objects.select_related("created_by")
+        .order_by("-created_at")[:5]
+    )
+
+    # Draft-only widget (admin sees recent drafts across all reps)
+    recent_draft_quotations = list(
+        Quotation.objects.filter(status=Quotation.Status.DRAFT)
+        .select_related("created_by")
+        .order_by("-updated_at", "-created_at")[:5]
+    )
+
+    # Continue-latest hero (most recently touched draft in the whole system)
+    latest_draft_quotation = (
+        Quotation.objects.filter(status=Quotation.Status.DRAFT)
+        .select_related("created_by")
+        .order_by("-updated_at", "-created_at")
+        .first()
+    )
+
+    # PDF shortcut: most recent completed quotation across system
+    latest_completed_quotation = (
+        Quotation.objects.filter(status=Quotation.Status.COMPLETED)
+        .order_by("-updated_at", "-created_at")
+        .first()
+    )
 
     # Top reps by action count (in selected period)
     top_reps = list(
@@ -95,9 +132,17 @@ def get_admin_metrics(period: str = "all") -> dict:
         "total_active_paints": total_active_paints,
         "total_audit_actions": total_audit_actions,
         "total_users": total_users,
-        # Table data
+        "total_quotations": total_quotations,
+        "total_draft_quotations": total_draft_quotations,
+        "total_invoices": total_invoices,
+        # Table / widget data
         "top_reps": top_reps,
         "module_breakdown": module_breakdown,
+        "recent_activity_system": recent_activity_system,
+        "recent_quotations": recent_quotations,
+        "recent_draft_quotations": recent_draft_quotations,
+        "latest_draft_quotation": latest_draft_quotation,
+        "latest_completed_quotation": latest_completed_quotation,
         # Chart JSON (safe to emit into <script> via |safe filter)
         "trend_labels_json": trend_labels_json,
         "trend_data_json": trend_data_json,
@@ -121,6 +166,29 @@ def get_rep_metrics(user, period: str = "all") -> dict:
     # Recent 10 entries — always unfiltered so they show the true latest
     recent_activity = list(
         AuditLog.objects.filter(user=user).select_related("user")[:10]
+    )
+
+    # Quotation-centric panels for the rep
+    my_quotations_qs = Quotation.objects.filter(created_by=user)
+    my_total_quotations = my_quotations_qs.count()
+    my_draft_count = my_quotations_qs.filter(status=Quotation.Status.DRAFT).count()
+    my_completed_count = my_quotations_qs.filter(status=Quotation.Status.COMPLETED).count()
+    latest_draft_quotation = (
+        my_quotations_qs.filter(status=Quotation.Status.DRAFT)
+        .order_by("-updated_at", "-created_at")
+        .first()
+    )
+    latest_completed_quotation = (
+        my_quotations_qs.filter(status=Quotation.Status.COMPLETED)
+        .order_by("-updated_at", "-created_at")
+        .first()
+    )
+    my_recent_quotations = list(
+        my_quotations_qs.order_by("-updated_at", "-created_at")[:5]
+    )
+    my_recent_drafts = list(
+        my_quotations_qs.filter(status=Quotation.Status.DRAFT)
+        .order_by("-updated_at", "-created_at")[:5]
     )
 
     # Module breakdown (in selected period)
@@ -148,6 +216,13 @@ def get_rep_metrics(user, period: str = "all") -> dict:
         "my_total_actions": my_total_actions,
         "recent_activity": recent_activity,
         "my_modules": my_modules,
+        "my_total_quotations": my_total_quotations,
+        "my_draft_count": my_draft_count,
+        "my_completed_count": my_completed_count,
+        "latest_draft_quotation": latest_draft_quotation,
+        "latest_completed_quotation": latest_completed_quotation,
+        "my_recent_quotations": my_recent_quotations,
+        "my_recent_drafts": my_recent_drafts,
         "trend_labels_json": trend_labels_json,
         "trend_data_json": trend_data_json,
         "module_labels_json": json.dumps(module_labels),

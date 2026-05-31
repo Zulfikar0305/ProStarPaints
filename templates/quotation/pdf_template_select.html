@@ -22,19 +22,34 @@
 </nav>
 
 <!-- Header -->
-<div class="d-flex align-items-start justify-content-between mb-4 gap-2 flex-wrap">
+<div class="d-flex align-items-start justify-content-between mb-3 gap-2 flex-wrap">
   <div>
     <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">
-      <i class="bi bi-file-earmark-pdf-fill me-2" style="color:var(--psp-purple);"></i>{% trans "Generate PDF" %}
+      <i class="bi bi-file-earmark-pdf-fill me-2" style="color:var(--psp-purple);"></i>{% trans "Choose a PDF layout" %}
     </h4>
     <p class="mb-0 mt-1 small" style="color:var(--psp-text-soft);">
-      {% trans "Choose a layout for" %} <strong>{{ quotation.reference }}</strong>
-      {% if quotation.customer_name %} &mdash; {{ quotation.customer_name }}{% endif %}
+      {% trans "Choose a layout for how this quotation will be presented to the customer." %}
     </p>
   </div>
   <a href="{% url 'quotation:quotation_review' quotation.pk %}" class="btn btn-sm btn-outline-secondary">
     <i class="bi bi-arrow-left me-1"></i>{% trans "Back to Review" %}
   </a>
+</div>
+
+<!-- Quotation context bar -->
+<div class="card mb-3">
+  <div class="card-body py-2 d-flex flex-wrap align-items-center gap-3" style="font-size:.85rem;">
+    <span class="badge text-bg-light text-dark border" style="font-family:'Segoe UI',monospace;font-weight:700;">{{ quotation.reference }}</span>
+    {% if quotation.customer_name %}
+      <span><i class="bi bi-person me-1 text-muted"></i>{{ quotation.customer_name }}</span>
+    {% endif %}
+    {% if quotation.project_name %}
+      <span><i class="bi bi-geo-alt me-1 text-muted"></i>{{ quotation.project_name }}</span>
+    {% endif %}
+    <span class="ms-auto badge text-bg-{% if quotation.status == 'COMPLETED' %}success{% elif quotation.status == 'CANCELLED' %}secondary{% else %}warning text-dark{% endif %}">
+      {{ quotation.get_status_display }}
+    </span>
+  </div>
 </div>
 
 {% if messages %}
@@ -46,51 +61,85 @@
 {% endif %}
 
 <!-- Pricing notice -->
-<div class="alert alert-warning d-flex align-items-center gap-2 py-2 mb-4" style="font-size:.85rem;">
-  <i class="bi bi-clock-history fs-5"></i>
+<div class="alert alert-warning d-flex align-items-start gap-2 py-2 mb-4" style="font-size:.85rem;border-radius:var(--psp-radius-sm,10px);">
+  <i class="bi bi-info-circle-fill fs-5 mt-1"></i>
   <div>
-    <strong>{% trans "Pricing pending" %}</strong> —
-    {% trans "Generated PDFs display descriptions and specifications. Pricing is shown as TBC until the pricing engine is activated." %}
+    <strong>{% trans "Pricing will display as TBC" %}</strong> —
+    {% trans "Until pricing rules are configured, all templates render descriptions and specs with TBC totals." %}
   </div>
 </div>
+
+<h6 class="fw-semibold mb-3" style="font-size:.78rem;color:var(--psp-text-soft);text-transform:uppercase;letter-spacing:.06em;">
+  <i class="bi bi-grid-3x3-gap-fill me-1"></i>{% trans "Template gallery" %}
+</h6>
 
 <div class="row g-4">
 
   <!-- ── Template cards ── -->
   {% for tpl in pdf_templates %}
-  <div class="col-12 col-md-4">
-    <form method="post" action="{% url 'quotation:pdf_generate' quotation.pk %}">
+  <div class="col-12 col-md-6 col-xl-4">
+    <form method="post" action="{% url 'quotation:pdf_generate' quotation.pk %}" class="h-100">
       {% csrf_token %}
       <input type="hidden" name="template_key" value="{{ tpl.key }}">
       <div class="card h-100 psp-pdf-tpl-card"
-           style="border: 2px solid var(--psp-border); border-radius: 10px; transition: border-color .15s, box-shadow .15s; cursor: pointer;"
-           onclick="this.closest('form').submit();">
+           style="border: 2px solid var(--psp-border); border-radius: var(--psp-radius,16px); cursor: pointer; overflow: hidden;"
+           onclick="this.closest('form').querySelector('button[type=submit]').click();">
 
         <!-- Coloured top bar -->
-        <div style="height: 5px; border-radius: 8px 8px 0 0; background: {{ tpl.preview_color }};"></div>
+        <div style="height: 5px; background: {{ tpl.preview_color }};"></div>
 
-        <div class="card-body p-4">
-          <div class="d-flex align-items-start gap-3 mb-3">
+        <!-- Mock document preview area -->
+        <div class="psp-pdf-mock" style="--_tpl: {{ tpl.preview_color }};">
+          <div class="psp-pdf-mock-page">
+            <div class="psp-pdf-mock-header">
+              <div class="psp-pdf-mock-logo"></div>
+              <div class="psp-pdf-mock-meta">
+                <span></span><span></span>
+              </div>
+            </div>
+            <div class="psp-pdf-mock-title"></div>
+            <div class="psp-pdf-mock-rows">
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div class="psp-pdf-mock-footer"></div>
+          </div>
+        </div>
+
+        <div class="card-body p-4 pb-3">
+          <div class="d-flex align-items-start gap-3 mb-2">
             <div class="d-flex align-items-center justify-content-center flex-shrink-0"
-                 style="width:44px;height:44px;border-radius:10px;background:{{ tpl.preview_color }}1a;">
+                 style="width:44px;height:44px;border-radius:12px;background:{{ tpl.preview_color }}1a;">
               <i class="bi {{ tpl.preview_icon }} fs-4" style="color:{{ tpl.preview_color }};"></i>
             </div>
             <div class="flex-grow-1 min-width-0">
               <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
-                <h6 class="fw-bold mb-0">{{ tpl.name }}</h6>
+                <h6 class="fw-bold mb-0" style="letter-spacing:-.01em;">{{ tpl.name }}</h6>
                 <span class="badge rounded-pill px-2"
-                      style="font-size:.7rem;background:{{ tpl.preview_color }}22;color:{{ tpl.preview_color }};">
+                      style="font-size:.68rem;background:{{ tpl.preview_color }}22;color:{{ tpl.preview_color }};">
                   {{ tpl.preview_label }}
                 </span>
               </div>
-              <p class="mb-0 small" style="color:var(--psp-text-soft);">{{ tpl.description }}</p>
+              <p class="mb-0 small" style="color:var(--psp-text-soft);line-height:1.45;">{{ tpl.description }}</p>
             </div>
           </div>
+
+          <div class="psp-pdf-bestfor">
+            <span class="psp-pdf-bestfor-label">{% trans "Best for" %}</span>
+            <span class="psp-pdf-bestfor-text">{{ tpl.best_for }}</span>
+          </div>
+
+          {% if tpl.highlights %}
+            <ul class="psp-pdf-highlights">
+              {% for h in tpl.highlights %}
+                <li><i class="bi bi-check2" style="color:{{ tpl.preview_color }};"></i>{{ h }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
         </div>
 
         <div class="card-footer bg-transparent border-0 pt-0 pb-3 px-4">
-          <button type="submit" class="btn btn-sm w-100 fw-semibold"
-                  style="background:{{ tpl.preview_color }};color:#fff;border:none;">
+          <button type="submit" class="btn w-100 fw-semibold"
+                  style="background:{{ tpl.preview_color }};color:#fff;border:none;border-radius:10px;">
             <i class="bi bi-file-earmark-pdf-fill me-1"></i>{% trans "Generate this PDF" %}
           </button>
         </div>
@@ -107,41 +156,44 @@
 </div>
 
 <!-- Recent exports -->
-{% if recent_exports %}
 <div class="mt-5">
-  <h6 class="fw-semibold mb-3" style="font-size:.85rem;color:var(--psp-text-soft);text-transform:uppercase;letter-spacing:.04em;">
-    <i class="bi bi-clock-history me-2"></i>{% trans "Recent Exports" %}
+  <h6 class="fw-semibold mb-3 d-flex align-items-center justify-content-between" style="font-size:.78rem;color:var(--psp-text-soft);text-transform:uppercase;letter-spacing:.06em;">
+    <span><i class="bi bi-clock-history me-2"></i>{% trans "Recent exports for this quotation" %}</span>
+    {% if recent_exports %}<span class="badge text-bg-light text-dark border" style="font-size:.65rem;">{{ recent_exports|length }}</span>{% endif %}
   </h6>
   <div class="card">
+    {% if recent_exports %}
     <div class="table-responsive">
-      <table class="table table-sm mb-0" style="font-size:.82rem;">
+      <table class="table table-sm mb-0 align-middle" style="font-size:.82rem;">
         <thead>
           <tr style="color:var(--psp-text-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;">
             <th class="px-3 py-2">{% trans "Template" %}</th>
             <th class="px-3 py-2">{% trans "Status" %}</th>
             <th class="px-3 py-2">{% trans "Generated" %}</th>
             <th class="px-3 py-2">{% trans "By" %}</th>
-            <th class="px-3 py-2"></th>
+            <th class="px-3 py-2 text-end"></th>
           </tr>
         </thead>
         <tbody>
           {% for export in recent_exports %}
           <tr>
-            <td class="px-3 py-2 fw-semibold">{{ export.template_key }}</td>
+            <td class="px-3 py-2 fw-semibold">{{ export.template_name }}</td>
             <td class="px-3 py-2">
               {% if export.status == "GENERATED" %}
-                <span class="badge text-bg-success" style="font-size:.7rem;">{% trans "Ready" %}</span>
+                <span class="badge text-bg-success" style="font-size:.7rem;"><i class="bi bi-check-circle-fill me-1"></i>{% trans "Ready" %}</span>
               {% else %}
-                <span class="badge text-bg-danger" style="font-size:.7rem;">{% trans "Failed" %}</span>
+                <span class="badge text-bg-danger" style="font-size:.7rem;" title="{{ export.error_message|default:'' }}">
+                  <i class="bi bi-exclamation-triangle-fill me-1"></i>{% trans "Failed" %}
+                </span>
               {% endif %}
             </td>
-            <td class="px-3 py-2 text-muted">{{ export.created_at|date:"d M Y, H:i" }}</td>
-            <td class="px-3 py-2 text-muted">{{ export.generated_by.get_full_name|default:export.generated_by.username }}</td>
+            <td class="px-3 py-2 text-muted" title="{{ export.created_at|date:'d M Y H:i' }}">{{ export.created_at|timesince }} {% trans "ago" %}</td>
+            <td class="px-3 py-2 text-muted">{{ export.generated_by.get_full_name|default:export.generated_by.username|default:"—" }}</td>
             <td class="px-3 py-2 text-end">
               {% if export.status == "GENERATED" and export.file %}
                 <a href="{% url 'quotation:pdf_download' export.pk %}"
-                   class="btn btn-xs btn-outline-secondary"
-                   style="font-size:.72rem;padding:.1rem .5rem;">
+                   class="btn btn-sm btn-outline-secondary"
+                   style="font-size:.72rem;padding:.15rem .55rem;">
                   <i class="bi bi-download me-1"></i>{% trans "Download" %}
                 </a>
               {% endif %}
@@ -151,17 +203,135 @@
         </tbody>
       </table>
     </div>
+    {% else %}
+      <div class="psp-empty">
+        <div class="psp-empty-icon"><i class="bi bi-file-earmark-pdf"></i></div>
+        <div class="psp-empty-title">{% trans "No PDFs generated yet" %}</div>
+        <div class="psp-empty-text">{% trans "Pick a template above to generate the first PDF for this quotation." %}</div>
+      </div>
+    {% endif %}
   </div>
 </div>
-{% endif %}
 
 {% endblock %}
 
 {% block extra_css %}
 <style>
+.psp-pdf-tpl-card {
+  transition: border-color .18s, box-shadow .18s, transform .18s;
+  background: #fff;
+}
 .psp-pdf-tpl-card:hover {
   border-color: var(--psp-purple) !important;
-  box-shadow: 0 4px 16px rgba(124,58,237,.15);
+  box-shadow: 0 8px 28px rgba(15,23,42,.10);
+  transform: translateY(-2px);
 }
+
+/* ── Mock document preview ── */
+.psp-pdf-mock {
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+  padding: 1.1rem 1.1rem .25rem;
+  display: flex;
+  justify-content: center;
+}
+.psp-pdf-mock-page {
+  background: #fff;
+  width: 100%;
+  max-width: 220px;
+  aspect-ratio: 1 / 1.32;
+  border-radius: 6px;
+  box-shadow: 0 8px 20px rgba(15,23,42,.12), 0 1px 2px rgba(15,23,42,.06);
+  padding: 14px 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 3px solid var(--_tpl, var(--psp-purple));
+}
+.psp-pdf-mock-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.psp-pdf-mock-logo {
+  width: 36px;
+  height: 14px;
+  background: var(--_tpl, var(--psp-purple));
+  border-radius: 3px;
+  opacity: .85;
+}
+.psp-pdf-mock-meta { display: flex; flex-direction: column; gap: 3px; align-items: flex-end; }
+.psp-pdf-mock-meta span {
+  display: block;
+  height: 4px;
+  background: #cbd5e1;
+  border-radius: 2px;
+}
+.psp-pdf-mock-meta span:nth-child(1) { width: 60px; }
+.psp-pdf-mock-meta span:nth-child(2) { width: 40px; }
+.psp-pdf-mock-title {
+  height: 8px;
+  width: 70%;
+  background: var(--_tpl, var(--psp-purple));
+  opacity: .55;
+  border-radius: 3px;
+  margin-top: 4px;
+}
+.psp-pdf-mock-rows { display: flex; flex-direction: column; gap: 5px; flex: 1; margin-top: 2px; }
+.psp-pdf-mock-rows span {
+  height: 5px;
+  background: #e2e8f0;
+  border-radius: 2px;
+}
+.psp-pdf-mock-rows span:nth-child(1) { width: 95%; }
+.psp-pdf-mock-rows span:nth-child(2) { width: 85%; }
+.psp-pdf-mock-rows span:nth-child(3) { width: 92%; }
+.psp-pdf-mock-rows span:nth-child(4) { width: 78%; }
+.psp-pdf-mock-rows span:nth-child(5) { width: 60%; }
+.psp-pdf-mock-footer {
+  height: 6px;
+  width: 40%;
+  background: #f1f5f9;
+  border-radius: 3px;
+  margin-top: auto;
+  align-self: flex-end;
+}
+
+/* ── Best for + highlights ── */
+.psp-pdf-bestfor {
+  background: #f8fafc;
+  border: 1px solid var(--psp-border);
+  border-radius: 10px;
+  padding: .6rem .75rem;
+  margin: .9rem 0 .75rem;
+}
+.psp-pdf-bestfor-label {
+  display: block;
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--psp-text-muted);
+  margin-bottom: .15rem;
+}
+.psp-pdf-bestfor-text {
+  font-size: .78rem;
+  color: var(--psp-text);
+  line-height: 1.4;
+}
+.psp-pdf-highlights {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.psp-pdf-highlights li {
+  font-size: .76rem;
+  color: var(--psp-text-soft);
+  padding: .15rem 0;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+.psp-pdf-highlights li i { font-size: .9rem; }
 </style>
 {% endblock %}
