@@ -10,6 +10,30 @@
 
 {% block content %}
 
+{# ── Cockpit hero ───────────────────────────────────────────── #}
+<section class="psp-glass-strong relative overflow-hidden mb-5 px-6 py-6 sm:px-8 sm:py-7">
+  <div class="psp-hero-grid"></div>
+  <div class="absolute -top-24 right-10 h-64 w-64 rounded-full bg-brand-purple-500/25 blur-3xl"></div>
+  <div class="absolute -bottom-24 left-10 h-64 w-64 rounded-full bg-brand-green-500/20 blur-3xl"></div>
+  <div class="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+    <div class="min-w-0">
+      <div class="psp-pill psp-pill-purple mb-2">
+        <span class="h-1.5 w-1.5 rounded-full bg-brand-green-300 animate-pulse-soft"></span>
+        {% trans "System cockpit" %}
+      </div>
+      <h1 class="font-display text-2xl sm:text-3xl font-bold tracking-tight text-white">{% trans "Control Center" %}</h1>
+      <p class="mt-1 max-w-xl text-sm text-slate-300/85">
+        {% trans "Read-only system health, catalogue quality, quotation integrity, staff readiness, PDF pipeline and the latest audit activity. Nothing here writes, deletes or changes data." %}
+      </p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="psp-pill psp-pill-green"><i class="bi bi-check-circle-fill"></i> {{ summary.ready }} {% trans "ready" %}</span>
+      <span class="psp-pill psp-pill-amber"><i class="bi bi-exclamation-triangle-fill"></i> {{ summary.warning }} {% trans "to review" %}</span>
+      <span class="psp-pill"><i class="bi bi-info-circle-fill"></i> {{ summary.info }} {% trans "info" %}</span>
+    </div>
+  </div>
+</section>
+
 {% trans "Admin Control Center" as ph_title %}
 {% trans "Read-only system health, catalogue quality, quotation integrity, staff readiness, PDF pipeline and the latest audit activity. Nothing here writes, deletes or changes data." as ph_text %}
 {% include "widgets/page_help.html" with title=ph_title text=ph_text icon="bi-shield-check" tone="purple" %}

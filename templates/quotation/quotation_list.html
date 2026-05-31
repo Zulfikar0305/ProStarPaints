@@ -10,6 +10,27 @@
 
 {% block content %}
 
+{# ── Premium hero band ──────────────────────────────────────── #}
+<section class="psp-glass relative overflow-hidden mb-5 px-5 py-5 sm:px-7 sm:py-6">
+  <div class="absolute -top-20 right-0 h-56 w-56 rounded-full bg-brand-purple-500/20 blur-3xl"></div>
+  <div class="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class="min-w-0">
+      <div class="psp-pill psp-pill-purple mb-2">
+        <i class="bi bi-folder2-open text-[10px]"></i>
+        {% trans "Workspace" %}
+      </div>
+      <h1 class="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight">{% trans "Quotations" %}</h1>
+      <p class="mt-1 text-sm text-slate-300/80 max-w-xl">
+        {% trans "Search, filter, continue and export quotations. Pin the ones you care about \u2014 the last five live in your recent panel." %}
+      </p>
+    </div>
+    <a href="{% url 'quotation:quotation_start' %}"
+       class="self-start inline-flex items-center gap-2 rounded-xl border border-white/15 bg-gradient-to-br from-brand-purple-600 to-brand-purple-700 px-4 py-2.5 text-sm font-semibold text-white shadow-glow transition hover:from-brand-purple-500">
+      <i class="bi bi-plus-lg"></i>{% trans "New quotation" %}
+    </a>
+  </div>
+</section>
+
 {% trans "Quotations Workspace" as ph_title %}
 {% trans "Search, filter, continue and export quotations. Pin the ones you care about; we'll remember the last five you opened." as ph_text %}
 {% include "widgets/page_help.html" with title=ph_title text=ph_text icon="bi-file-earmark-text" tone="purple" %}

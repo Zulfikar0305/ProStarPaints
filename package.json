@@ -1,0 +1,15 @@
+{
+  "name": "prostarpaints-ui",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Tailwind build pipeline for ProStar Paints futuristic UI overhaul (experimental).",
+  "scripts": {
+    "build:css": "tailwindcss -i ./static/css/src/tailwind.input.css -o ./static/css/tailwind.css --minify",
+    "watch:css": "tailwindcss -i ./static/css/src/tailwind.input.css -o ./static/css/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.13",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47"
+  }
+}

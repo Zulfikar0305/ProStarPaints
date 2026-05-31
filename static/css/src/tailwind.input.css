@@ -1,0 +1,743 @@
+/*  ProStar Paints — Tailwind input (experimental UI overhaul)
+ *  Compiled to: static/css/tailwind.css
+ *  Loaded AFTER Bootstrap + app.css in base.html, so it wins specificity ties.
+ *
+ *  Strategy: Keep all existing template structure + .psp-* class hooks (JS
+ *  binds to them). Use @layer components to repaint those hooks in the new
+ *  futuristic dark theme, and expose small utility primitives (psp-glass,
+ *  psp-glow-*, psp-cockpit-tile) that new template work can opt into.
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   §1  Theme tokens
+   ============================================================ */
+:root {
+  --tw-ink-950: #070a18;
+  --tw-ink-900: #0b1024;
+  --tw-ink-850: #0e132c;
+  --tw-ink-800: #121939;
+  --tw-ink-700: #1a2247;
+
+  --tw-text:       #e2e8f0;
+  --tw-text-soft:  #94a3b8;
+  --tw-text-mute:  #64748b;
+
+  --tw-brand-purple: #8b5cf6;
+  --tw-brand-purple-d: #7c3aed;
+  --tw-brand-green:  #34d399;
+  --tw-brand-green-d:#10b981;
+  --tw-accent-cyan:  #22d3ee;
+  --tw-accent-amber: #fbbf24;
+  --tw-accent-rose:  #fb7185;
+
+  --tw-line: rgba(255, 255, 255, 0.08);
+  --tw-line-strong: rgba(255, 255, 255, 0.14);
+}
+
+/* ============================================================
+   §2  Body / shell — futuristic dark navy
+   ============================================================ */
+body.psp-body {
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(124, 58, 237, 0.18), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(16, 185, 129, 0.14), transparent 60%),
+    linear-gradient(180deg, #0b1024 0%, #070a18 60%, #050714 100%);
+  color: var(--tw-text);
+  font-family: "Inter", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  min-height: 100vh;
+}
+
+/* Subtle vector grid behind everything */
+body.psp-body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(139, 92, 246, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 92, 246, 0.06) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(ellipse at center, black 20%, transparent 80%);
+  z-index: -1;
+}
+
+/* NOTE: do NOT set `position` on .psp-sidebar / .psp-topbar / .psp-main here.
+   app.css gives .psp-sidebar `position: fixed` and .psp-topbar `position: sticky`;
+   overriding to `relative` broke the sticky topbar + fixed sidebar. The
+   ::before grid above lives at z-index:-1 so positioned shell already wins. */
+
+/* ============================================================
+   §3  Sidebar — glass panel with neon accent
+   ============================================================ */
+.psp-sidebar {
+  background:
+    linear-gradient(180deg, rgba(18, 25, 57, 0.85) 0%, rgba(11, 16, 36, 0.92) 100%);
+  border-right: 1px solid var(--tw-line);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.55);
+}
+.psp-sidebar-brand,
+.psp-sidebar-footer { border-color: var(--tw-line) !important; }
+.psp-sidebar-brand-name {
+  background: linear-gradient(135deg, #c4b5fd 0%, #6ee7b7 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.psp-sidebar-section-label {
+  color: var(--tw-text-mute) !important;
+  letter-spacing: 0.14em;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+.psp-sidebar-link {
+  color: var(--tw-text-soft) !important;
+  border-radius: 0.65rem;
+  margin: 2px 8px;
+  transition: background-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+.psp-sidebar-link:hover {
+  background: rgba(139, 92, 246, 0.10) !important;
+  color: #ffffff !important;
+}
+.psp-sidebar-link.active {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.35), rgba(52, 211, 153, 0.22)) !important;
+  color: #ffffff !important;
+  box-shadow: inset 0 0 0 1px rgba(139, 92, 246, 0.4), 0 8px 22px -10px rgba(139, 92, 246, 0.55);
+}
+.psp-sidebar-link.active i { color: #c4b5fd; }
+.psp-sidebar-user-name { color: #f1f5f9 !important; }
+.psp-sidebar-user-role {
+  color: var(--tw-text-mute) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.62rem;
+}
+.psp-sidebar-avatar {
+  background: linear-gradient(135deg, #7c3aed 0%, #10b981 100%);
+  color: #ffffff !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.06), 0 6px 20px -6px rgba(124, 58, 237, 0.6);
+}
+.psp-sidebar-signout {
+  color: var(--tw-text-soft) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid var(--tw-line) !important;
+}
+.psp-sidebar-signout:hover { color: #fb7185 !important; border-color: rgba(251, 113, 133, 0.4) !important; }
+
+/* ============================================================
+   §4  Topbar — glass with neon search
+   ============================================================ */
+.psp-topbar {
+  background: rgba(11, 16, 36, 0.65) !important;
+  border-bottom: 1px solid var(--tw-line) !important;
+  backdrop-filter: blur(18px);
+}
+.psp-topbar-greeting { color: var(--tw-text-soft) !important; }
+.psp-topbar-greeting strong { color: #ffffff; }
+
+.psp-search-wrap {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid var(--tw-line) !important;
+  border-radius: 999px !important;
+}
+.psp-search-wrap:focus-within {
+  border-color: rgba(139, 92, 246, 0.5) !important;
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
+}
+.psp-search-icon, .psp-search-input::placeholder { color: var(--tw-text-mute) !important; }
+.psp-search-input { color: #ffffff !important; background: transparent !important; }
+
+.psp-icon-btn {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid var(--tw-line) !important;
+  color: var(--tw-text-soft) !important;
+  border-radius: 0.75rem !important;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.12s ease;
+}
+.psp-icon-btn:hover {
+  background: rgba(139, 92, 246, 0.14) !important;
+  border-color: rgba(139, 92, 246, 0.4) !important;
+  color: #ffffff !important;
+}
+.psp-icon-btn:active { transform: translateY(1px); }
+.psp-helpmode-trigger.is-on,
+.psp-helpmode-trigger[aria-pressed="true"] {
+  color: #fde68a !important;
+  background: rgba(251, 191, 36, 0.16) !important;
+  border-color: rgba(251, 191, 36, 0.45) !important;
+  box-shadow: 0 0 18px -2px rgba(251, 191, 36, 0.4);
+}
+
+.psp-topbar-avatar {
+  background: linear-gradient(135deg, #7c3aed 0%, #10b981 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid var(--tw-line);
+  box-shadow: 0 6px 20px -8px rgba(124, 58, 237, 0.65);
+}
+.psp-user-menu-dropdown {
+  background: rgba(14, 19, 44, 0.95) !important;
+  border: 1px solid var(--tw-line-strong) !important;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.7) !important;
+  border-radius: 14px !important;
+}
+.psp-user-menu-item { color: var(--tw-text-soft) !important; }
+.psp-user-menu-item:hover { background: rgba(139, 92, 246, 0.16) !important; color: #ffffff !important; }
+
+/* ============================================================
+   §5  Cards / surfaces  —  glass panels
+   ============================================================ */
+.card, .psp-card, .psp-kpi-card, .psp-hero-stat, .psp-tool-card {
+  background: rgba(18, 25, 57, 0.65) !important;
+  border: 1px solid var(--tw-line) !important;
+  color: var(--tw-text) !important;
+  border-radius: 1.1rem !important;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 20px 60px -25px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.card-header, .card-footer {
+  background: transparent !important;
+  border-color: var(--tw-line) !important;
+  color: #ffffff !important;
+}
+.card-body, .card-title, .card-subtitle, .card-text { color: var(--tw-text) !important; }
+
+.psp-kpi-card { transition: transform 0.18s ease, box-shadow 0.18s ease; }
+.psp-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 28px 70px -25px rgba(124, 58, 237, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border-color: rgba(139, 92, 246, 0.35) !important;
+}
+
+/* ============================================================
+   §6  Buttons — neon
+   ============================================================ */
+.btn-primary {
+  background-image: linear-gradient(135deg, #7c3aed, #6d28d9) !important;
+  border: 1px solid rgba(167, 139, 250, 0.55) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 26px -10px rgba(124, 58, 237, 0.6);
+}
+.btn-primary:hover {
+  background-image: linear-gradient(135deg, #8b5cf6, #7c3aed) !important;
+  box-shadow: 0 14px 30px -10px rgba(124, 58, 237, 0.8);
+}
+.btn-success {
+  background-image: linear-gradient(135deg, #10b981, #059669) !important;
+  border-color: rgba(110, 231, 183, 0.5) !important;
+  box-shadow: 0 10px 26px -10px rgba(16, 185, 129, 0.55);
+}
+.btn-outline-secondary,
+.btn-outline-primary {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: var(--tw-line-strong) !important;
+  color: var(--tw-text) !important;
+}
+.btn-outline-secondary:hover,
+.btn-outline-primary:hover {
+  background: rgba(139, 92, 246, 0.14) !important;
+  border-color: rgba(139, 92, 246, 0.45) !important;
+  color: #ffffff !important;
+}
+.btn-link { color: #c4b5fd !important; }
+.btn-link:hover { color: #ffffff !important; }
+
+/* ============================================================
+   §7  Tables — dark
+   ============================================================ */
+table, .table {
+  color: var(--tw-text) !important;
+  --bs-table-bg: transparent !important;
+  --bs-table-color: var(--tw-text) !important;
+  --bs-table-striped-bg: rgba(255, 255, 255, 0.025) !important;
+  --bs-table-striped-color: var(--tw-text) !important;
+  --bs-table-hover-bg: rgba(139, 92, 246, 0.10) !important;
+  --bs-table-hover-color: #ffffff !important;
+  --bs-table-border-color: var(--tw-line) !important;
+}
+thead th {
+  color: var(--tw-text-mute) !important;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  border-bottom-color: var(--tw-line) !important;
+}
+
+/* ============================================================
+   §8  Forms — dark inputs
+   ============================================================ */
+.form-control, .form-select, textarea, input[type="text"], input[type="email"],
+input[type="password"], input[type="search"], input[type="number"], input[type="url"],
+input[type="tel"], input[type="date"], input[type="time"] {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid var(--tw-line) !important;
+  color: var(--tw-text) !important;
+}
+.form-control::placeholder { color: var(--tw-text-mute) !important; }
+.form-control:focus, .form-select:focus {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(139, 92, 246, 0.55) !important;
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.18) !important;
+  color: #ffffff !important;
+}
+.form-label, .form-check-label { color: var(--tw-text-soft) !important; }
+
+/* ============================================================
+   §9  Badges, alerts, modals, offcanvas
+   ============================================================ */
+.badge.text-bg-success { background-color: rgba(16, 185, 129, 0.18) !important; color: #6ee7b7 !important; border: 1px solid rgba(110, 231, 183, 0.3); }
+.badge.text-bg-danger  { background-color: rgba(239, 68, 68, 0.18) !important;  color: #fca5a5 !important; border: 1px solid rgba(252, 165, 165, 0.3); }
+.badge.text-bg-warning { background-color: rgba(245, 158, 11, 0.18) !important; color: #fcd34d !important; border: 1px solid rgba(252, 211, 77, 0.3); }
+.badge.text-bg-info    { background-color: rgba(34, 211, 238, 0.18) !important; color: #67e8f9 !important; border: 1px solid rgba(103, 232, 249, 0.3); }
+.badge.text-bg-primary { background-color: rgba(139, 92, 246, 0.18) !important; color: #c4b5fd !important; border: 1px solid rgba(196, 181, 253, 0.3); }
+.badge.text-bg-secondary { background-color: rgba(255, 255, 255, 0.06) !important; color: var(--tw-text-soft) !important; }
+
+.alert {
+  background: rgba(18, 25, 57, 0.7) !important;
+  border: 1px solid var(--tw-line-strong) !important;
+  color: var(--tw-text) !important;
+  border-radius: 0.85rem !important;
+  backdrop-filter: blur(8px);
+}
+.alert-success { border-color: rgba(110, 231, 183, 0.35) !important; }
+.alert-danger,
+.alert-error   { border-color: rgba(252, 165, 165, 0.35) !important; }
+.alert-warning { border-color: rgba(252, 211, 77, 0.35) !important; }
+.alert-info    { border-color: rgba(103, 232, 249, 0.35) !important; }
+
+.modal-content,
+.offcanvas {
+  background: rgba(14, 19, 44, 0.92) !important;
+  border: 1px solid var(--tw-line-strong) !important;
+  color: var(--tw-text) !important;
+  backdrop-filter: blur(20px);
+}
+.modal-header, .modal-footer,
+.offcanvas-header { border-color: var(--tw-line) !important; }
+.btn-close { filter: invert(1) grayscale(1) brightness(2) opacity(0.7); }
+
+/* ============================================================
+   §10  Help drawer + onboarding + command palette
+   ============================================================ */
+.psp-help-drawer,
+.psp-help-drawer-body,
+.psp-help-drawer-header { background: transparent !important; color: var(--tw-text) !important; }
+.psp-help-drawer-badge {
+  background: linear-gradient(135deg, #7c3aed, #10b981) !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 20px -8px rgba(124, 58, 237, 0.6);
+}
+.psp-help-search-wrap {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: var(--tw-line) !important;
+}
+.psp-help-search { color: #ffffff !important; }
+.psp-help-topic {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid var(--tw-line) !important;
+  color: var(--tw-text) !important;
+  border-radius: 0.85rem !important;
+}
+.psp-help-topic:hover { border-color: rgba(139, 92, 246, 0.45) !important; }
+.psp-help-topic p { color: var(--tw-text-soft) !important; }
+.psp-help-topic a { color: #c4b5fd !important; }
+.psp-help-topic-pill {
+  background: rgba(251, 191, 36, 0.18) !important;
+  color: #fcd34d !important;
+}
+.psp-help-shortcuts { border-top-color: var(--tw-line) !important; }
+.psp-help-shortcuts-title { color: var(--tw-text-mute) !important; }
+.psp-help-shortcuts li { color: var(--tw-text-soft) !important; }
+.psp-help-shortcuts kbd {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid var(--tw-line-strong) !important;
+  color: #ffffff !important;
+}
+.psp-help-action-btn {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: var(--tw-line) !important;
+  color: var(--tw-text) !important;
+}
+.psp-help-action-btn:hover {
+  border-color: rgba(251, 191, 36, 0.5) !important;
+  background: rgba(251, 191, 36, 0.08) !important;
+}
+.psp-help-action-btn small { color: var(--tw-text-mute) !important; }
+.psp-help-action-btn--primary {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.18), rgba(168, 85, 247, 0.18)) !important;
+  border-color: rgba(251, 191, 36, 0.4) !important;
+}
+.psp-help-flow {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: var(--tw-line) !important;
+}
+.psp-help-flow-title { color: var(--tw-text-mute) !important; }
+.psp-help-flow-num {
+  background: rgba(139, 92, 246, 0.2) !important;
+  color: #c4b5fd !important;
+}
+.psp-help-flow-list a { color: var(--tw-text) !important; }
+.psp-help-flow-list small { color: var(--tw-text-mute) !important; }
+
+/* Command palette */
+.psp-palette,
+.psp-palette-modal,
+.psp-palette-content {
+  background: rgba(14, 19, 44, 0.95) !important;
+  color: var(--tw-text) !important;
+}
+.psp-palette-item { color: var(--tw-text-soft) !important; }
+.psp-palette-item:hover,
+.psp-palette-item.is-active {
+  background: rgba(139, 92, 246, 0.18) !important;
+  color: #ffffff !important;
+}
+.psp-palette-input {
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: #ffffff !important;
+}
+
+/* Quotation builder rail + save bar overrides */
+.psp-section-rail {
+  background: rgba(18, 25, 57, 0.65) !important;
+  border-color: var(--tw-line) !important;
+}
+.psp-section-rail-item {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: var(--tw-text) !important;
+}
+.psp-section-rail-item:hover {
+  background: rgba(139, 92, 246, 0.18) !important;
+  border-color: rgba(139, 92, 246, 0.4) !important;
+}
+.psp-save-bar {
+  background: rgba(11, 16, 36, 0.92) !important;
+  border-top-color: var(--tw-line) !important;
+  backdrop-filter: blur(14px);
+}
+.psp-chip {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: var(--tw-text-soft) !important;
+}
+.psp-chip--purple { background: rgba(139, 92, 246, 0.2) !important; color: #c4b5fd !important; }
+.psp-chip--green  { background: rgba(16, 185, 129, 0.2)  !important; color: #6ee7b7 !important; }
+.psp-chip--blue   { background: rgba(59, 130, 246, 0.2)  !important; color: #93c5fd !important; }
+.psp-chip--danger { background: rgba(239, 68, 68, 0.22) !important; color: #fca5a5 !important; }
+.psp-help-tip {
+  background: rgba(139, 92, 246, 0.10) !important;
+  border-left-color: rgba(139, 92, 246, 0.55) !important;
+  color: var(--tw-text-soft) !important;
+}
+
+/* Help-mode walkthrough callout / banner repaint */
+.psp-help-banner {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.25), rgba(16, 185, 129, 0.2)) !important;
+  border: 1px solid rgba(196, 181, 253, 0.45) !important;
+  color: #f1f5f9 !important;
+  box-shadow: 0 18px 50px -12px rgba(124, 58, 237, 0.55) !important;
+}
+.psp-help-banner-tour,
+.psp-help-banner-close {
+  background: rgba(255, 255, 255, 0.10) !important;
+  color: #f8fafc !important;
+}
+.psp-walkthrough {
+  background: rgba(14, 19, 44, 0.95) !important;
+  border: 1px solid var(--tw-line-strong) !important;
+  color: var(--tw-text) !important;
+  box-shadow: 0 40px 90px -20px rgba(0, 0, 0, 0.7) !important;
+}
+.psp-walkthrough-arrow { background: rgba(14, 19, 44, 0.95) !important; border-color: var(--tw-line-strong) !important; }
+.psp-walkthrough-title { color: #ffffff !important; }
+.psp-walkthrough-body  { color: var(--tw-text-soft) !important; }
+.psp-walkthrough-step-num {
+  background: rgba(139, 92, 246, 0.25) !important;
+  color: #c4b5fd !important;
+}
+
+/* ============================================================
+   §11  KPI/hero — futuristic widgets
+   ============================================================ */
+.psp-page-header,
+.psp-page-title { color: #ffffff !important; }
+.text-muted, .text-secondary { color: var(--tw-text-soft) !important; }
+.text-body, .text-dark { color: var(--tw-text) !important; }
+.text-primary { color: #c4b5fd !important; }
+.text-success { color: #6ee7b7 !important; }
+.text-danger  { color: #fca5a5 !important; }
+.text-warning { color: #fcd34d !important; }
+a { color: #c4b5fd; }
+a:hover { color: #ffffff; }
+hr { border-color: var(--tw-line) !important; opacity: 1 !important; }
+
+/* ============================================================
+   §12  Tailwind component primitives (new templates can opt in)
+   ============================================================ */
+@layer components {
+  .psp-glass {
+    @apply relative rounded-2xl border border-white/10 bg-ink-800/60 backdrop-blur-xl shadow-glass;
+  }
+  .psp-glass-strong {
+    @apply relative rounded-3xl border border-white/15 bg-ink-850/80 backdrop-blur-2xl shadow-glass-lg;
+  }
+  .psp-glow {
+    @apply ring-1 ring-brand-purple-500/40 shadow-glow;
+  }
+  .psp-glow-green {
+    @apply ring-1 ring-brand-green-400/40 shadow-glow-green;
+  }
+  .psp-stat-card {
+    @apply relative overflow-hidden rounded-2xl border border-white/10 bg-ink-800/60 p-5 backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-purple-500/40 hover:shadow-glow;
+  }
+  .psp-stat-card::before {
+    content: "";
+    @apply absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-purple-400/70 to-transparent;
+  }
+  .psp-cockpit-tile {
+    @apply relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-ink-800/80 to-ink-900/80 p-5 backdrop-blur-xl;
+  }
+  .psp-pill {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-200;
+  }
+  .psp-pill-purple { @apply border-brand-purple-500/40 bg-brand-purple-500/15 text-brand-purple-200; }
+  .psp-pill-green  { @apply border-brand-green-400/40  bg-brand-green-500/15  text-brand-green-200; }
+  .psp-pill-amber  { @apply border-accent-amber/40     bg-accent-amber/15     text-accent-amber; }
+  .psp-pill-rose   { @apply border-accent-rose/40      bg-accent-rose/15      text-accent-rose; }
+  .psp-hero-grid {
+    @apply absolute inset-0 bg-grid-faint bg-grid-32 opacity-30 [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_75%)];
+  }
+}
+
+/* ============================================================
+   §13  Reduce motion + light-mode escape hatch
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  body.psp-body::before { animation: none; }
+}
+[data-reduce-motion="true"] .animate-pulse-soft,
+[data-reduce-motion="true"] .animate-shimmer,
+[data-reduce-motion="true"] .animate-float { animation: none !important; }
+
+/* Watermark — slightly more visible on dark */
+.psp-watermark { opacity: 0.06 !important; }
+
+/* Scrollbars */
+* { scrollbar-color: rgba(255, 255, 255, 0.18) transparent; scrollbar-width: thin; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 999px; }
+*::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.45); }
+
+/* ============================================================
+   §14  Audit-fix patches (visual regressions found during review)
+   ============================================================ */
+
+/* — Bootstrap dropdown menus (profile menu, user menu, etc.) — */
+.dropdown-menu {
+  background: rgba(14, 19, 44, 0.96) !important;
+  border: 1px solid var(--tw-line-strong) !important;
+  color: var(--tw-text) !important;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.7) !important;
+  border-radius: 14px !important;
+}
+.dropdown-item {
+  color: var(--tw-text-soft) !important;
+}
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background: rgba(139, 92, 246, 0.16) !important;
+  color: #ffffff !important;
+}
+.dropdown-divider { border-top-color: var(--tw-line) !important; }
+.dropdown-header { color: var(--tw-text-mute) !important; }
+
+/* — Bootstrap pagination — */
+.pagination { --bs-pagination-bg: transparent; }
+.page-link {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid var(--tw-line) !important;
+  color: var(--tw-text-soft) !important;
+}
+.page-link:hover {
+  background: rgba(139, 92, 246, 0.14) !important;
+  border-color: rgba(139, 92, 246, 0.4) !important;
+  color: #ffffff !important;
+}
+.page-item.active .page-link {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9) !important;
+  border-color: rgba(167, 139, 250, 0.55) !important;
+  color: #ffffff !important;
+}
+.page-item.disabled .page-link {
+  background: rgba(255, 255, 255, 0.02) !important;
+  color: var(--tw-text-mute) !important;
+  border-color: var(--tw-line) !important;
+}
+
+/* — Bootstrap list-group (global search results, mini quotation lists) — */
+.list-group,
+.list-group-flush { background: transparent !important; }
+.list-group-item {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border-color: var(--tw-line) !important;
+  color: var(--tw-text) !important;
+}
+.list-group-item-action:hover,
+.list-group-item-action:focus {
+  background: rgba(139, 92, 246, 0.12) !important;
+  color: #ffffff !important;
+}
+
+/* — Bootstrap nav-tabs / nav-pills — */
+.nav-tabs { border-bottom-color: var(--tw-line) !important; }
+.nav-tabs .nav-link {
+  color: var(--tw-text-soft) !important;
+  border-color: transparent !important;
+}
+.nav-tabs .nav-link:hover { color: #ffffff !important; }
+.nav-tabs .nav-link.active {
+  background: rgba(139, 92, 246, 0.12) !important;
+  color: #ffffff !important;
+  border-color: var(--tw-line) var(--tw-line) transparent !important;
+}
+.nav-pills .nav-link { color: var(--tw-text-soft) !important; }
+.nav-pills .nav-link.active {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9) !important;
+  color: #ffffff !important;
+}
+
+/* — Bootstrap toasts — */
+.toast {
+  background: rgba(14, 19, 44, 0.95) !important;
+  color: var(--tw-text) !important;
+  border: 1px solid var(--tw-line-strong) !important;
+  backdrop-filter: blur(14px);
+}
+.toast-header {
+  background: transparent !important;
+  color: #ffffff !important;
+  border-bottom-color: var(--tw-line) !important;
+}
+
+/* — Bootstrap form validation states — must remain obvious — */
+.form-control.is-invalid,
+.form-select.is-invalid,
+.was-validated .form-control:invalid,
+.was-validated .form-select:invalid {
+  border-color: rgba(252, 165, 165, 0.7) !important;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.18) !important;
+}
+.form-control.is-valid,
+.form-select.is-valid {
+  border-color: rgba(110, 231, 183, 0.7) !important;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15) !important;
+}
+.invalid-feedback { color: #fca5a5 !important; }
+.valid-feedback   { color: #6ee7b7 !important; }
+
+/* — Form check / switch — keep clearly clickable on dark — */
+.form-check-input {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  border-color: var(--tw-line-strong) !important;
+}
+.form-check-input:checked {
+  background-color: #7c3aed !important;
+  border-color: rgba(167, 139, 250, 0.7) !important;
+}
+.form-check-input:focus {
+  border-color: rgba(139, 92, 246, 0.6) !important;
+  box-shadow: 0 0 0 0.25rem rgba(139, 92, 246, 0.25) !important;
+}
+
+/* — Notification bell panel — */
+.psp-notify-panel {
+  background: rgba(14, 19, 44, 0.96) !important;
+  border: 1px solid var(--tw-line-strong) !important;
+  color: var(--tw-text) !important;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.7) !important;
+  border-radius: 14px !important;
+}
+.psp-notify-header,
+.psp-notify-body { border-color: var(--tw-line) !important; }
+.psp-notify-title { color: #ffffff !important; }
+.psp-notify-sub,
+.psp-notify-scope,
+.psp-notify-item-time,
+.psp-notify-empty-text { color: var(--tw-text-mute) !important; }
+.psp-notify-item {
+  background: transparent !important;
+  border-bottom: 1px solid var(--tw-line) !important;
+  color: var(--tw-text) !important;
+}
+.psp-notify-item:hover { background: rgba(139, 92, 246, 0.10) !important; }
+.psp-notify-item-title { color: #ffffff !important; }
+.psp-notify-item-desc  { color: var(--tw-text-soft) !important; }
+
+/* — Floating action button (FAB) menu — */
+.psp-fab-menu,
+.psp-fab-panel {
+  background: rgba(14, 19, 44, 0.96) !important;
+  border: 1px solid var(--tw-line-strong) !important;
+  color: var(--tw-text) !important;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.7) !important;
+}
+.psp-fab-action { color: var(--tw-text) !important; }
+.psp-fab-action:hover { background: rgba(139, 92, 246, 0.16) !important; color: #ffffff !important; }
+.psp-fab-btn {
+  background-image: linear-gradient(135deg, #7c3aed, #10b981) !important;
+  box-shadow: 0 18px 40px -10px rgba(124, 58, 237, 0.7) !important;
+}
+
+/* — Login screen sits without the shell — keep a usable background — */
+body.psp-body:not(:has(.psp-sidebar)) {
+  background:
+    radial-gradient(900px 600px at 50% -10%, rgba(124, 58, 237, 0.22), transparent 60%),
+    linear-gradient(180deg, #0b1024 0%, #050714 100%);
+}
+
+/* — Mobile: prevent any horizontal overflow from gradients / shadows — */
+html, body { overflow-x: hidden; }
+@media (max-width: 575.98px) {
+  .psp-glass, .psp-glass-strong { border-radius: 1rem !important; }
+  /* Hero spotlights can extend past viewport on narrow screens */
+  section .absolute.blur-3xl { filter: blur(60px) !important; }
+}
+
+/* — Accessibility: visible focus ring everywhere — */
+:focus-visible {
+  outline: 2px solid rgba(196, 181, 253, 0.85) !important;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.btn:focus-visible,
+.form-control:focus-visible,
+.form-select:focus-visible { outline: none !important; }
+
+/* — Reduced motion: kill hover transforms + heavy backdrop blurs — */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+  .psp-kpi-card:hover,
+  .psp-stat-card:hover { transform: none !important; }
+}
+
+/* — Light theme escape hatch: opt out of the dark overlay entirely — */
+body.psp-body[data-theme="light"] {
+  /* Defer to the original app.css palette by neutralising the dark gradient. */
+  background: #f8fafc !important;
+  color: #0f172a !important;
+}
+body.psp-body[data-theme="light"]::before { display: none; }

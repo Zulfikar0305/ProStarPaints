@@ -12,6 +12,48 @@
 
 {% block content %}
 
+{# ── Futuristic command-center hero ─────────────────────────── #}
+<section class="psp-glass-strong relative overflow-hidden mb-6 px-6 py-7 sm:px-8 sm:py-9">
+  <div class="psp-hero-grid"></div>
+  <div class="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-brand-purple-600/30 blur-3xl"></div>
+  <div class="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-brand-green-500/20 blur-3xl"></div>
+  <div class="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+    <div class="min-w-0">
+      <div class="psp-pill psp-pill-purple mb-3">
+        <span class="h-1.5 w-1.5 rounded-full bg-brand-purple-300 animate-pulse-soft"></span>
+        {% if is_admin %}{% trans "Operator console" %}{% else %}{% trans "Rep workspace" %}{% endif %}
+      </div>
+      <h1 class="font-display text-3xl sm:text-4xl font-bold tracking-tight text-white">
+        {% if is_admin %}{% trans "Welcome back," %}{% else %}{% trans "Good to see you," %}{% endif %}
+        <span class="bg-gradient-to-r from-brand-purple-300 via-fuchsia-300 to-brand-green-300 bg-clip-text text-transparent">
+          {{ user.first_name|default:user.username }}
+        </span>
+      </h1>
+      <p class="mt-2 max-w-xl text-sm text-slate-300/90">
+        {% if is_admin %}
+          {% trans "System-wide pipeline, team activity and catalogue health \u2014 all in one cockpit." %}
+        {% else %}
+          {% trans "Your quotations, recent activity and shortcuts to keep the pipeline moving." %}
+        {% endif %}
+      </p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <a href="{% url 'quotation:quotation_start' %}"
+         class="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-gradient-to-br from-brand-purple-600 to-brand-purple-700 px-4 py-2.5 text-sm font-semibold text-white shadow-glow transition hover:from-brand-purple-500 hover:to-brand-purple-600">
+        <i class="bi bi-plus-lg"></i>
+        {% trans "New quotation" %}
+      </a>
+      <button type="button"
+              class="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-slate-100 backdrop-blur transition hover:border-brand-green-400/60 hover:bg-brand-green-500/10"
+              data-bs-toggle="offcanvas"
+              data-bs-target="#pspHelpDrawer">
+        <i class="bi bi-life-preserver"></i>
+        {% trans "Help center" %}
+      </button>
+    </div>
+  </div>
+</section>
+
 <!-- ── Page header ──────────────────────────────────────────── -->
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
   <div>

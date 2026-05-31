@@ -13,6 +13,26 @@
 
 {% block content %}
 
+{# ── Hero ──────────────────────────────────────────────────── #}
+<section class="psp-glass relative overflow-hidden mb-5 px-5 py-5 sm:px-7 sm:py-6">
+  <div class="absolute -top-20 right-0 h-56 w-56 rounded-full bg-brand-green-500/25 blur-3xl"></div>
+  <div class="relative flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div class="min-w-0">
+      <div class="psp-pill psp-pill-green mb-2">
+        <i class="bi bi-file-earmark-pdf text-[10px]"></i>{% trans "Output layer" %}
+      </div>
+      <h1 class="font-display text-2xl sm:text-3xl font-bold tracking-tight text-white">{% trans "Choose a PDF layout" %}</h1>
+      <p class="mt-1 max-w-2xl text-sm text-slate-300/85">
+        {% trans "Templates differ in style, not in data. You can regenerate with a different one anytime from the quotation detail page." %}
+      </p>
+    </div>
+    <a href="{% url 'quotation:quotation_review' quotation.pk %}"
+       class="self-start inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-slate-100 backdrop-blur transition hover:border-brand-purple-500/60 hover:bg-brand-purple-500/10">
+      <i class="bi bi-arrow-left"></i>{% trans "Back to review" %}
+    </a>
+  </div>
+</section>
+
 {% trans "PDF templates" as ph_title %}
 {% trans "Pick how the customer-facing document is laid out. Templates differ in style, not data — you can regenerate with a different one anytime." as ph_text %}
 {% include "widgets/page_help.html" with title=ph_title text=ph_text icon="bi-file-earmark-pdf" tone="green" %}
