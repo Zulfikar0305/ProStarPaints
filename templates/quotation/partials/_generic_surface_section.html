@@ -1,24 +1,3 @@
-{#
-  Generic interior surface section configurator partial.
-  Rendered by quotation_builder.html for any non-walls interior section:
-    ceilings · floors · doors_trims_skirtings · window_frames
-
-  Context vars expected (injected via include…with):
-    section        – QuotationSection instance
-    section_config – InteriorSectionConfig dataclass
-                     (.key, .display_name, .type_label, .types,
-                      .surface_conditions, .finishes)
-    gs_summary     – dict from QuotationBuilderView._generic_section_context():
-                     configured (bool), meta (dict), line_count (int),
-                     saved_waterproofing (set), saved_primers (dict key→coats_str),
-                     saved_prep_work (set), saved_paint_keys (set),
-                     saved_paint_bases (dict gk→base), saved_paint_coats (dict gk→coats),
-                     saved_paint_bases_json, saved_paint_coats_json, saved_primers_json
-
-  Context vars inherited from the outer builder view:
-    quotation, finish_map_json, all_paint_groups,
-    waterproofing_options, primer_options, other_prep_options, moisture_threshold
-#}
 {% load i18n %}
 {% with meta=gs_summary.meta configured=gs_summary.configured %}
 
@@ -378,12 +357,6 @@
 
 {% endwith %}
 
-{#
-  Per-section scoped JS.
-  Each IIFE captures its own SECTION_PK so multiple generic sections on the
-  same page never collide.  Handlers are registered on window keyed by PK
-  so inline onchange= attributes can reference them.
-#}
 <script>
 (function () {
   var SECTION_PK    = '{{ section.pk }}';

@@ -1,25 +1,4 @@
-﻿{#
-  Interior Walls configurator partial.
-  Included by quotation_builder.html for sections where subsection_key == "interior_walls".
-
-  Context vars injected via include...with:
-    quotation     – Quotation instance
-    section       – QuotationSection instance
-    iw_summary    – dict built by QuotationBuilderView._iw_context():
-                    configured (bool), meta (dict), line_count (int),
-                    saved_waterproofing (set), saved_primers (dict key->coats_str),
-                    saved_prep_work (set), saved_paint_keys (set),
-                    saved_paint_bases (dict gk->base), saved_paint_coats (dict gk->coats),
-                    saved_paint_bases_json (str), saved_paint_coats_json (str),
-                    saved_primers_json (str)
-
-  Context vars from the builder view (available to all includes):
-    wall_types, surface_conditions, finishes,
-    finish_map_json, all_paint_groups,
-    waterproofing_options, primer_options, other_prep_options,
-    moisture_threshold
-#}
-{% load i18n %}
+﻿{% load i18n %}
 {% with meta=iw_summary.meta configured=iw_summary.configured %}
 
 <div class="card border-0 shadow-sm mb-3"
