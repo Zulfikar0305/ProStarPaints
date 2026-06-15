@@ -31,6 +31,9 @@ class PaintForm(forms.ModelForm):
             "paint_type",
             "base_type",
             "colour",
+            "finish",
+            "spread_rate_per_litre",
+            "priced_volume_litres",
             "price_excl_vat",
             "price_incl_vat",
             "image",
@@ -42,12 +45,32 @@ class PaintForm(forms.ModelForm):
             "category": forms.Select(attrs={"class": "form-select"}),
             "paint_type": forms.Select(attrs={"class": "form-select"}),
             "base_type": forms.Select(attrs={"class": "form-select"}),
+            "finish": forms.Select(attrs={"class": "form-select"}),
             "colour": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Bright White, Tinted"}),
+            "spread_rate_per_litre": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0.01", "placeholder": "e.g. 10.00"}),
+            "priced_volume_litres": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0.01", "placeholder": "1.00"}),
             "price_excl_vat": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0", "placeholder": "0.00", "id": "id_price_excl_vat"}),
             "price_incl_vat": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0", "placeholder": "0.00", "id": "id_price_incl_vat"}),
             "image": forms.ClearableFileInput(attrs={"class": "form-control"}),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
+
+        help_texts = {
+            "spread_rate_per_litre": _(
+                "Coverage in square metres per litre for one coat."
+            ),
+            "priced_volume_litres": _(
+                "Litres represented by the entered price. Use 1 for a per-litre price."
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Allow server-side VAT auto-calculation by letting the inclusive price be optional
+        # at the form level. The model field remains required (DB-level) so cleaned_data
+        # must contain a computed value prior to saving.
+        if "price_incl_vat" in self.fields:
+            self.fields["price_incl_vat"].required = False
 
     def clean_price_excl_vat(self):
         value = self.cleaned_data.get("price_excl_vat")

@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -28,6 +30,14 @@ class Paint(models.Model):
         EPOXY          = "EPOXY",          _("Epoxy")
         OTHER          = "OTHER",          _("Other")
 
+    class Finish(models.TextChoices):
+        SMOOTH_MATTE   = "SMOOTH_MATTE",   _("Smooth Matte")
+        SMOOTH_SHEEN   = "SMOOTH_SHEEN",   _("Smooth Sheen")
+        DECO_PLAST     = "DECO_PLAST",     _("Deco-plast")
+        FINE_TEXTURE   = "FINE_TEXTURE",   _("Fine Texture")
+        COARSE_TEXTURE = "COARSE_TEXTURE", _("Coarse Texture")
+        NOT_APPLICABLE = "NOT_APPLICABLE", _("Not Applicable")
+
     class BaseType(models.TextChoices):
         WHITE          = "WHITE",          _("White")
         PASTEL         = "PASTEL",         _("Pastel Base")
@@ -51,6 +61,34 @@ class Paint(models.Model):
         _("base type"), max_length=20, choices=BaseType.choices, default=BaseType.WHITE
     )
     colour = models.CharField(_("colour"), max_length=100, blank=True, default="")
+
+    # Pricing Pack 1A additions
+    finish = models.CharField(
+        _("finish"),
+        max_length=30,
+        choices=Finish.choices,
+        null=True,
+        blank=True,
+    )
+
+    # Coverage: square metres per litre for one coat
+    spread_rate_per_litre = models.DecimalField(
+        _("spread rate (m² per litre)"),
+        max_digits=7,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0.01"))],
+        null=True,
+        blank=True,
+    )
+
+    # Litres represented by the entered price (default 1 litre)
+    priced_volume_litres = models.DecimalField(
+        _("priced volume (litres)"),
+        max_digits=7,
+        decimal_places=2,
+        default=Decimal("1.00"),
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
 
     # Pricing — stored in ZAR; two decimal places enforced at DB level
     price_excl_vat = models.DecimalField(
