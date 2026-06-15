@@ -41,6 +41,7 @@ from .services import (
     INTERIOR_SUBSECTIONS,
     get_quotation_summary,
 )
+from .pricing import apply_paint_pricing_to_line_item, recalculate_quotation_totals
 from .workspace import (
     HAS_PDF_CHOICES,
     READINESS_FILTER_CHOICES,
@@ -708,7 +709,7 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
             if base_label:
                 description += f" — {base_label}"
 
-            QuotationLineItem.objects.create(
+            li = QuotationLineItem.objects.create(
                 quotation      = quotation,
                 section        = section,
                 item_type      = QuotationLineItem.ItemType.PAINT,
@@ -726,6 +727,22 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
                     "paint_matched": matched_paint is not None,
                 },
             )
+
+            try:
+                apply_paint_pricing_to_line_item(li)
+            except Exception:
+                meta = dict(li.metadata or {})
+                meta.update({"pricing_status": "pending", "pricing_pending_reason": "pricing_exception"})
+                li.metadata = meta
+                li.save(update_fields=["metadata"])
+
+            try:
+                apply_paint_pricing_to_line_item(li)
+            except Exception:
+                meta = dict(li.metadata or {})
+                meta.update({"pricing_status": "pending", "pricing_pending_reason": "pricing_exception"})
+                li.metadata = meta
+                li.save(update_fields=["metadata"])
 
         log_action(
             user        = request.user,
@@ -746,6 +763,11 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
         )
 
         messages.success(request, "Interior Walls saved successfully.")
+        # Recalculate totals after saving interior walls
+        try:
+            recalculate_quotation_totals(quotation)
+        except Exception:
+            pass
         return redirect("quotation:quotation_builder", pk=pk)
 
 
@@ -928,7 +950,7 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
             if base_label:
                 description += f" \u2014 {base_label}"
 
-            QuotationLineItem.objects.create(
+            li = QuotationLineItem.objects.create(
                 quotation      = quotation,
                 section        = section,
                 item_type      = QuotationLineItem.ItemType.PAINT,
@@ -946,6 +968,16 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
                     "paint_matched": matched_paint is not None,
                 },
             )
+
+            # Apply central paint pricing logic to the created line item
+            try:
+                apply_paint_pricing_to_line_item(li)
+            except Exception:
+                # Avoid crashing the builder; mark item pending if unexpected error
+                meta = dict(li.metadata or {})
+                meta.update({"pricing_status": "pending", "pricing_pending_reason": "pricing_exception"})
+                li.metadata = meta
+                li.save(update_fields=["metadata"])
 
         # ── Audit log ────────────────────────────────────────────────────────
         action_key = f"SECTION_SAVED_{cfg.key.upper()}"
@@ -972,6 +1004,12 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
         )
 
         messages.success(request, f"{cfg.display_name} saved successfully.")
+        # Recalculate quotation totals after section saved
+        try:
+            recalculate_quotation_totals(quotation)
+        except Exception:
+            # Fail silently — totals can be recalculated later
+            pass
         return redirect("quotation:quotation_builder", pk=pk)
 
 
