@@ -6,6 +6,9 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q, Count
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.http import HttpResponseRedirect
+from django.db import IntegrityError
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import DetailView, ListView, View
 
@@ -40,6 +43,8 @@ from .services import (
     EXTERIOR_SUBSECTIONS,
     INTERIOR_SUBSECTIONS,
     get_quotation_summary,
+    create_repeatable_section,
+    delete_repeatable_section,
 )
 from .pricing import apply_paint_pricing_to_line_item, recalculate_quotation_totals
 from .workspace import (
@@ -270,9 +275,15 @@ class QuotationSubstrateSelectionView(QuotationAccessMixin, View):
             messages.error(request, "Invalid section selection.")
             return redirect("quotation:quotation_sections", pk=pk)
 
-        if not valid_keys:
+        # Existing keys on this quotation
+        existing_keys = set(quotation.sections.values_list("subsection_key", flat=True))
+
+        # If no valid keys and there are no existing selections, require the
+        # user to pick at least one surface (initial selection). If there are
+        # existing selections, allow submitting an empty set to unselect all
+        # categories (i.e. delete all sections for the quotation).
+        if not valid_keys and not existing_keys:
             messages.warning(request, "Please select at least one surface to continue.")
-            existing_keys = set(quotation.sections.values_list("subsection_key", flat=True))
             return render(request, self.template_name, {
                 "quotation":     quotation,
                 "interior_subs": INTERIOR_SUBSECTIONS,
@@ -1010,6 +1021,46 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
         except Exception:
             # Fail silently — totals can be recalculated later
             pass
+        return redirect("quotation:quotation_builder", pk=pk)
+
+
+class CreateSelectionView(QuotationAccessMixin, View):
+    """POST-only endpoint to create an additional repeated section for a category."""
+
+    def post(self, request, pk, subsection_key, *args, **kwargs):
+        quotation = get_object_or_404(self.get_base_qs(), pk=pk)
+        try:
+            new_section = create_repeatable_section(quotation=quotation, subsection_key=subsection_key)
+        except ValueError:
+            messages.error(request, "Invalid or unselected category.")
+            return redirect("quotation:quotation_builder", pk=pk)
+        except IntegrityError:
+            messages.error(request, "Unable to create section. Try again.")
+            return redirect("quotation:quotation_builder", pk=pk)
+
+        messages.success(request, "New section added.")
+        return HttpResponseRedirect(
+            f"{reverse('quotation:quotation_builder', kwargs={'pk': quotation.pk})}#section-{new_section.pk}"
+        )
+
+
+class DeleteSelectionView(QuotationAccessMixin, View):
+    """POST-only endpoint to delete a single repeated section and renumber siblings."""
+
+    def post(self, request, pk, section_pk, *args, **kwargs):
+        quotation = get_object_or_404(self.get_base_qs(), pk=pk)
+        # Resolve the exact section by pk and quotation
+        section = get_object_or_404(QuotationSection, pk=section_pk, quotation=quotation)
+        try:
+            delete_repeatable_section(quotation=quotation, section_pk=section_pk)
+        except QuotationSection.DoesNotExist:
+            messages.error(request, "Section not found.")
+            return redirect("quotation:quotation_builder", pk=pk)
+        except IntegrityError:
+            messages.error(request, "Unable to delete section. Try again.")
+            return redirect("quotation:quotation_builder", pk=pk)
+
+        messages.success(request, "Section removed.")
         return redirect("quotation:quotation_builder", pk=pk)
 
 

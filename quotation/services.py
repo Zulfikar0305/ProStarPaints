@@ -160,3 +160,116 @@ def get_quotation_summary(quotation) -> dict:
         "moisture_warnings": moisture_warnings,
         "pricing_status":    "pending",
     }
+
+
+# ---------------------------------------------------------------------------
+# Repeatable selection helpers
+# ---------------------------------------------------------------------------
+def create_repeatable_section(*, quotation, subsection_key):
+    """Create a new repeatable QuotationSection for an already-selected category.
+
+    Behaviour summary:
+    - Validate that `subsection_key` is present in the canonical `ALL_SUBSECTIONS`.
+    - Within a `transaction.atomic()` block, lock existing sibling rows for
+      this (quotation, subsection_key) group using `select_for_update()` so
+      concurrent creators serialize.
+    - Materialize the locked siblings, compute `next_order = max(existing
+      selection_order) + 1`, and create exactly one new placeholder
+      `QuotationSection` with `is_placeholder=True`.
+    - This helper does not copy or clone any `QuotationLineItem` rows.
+
+    Raises:
+    - `ValueError` if the provided key is not known or if the category is
+      not already selected on the quotation.
+    - Database exceptions such as `IntegrityError` will propagate to the
+      caller and are not retried within this function.
+    """
+    from django.db import transaction
+    from django.db.models import Max
+
+    if subsection_key not in ALL_SUBSECTIONS:
+        raise ValueError("Invalid subsection_key")
+
+    from .models import QuotationSection
+
+    cfg = ALL_SUBSECTIONS[subsection_key]
+
+    # Use a row-level lock on existing siblings so concurrent creators
+    # serialize and we can safely compute the next selection_order.
+    with transaction.atomic():
+        qs = (
+            QuotationSection.objects
+            .select_for_update()
+            .filter(quotation=quotation, subsection_key=subsection_key)
+            .order_by("selection_order", "pk")
+        )
+        siblings = list(qs)
+
+        # If there are no locked sibling rows the category is not selected
+        # for this quotation — preserve the previous validation behaviour.
+        if not siblings:
+            raise ValueError("Category not selected for quotation")
+
+        max_order = max((s.selection_order or 0) for s in siblings) if siblings else 0
+        next_order = max_order + 1
+
+        section = QuotationSection.objects.create(
+            quotation=quotation,
+            substrate_type=cfg.substrate,
+            subsection_key=subsection_key,
+            display_name=f"{cfg.display_name} {next_order}",
+            sort_order=cfg.sort_order,
+            selection_order=next_order,
+            is_placeholder=True,
+        )
+
+        return section
+
+
+def delete_repeatable_section(*, quotation, section_pk):
+    """Delete a single QuotationSection and renumber remaining siblings.
+
+    Strategy:
+    - Delete the target section.
+    - If siblings remain for the same (quotation, subsection_key) group,
+      renumber them to contiguous values using a two-phase update to avoid
+      uniqueness collisions.
+    - If no siblings remain, the category is considered unselected and no
+      placeholder is created.
+
+    Returns True on success, or None if the category became empty.
+    """
+    from django.db import transaction
+
+    from .models import QuotationSection
+
+    with transaction.atomic():
+        sec = QuotationSection.objects.get(pk=section_pk, quotation=quotation)
+        key = sec.subsection_key
+        # Delete the target section
+        sec.delete()
+
+        siblings = list(
+            QuotationSection.objects.filter(quotation=quotation, subsection_key=key)
+            .order_by("selection_order", "pk")
+        )
+
+        if not siblings:
+            # No remaining selections for this category: category is removed
+            return None
+
+        # Capture original ordering (selection_order, pk)
+        orig = [(s.pk, s.selection_order) for s in siblings]
+        max_old = max(o for _, o in orig) if orig else 0
+        offset = max_old + 1000
+
+        # Phase 1: move to high-offset values to avoid uniqueness collisions
+        for s in siblings:
+            QuotationSection.objects.filter(pk=s.pk).update(selection_order=s.selection_order + offset)
+
+        # Phase 2: assign contiguous values in desired order (by old sort)
+        ordered = sorted(orig, key=lambda x: (x[1], x[0]))
+        for idx, (pk, _) in enumerate(ordered, start=1):
+            QuotationSection.objects.filter(pk=pk).update(selection_order=idx)
+
+        return True
