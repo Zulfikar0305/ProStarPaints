@@ -152,6 +152,10 @@ class QuotationSection(models.Model):
     subsection_key = models.CharField(_("subsection key"), max_length=80)
     display_name   = models.CharField(_("display name"), max_length=120)
     sort_order     = models.PositiveSmallIntegerField(_("sort order"), default=0)
+    selection_order = models.PositiveSmallIntegerField(
+        _("selection order"),
+        default=1,
+    )
 
     # When True this section is a placeholder/heading with no real line items yet
     is_placeholder = models.BooleanField(_("is placeholder"), default=False)
@@ -160,6 +164,12 @@ class QuotationSection(models.Model):
         ordering = ["quotation", "sort_order", "display_name"]
         verbose_name = _("quotation section")
         verbose_name_plural = _("quotation sections")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["quotation", "subsection_key", "selection_order"],
+                name="uniq_quotation_subsection_selection_order",
+            ),
+        ]
 
     def __str__(self) -> str:
         return f"{self.quotation.reference} › {self.display_name}"

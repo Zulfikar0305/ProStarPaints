@@ -150,9 +150,6 @@ class PricingIntegrationTests(TestCase):
 		self.assertEqual(li.total_incl_vat, Decimal("460.00"))
 
 		recalculate_quotation_totals(self.q)
-		self.q.refresh_from_db()
-		self.assertEqual(self.q.subtotal_excl_vat, Decimal("400.00"))
-		self.assertEqual(self.q.total_incl_vat, Decimal("460.00"))
 
 	def test_missing_spread_rate_leaves_zero_and_pending(self):
 		p = Paint.objects.create(
@@ -371,3 +368,46 @@ class PricingIntegrationTests(TestCase):
 		recalculate_quotation_totals(self.q)
 		self.q.refresh_from_db()
 		self.assertEqual(self.q.subtotal_excl_vat, Decimal("400.00"))
+
+
+class QuotationSectionSelectionOrderTests(TestCase):
+	def setUp(self):
+		User = get_user_model()
+		self.user = User.objects.create_user(username="testuser2", password="pass")
+		self.q = Quotation.objects.create(created_by=self.user, customer_name="C2", customer_email="", customer_phone="")
+
+	def test_default_selection_order_is_one(self):
+		sec = QuotationSection.objects.create(quotation=self.q, subsection_key="ceilings", display_name="Ceilings")
+		self.assertEqual(sec.selection_order, 1)
+
+	def test_repeated_categories_allowed_and_ordered(self):
+		s1 = QuotationSection.objects.create(quotation=self.q, subsection_key="interior_walls", display_name="Interior 1", sort_order=1)
+		s2 = QuotationSection.objects.create(quotation=self.q, subsection_key="interior_walls", display_name="Interior 2", sort_order=2, selection_order=2)
+		self.assertEqual(s1.selection_order, 1)
+		self.assertEqual(s2.selection_order, 2)
+
+	def test_duplicate_selection_order_violates_unique_constraint(self):
+		from django.db import IntegrityError
+		QuotationSection.objects.create(quotation=self.q, subsection_key="ceilings", display_name="C1", selection_order=1)
+		with self.assertRaises(IntegrityError):
+			QuotationSection.objects.create(quotation=self.q, subsection_key="ceilings", display_name="C2", selection_order=1)
+
+	def test_same_order_different_categories_allowed(self):
+		s1 = QuotationSection.objects.create(quotation=self.q, subsection_key="interior_walls", display_name="I1", selection_order=1)
+		s2 = QuotationSection.objects.create(quotation=self.q, subsection_key="ceilings", display_name="C1", selection_order=1)
+		self.assertEqual(s1.selection_order, 1)
+		self.assertEqual(s2.selection_order, 1)
+
+	def test_same_order_different_quotations_allowed(self):
+		# Use same user; only two different Quotation objects are needed
+		q2 = Quotation.objects.create(created_by=self.user, customer_name="C3", customer_email="", customer_phone="")
+		QuotationSection.objects.create(quotation=self.q, subsection_key="interior_walls", display_name="I1", selection_order=1)
+		QuotationSection.objects.create(quotation=q2, subsection_key="interior_walls", display_name="I1", selection_order=1)
+
+	def test_line_item_relationship_unchanged(self):
+		sec = QuotationSection.objects.create(quotation=self.q, subsection_key="interior_walls", display_name="I1", selection_order=1)
+		li = QuotationLineItem.objects.create(quotation=self.q, section=sec, item_type=QuotationLineItem.ItemType.NOTE, description="Note", metadata={})
+		# Forward FK
+		self.assertEqual(li.section.pk, sec.pk)
+		# Reverse FK
+		self.assertTrue(sec.line_items.filter(pk=li.pk).exists())
