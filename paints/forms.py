@@ -28,7 +28,6 @@ class PaintForm(forms.ModelForm):
             "name",
             "description",
             "category",
-            "paint_type",
             "base_type",
             "colour",
             "finish",
@@ -49,7 +48,6 @@ class PaintForm(forms.ModelForm):
             "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Plascon Double Velvet"}),
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Optional product description"}),
             "category": forms.Select(attrs={"class": "form-select"}),
-            "paint_type": forms.Select(attrs={"class": "form-select"}),
             "base_type": forms.Select(attrs={"class": "form-select"}),
             "finish": forms.Select(attrs={"class": "form-select"}),
             "colour": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Bright White, Tinted"}),
@@ -146,5 +144,143 @@ class PaintForm(forms.ModelForm):
                           "other blank to auto-calculate.")
                         % {"expected": expected_incl, "rate": vat_rate},
                     )
+
+        # Continue to category-specific form-level validation and safe normalization
+        cat = cleaned_data.get("category")
+        pm = cleaned_data.get("pricing_method")
+        pu = cleaned_data.get("package_unit")
+        finish = cleaned_data.get("finish")
+        base_type = cleaned_data.get("base_type")
+        spread = cleaned_data.get("spread_rate_per_litre")
+        priced_volume = cleaned_data.get("priced_volume_litres")
+        pkg_size = cleaned_data.get("package_size")
+        std_coats = cleaned_data.get("standard_coats")
+        variant = cleaned_data.get("variant_label")
+        note = cleaned_data.get("predetermined_note")
+
+        # Helper to add field-specific errors
+        def ferror(field, msg):
+            self.add_error(field, msg)
+
+        if cat in (Paint.Category.INTERIOR, Paint.Category.EXTERIOR):
+            if pm != Paint.PricingMethod.AREA_COATING:
+                ferror("pricing_method", _("Interior/Exterior products must use area-based pricing."))
+            if not finish or finish == Paint.Finish.NOT_APPLICABLE:
+                ferror("finish", _("Finish is required for Interior/Exterior products."))
+            if spread is None or spread <= Decimal("0"):
+                ferror("spread_rate_per_litre", _("Spread rate must be positive for Interior/Exterior products."))
+            if priced_volume is None or priced_volume <= Decimal("0"):
+                ferror("priced_volume_litres", _("Priced volume must be positive for Interior/Exterior products."))
+            if pu != Paint.PackageUnit.NOT_APPLICABLE:
+                ferror("package_unit", _("Package unit must be Not Applicable for Interior/Exterior products."))
+            if pkg_size is not None:
+                ferror("package_size", _("Package size must be blank for Interior/Exterior products."))
+            if std_coats is not None:
+                ferror("standard_coats", _("Standard coats must be blank for Interior/Exterior products."))
+            if note:
+                ferror("predetermined_note", _("Predetermined note must be blank for Interior/Exterior products."))
+
+        elif cat in (Paint.Category.PRIMER, Paint.Category.WATERPROOFING):
+            if pm != Paint.PricingMethod.AREA_COATING:
+                ferror("pricing_method", _("Primer/Waterproofing must use area-based pricing."))
+            if finish != Paint.Finish.NOT_APPLICABLE:
+                ferror("finish", _("Finish must be Not Applicable for Primer/Waterproofing."))
+            if base_type != Paint.BaseType.NOT_APPLICABLE:
+                ferror("base_type", _("Base type must be Not Applicable for Primer/Waterproofing."))
+            if spread is None or spread <= Decimal("0"):
+                ferror("spread_rate_per_litre", _("Spread rate must be positive for Primer/Waterproofing."))
+            if priced_volume is None or priced_volume <= Decimal("0"):
+                ferror("priced_volume_litres", _("Priced volume must be positive for Primer/Waterproofing."))
+            # Normalize standard_coats to 1 if empty
+            if std_coats in (None, ""):
+                cleaned_data["standard_coats"] = 1
+            elif std_coats != 1:
+                ferror("standard_coats", _("Primer/Waterproofing must have exactly 1 standard coat."))
+            if pu != Paint.PackageUnit.NOT_APPLICABLE:
+                ferror("package_unit", _("Package unit must be Not Applicable for Primer/Waterproofing."))
+            if pkg_size is not None:
+                ferror("package_size", _("Package size must be blank for Primer/Waterproofing."))
+
+        elif cat == Paint.Category.CRACKS:
+            allowed = {Decimal("2.00"), Decimal("5.00"), Decimal("10.00")}
+            if pm != Paint.PricingMethod.FIXED_PACK:
+                ferror("pricing_method", _("Cracks products must use fixed package pricing."))
+            if pu != Paint.PackageUnit.KILOGRAM:
+                ferror("package_unit", _("Cracks products must use kilogram package unit."))
+            if pkg_size not in allowed:
+                ferror("package_size", _("Cracks package size must be one of 2.00, 5.00, 10.00."))
+            if finish != Paint.Finish.NOT_APPLICABLE:
+                ferror("finish", _("Finish must be Not Applicable for Cracks products."))
+            if base_type != Paint.BaseType.NOT_APPLICABLE:
+                ferror("base_type", _("Base type must be Not Applicable for Cracks products."))
+            if spread is not None:
+                ferror("spread_rate_per_litre", _("Spread rate must be blank for Cracks products."))
+            if std_coats is not None:
+                ferror("standard_coats", _("Standard coats must be blank for Cracks products."))
+            if note:
+                ferror("predetermined_note", _("Predetermined note must be blank for Cracks products."))
+
+        elif cat in (Paint.Category.MOULD, Paint.Category.CLEANING):
+            allowed = {Decimal("1.00"), Decimal("5.00")}
+            if pm != Paint.PricingMethod.FIXED_PACK:
+                ferror("pricing_method", _("Mould/Cleaning products must use fixed package pricing."))
+            if pu != Paint.PackageUnit.LITRE:
+                ferror("package_unit", _("Mould/Cleaning products must use litre package unit."))
+            if pkg_size not in allowed:
+                ferror("package_size", _("Mould/Cleaning package size must be 1.00 or 5.00 (L)."))
+            if finish != Paint.Finish.NOT_APPLICABLE:
+                ferror("finish", _("Finish must be Not Applicable for Mould/Cleaning products."))
+            if base_type != Paint.BaseType.NOT_APPLICABLE:
+                ferror("base_type", _("Base type must be Not Applicable for Mould/Cleaning products."))
+            if spread is not None:
+                ferror("spread_rate_per_litre", _("Spread rate must be blank for Mould/Cleaning products."))
+            if std_coats is not None:
+                ferror("standard_coats", _("Standard coats must be blank for Mould/Cleaning products."))
+            if note:
+                ferror("predetermined_note", _("Predetermined note must be blank for Mould/Cleaning products."))
+
+        elif cat == Paint.Category.SANDING:
+            allowed_variants = {"40 grit", "60 grit", "80 grit", "100 grit"}
+            if pm != Paint.PricingMethod.PER_METRE:
+                ferror("pricing_method", _("Sanding products must use per-metre pricing."))
+            if pu != Paint.PackageUnit.METRE:
+                ferror("package_unit", _("Sanding products must use metre package unit."))
+            if (not variant) or (variant not in allowed_variants):
+                ferror("variant_label", _("Sanding variant must be one of 40/60/80/100 grit."))
+            if finish != Paint.Finish.NOT_APPLICABLE:
+                ferror("finish", _("Finish must be Not Applicable for Sanding products."))
+            if base_type != Paint.BaseType.NOT_APPLICABLE:
+                ferror("base_type", _("Base type must be Not Applicable for Sanding products."))
+            if spread is not None:
+                ferror("spread_rate_per_litre", _("Spread rate must be blank for Sanding products."))
+            if pkg_size is not None:
+                ferror("package_size", _("Package size must be blank for Sanding products."))
+            if std_coats is not None:
+                ferror("standard_coats", _("Standard coats must be blank for Sanding products."))
+            if note:
+                ferror("predetermined_note", _("Predetermined note must be blank for Sanding products."))
+
+        elif cat in (Paint.Category.EFFLORESCENCE, Paint.Category.OLD_PAINT_REMOVAL):
+            if pm != Paint.PricingMethod.NOTE_ONLY:
+                ferror("pricing_method", _("This category must be note-only pricing."))
+            if not (note and note.strip()):
+                ferror("predetermined_note", _("Predetermined note is required for note-only products."))
+            if finish != Paint.Finish.NOT_APPLICABLE:
+                ferror("finish", _("Finish must be Not Applicable for this category."))
+            if base_type != Paint.BaseType.NOT_APPLICABLE:
+                ferror("base_type", _("Base type must be Not Applicable for this category."))
+            if pu != Paint.PackageUnit.NOT_APPLICABLE:
+                ferror("package_unit", _("Package unit must be Not Applicable for this category."))
+            if pkg_size is not None:
+                ferror("package_size", _("Package size must be blank for this category."))
+            if spread is not None:
+                ferror("spread_rate_per_litre", _("Spread rate must be blank for this category."))
+            if std_coats is not None:
+                ferror("standard_coats", _("Standard coats must be blank for this category."))
+            if variant:
+                ferror("variant_label", _("Variant label must be blank for this category."))
+            # Prices must be zero for note-only items
+            if cleaned_data.get("price_excl_vat") != Decimal("0.00") or cleaned_data.get("price_incl_vat") != Decimal("0.00"):
+                ferror("price_excl_vat", _("Note-only products must have zero prices."))
 
         return cleaned_data

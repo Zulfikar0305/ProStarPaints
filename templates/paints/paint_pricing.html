@@ -114,13 +114,7 @@
           {% for v, l in category_choices %}<option value="{{ v }}" {% if current_category == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
         </select>
       </div>
-      <div class="col-6 col-md-2">
-        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Type" %}</label>
-        <select name="paint_type" class="form-select form-select-sm" onchange="this.form.submit()">
-          <option value="">{% trans "All" %}</option>
-          {% for v, l in paint_type_choices %}<option value="{{ v }}" {% if current_paint_type == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
-        </select>
-      </div>
+
       <div class="col-6 col-md-2">
         <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Base" %}</label>
         <select name="base_type" class="form-select form-select-sm" onchange="this.form.submit()">
@@ -161,7 +155,7 @@
           <tr>
             <th>{% trans "Paint" %}</th>
             <th class="d-none d-md-table-cell">{% trans "Category" %}</th>
-            <th class="d-none d-lg-table-cell">{% trans "Type" %}</th>
+
             <th class="d-none d-lg-table-cell">{% trans "Base" %}</th>
             <th class="text-end" style="width:130px;">{% trans "Excl. VAT" %}</th>
             <th class="text-end" style="width:130px;">{% trans "Incl. VAT" %}</th>
@@ -179,7 +173,7 @@
               {% if p.colour %}<div class="small text-muted">{{ p.colour }}</div>{% endif %}
             </td>
             <td class="d-none d-md-table-cell small">{{ p.get_category_display }}</td>
-            <td class="d-none d-lg-table-cell small">{{ p.get_paint_type_display }}</td>
+
             <td class="d-none d-lg-table-cell small">{{ p.get_base_type_display }}</td>
             <td class="text-end">
               <input type="number" step="0.01" min="0" name="price_excl_vat"

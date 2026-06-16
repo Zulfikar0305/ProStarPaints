@@ -78,10 +78,6 @@ def filter_paints(params) -> "QuerySet[Paint]":
     if category:
         qs = qs.filter(category=category)
 
-    paint_type = (params.get("paint_type") or "").strip()
-    if paint_type:
-        qs = qs.filter(paint_type=paint_type)
-
     base_type = (params.get("base_type") or "").strip()
     if base_type:
         qs = qs.filter(base_type=base_type)
@@ -120,7 +116,7 @@ def get_catalogue_quality() -> dict:
     # "Missing classification" — any blank-ish category/type/base.
     # Choices use defaults so blanks are unusual, but guard against empty strings.
     missing_class_qs = all_qs.filter(
-        Q(category="") | Q(paint_type="") | Q(base_type="")
+        Q(category="") | Q(base_type="")
     )
 
     # Duplicates: same name + category + base_type repeated

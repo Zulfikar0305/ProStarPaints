@@ -256,7 +256,7 @@ def get_paint_catalogue_quality() -> dict:
     ).count()
 
     missing_meta = qs.filter(is_active=True).filter(
-        Q(category="") | Q(paint_type="") | Q(base_type="")
+        Q(category="") | Q(base_type="")
     ).count()
 
     # Possible duplicates: same lower-cased name appearing more than once

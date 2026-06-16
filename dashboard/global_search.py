@@ -155,7 +155,6 @@ def _search_paints(user, q: str, limit: int) -> SearchGroup:
     qs = Paint.objects.filter(
         Q(name__icontains=q)
         | Q(category__icontains=q)
-        | Q(paint_type__icontains=q)
         | Q(base_type__icontains=q)
     ).order_by("-is_active", "name")
 
@@ -164,7 +163,7 @@ def _search_paints(user, q: str, limit: int) -> SearchGroup:
     for paint in qs[:limit]:
         subtitle = " · ".join(
             v for v in [paint.get_category_display() if hasattr(paint, "get_category_display") else paint.category,
-                        paint.paint_type, paint.base_type] if v
+                        paint.base_type] if v
         )
         results.append(SearchResult(
             type="paint",

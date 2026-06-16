@@ -92,7 +92,7 @@
             <th style="width:56px;"></th>
             <th>{% trans "Name" %}</th>
             <th>{% trans "Category" %}</th>
-            <th>{% trans "Type" %}</th>
+
             <th>{% trans "Base" %}</th>
             <th>{% trans "Colour" %}</th>
             <th class="text-end">{% trans "Excl. VAT" %}</th>
@@ -120,7 +120,7 @@
               <td>
                 <span class="badge text-bg-secondary">{{ paint.get_category_display }}</span>
               </td>
-              <td class="text-muted small">{{ paint.get_paint_type_display }}</td>
+
               <td class="text-muted small">{{ paint.get_base_type_display }}</td>
               <td class="text-muted small">{{ paint.colour|default:"—" }}</td>
               <td class="text-end">R {{ paint.price_excl_vat }}</td>
@@ -146,7 +146,7 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="10" class="p-0">
+              <td colspan="9" class="p-0">
                 {% if q or current_category %}
                   {% trans "No paints match your filters" as es_title %}
                   {% trans "Try clearing the search or pick a different category." as es_text %}

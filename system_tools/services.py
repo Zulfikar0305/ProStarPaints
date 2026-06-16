@@ -133,11 +133,7 @@ def _paint_integrity_scan() -> dict:
         flag=missing_category > 0,
     ))
 
-    missing_type = Paint.objects.filter(paint_type="").count()
-    checks.append(_check(
-        "Paints missing paint type", missing_type,
-        flag=missing_type > 0,
-    ))
+
 
     missing_base = Paint.objects.filter(base_type="").count()
     checks.append(_check(

@@ -123,7 +123,6 @@ class PricingIntegrationTests(TestCase):
 		p = Paint.objects.create(
 			name="Test",
 			category=Paint.Category.INTERIOR,
-			paint_type=Paint.PaintType.WATER_BASED,
 			base_type=Paint.BaseType.WHITE,
 			price_excl_vat=Decimal("1600.00"),
 			price_incl_vat=Decimal("1840.00"),
@@ -159,7 +158,6 @@ class PricingIntegrationTests(TestCase):
 		p = Paint.objects.create(
 			name="NoSpread",
 			category=Paint.Category.INTERIOR,
-			paint_type=Paint.PaintType.WATER_BASED,
 			base_type=Paint.BaseType.WHITE,
 			price_excl_vat=Decimal("100.00"),
 			price_incl_vat=Decimal("115.00"),
@@ -187,7 +185,6 @@ class PricingIntegrationTests(TestCase):
 		p = Paint.objects.create(
 			name="ZeroVol",
 			category=Paint.Category.INTERIOR,
-			paint_type=Paint.PaintType.WATER_BASED,
 			base_type=Paint.BaseType.WHITE,
 			price_excl_vat=Decimal("100.00"),
 			price_incl_vat=Decimal("115.00"),
@@ -232,7 +229,6 @@ class PricingIntegrationTests(TestCase):
 		p = Paint.objects.create(
 			name="A",
 			category=Paint.Category.INTERIOR,
-			paint_type=Paint.PaintType.WATER_BASED,
 			base_type=Paint.BaseType.WHITE,
 			price_excl_vat=Decimal("100.00"),
 			price_incl_vat=Decimal("115.00"),
@@ -259,13 +255,12 @@ class PricingIntegrationTests(TestCase):
 		p = Paint.objects.create(
 			name="NoFinish",
 			category=Paint.Category.INTERIOR,
-			paint_type=Paint.PaintType.WATER_BASED,
 			base_type=Paint.BaseType.WHITE,
 			price_excl_vat=Decimal("1600.00"),
 			price_incl_vat=Decimal("1840.00"),
 			spread_rate_per_litre=Decimal("10"),
 			priced_volume_litres=Decimal("20"),
-			finish=None,
+			finish=Paint.Finish.SMOOTH_MATTE,
 		)
 		li = QuotationLineItem.objects.create(
 			quotation=self.q,
@@ -289,7 +284,6 @@ class PricingIntegrationTests(TestCase):
 		p1 = Paint.objects.create(
 			name="P1",
 			category=Paint.Category.INTERIOR,
-			paint_type=Paint.PaintType.WATER_BASED,
 			base_type=Paint.BaseType.WHITE,
 			price_excl_vat=Decimal("1600.00"),
 			price_incl_vat=Decimal("1840.00"),
@@ -299,7 +293,6 @@ class PricingIntegrationTests(TestCase):
 		p2 = Paint.objects.create(
 			name="P2",
 			category=Paint.Category.INTERIOR,
-			paint_type=Paint.PaintType.WATER_BASED,
 			base_type=Paint.BaseType.WHITE,
 			price_excl_vat=Decimal("800.00"),
 			price_incl_vat=Decimal("920.00"),
@@ -342,7 +335,6 @@ class PricingIntegrationTests(TestCase):
 		p = Paint.objects.create(
 			name="P",
 			category=Paint.Category.INTERIOR,
-			paint_type=Paint.PaintType.WATER_BASED,
 			base_type=Paint.BaseType.WHITE,
 			price_excl_vat=Decimal("1600.00"),
 			price_incl_vat=Decimal("1840.00"),

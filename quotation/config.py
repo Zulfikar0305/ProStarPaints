@@ -84,7 +84,6 @@ PAINT_GROUPS: dict[str, PaintGroup] = {
         bases=[
             ("WHITE",   "White"),
             ("PASTEL",  "Pastel Base"),
-            ("MEDIUM",  "Medium Base"),
             ("DEEP",    "Deep Base"),
         ],
     ),
@@ -95,7 +94,6 @@ PAINT_GROUPS: dict[str, PaintGroup] = {
         bases=[
             ("WHITE",   "White"),
             ("PASTEL",  "Pastel Base"),
-            ("MEDIUM",  "Medium Base"),
             ("DEEP",    "Deep Base"),
         ],
     ),
@@ -108,7 +106,6 @@ PAINT_GROUPS: dict[str, PaintGroup] = {
         bases=[
             ("WHITE",   "White"),
             ("PASTEL",  "Pastel Base"),
-            ("MEDIUM",  "Medium Base"),
             ("DEEP",    "Deep Base"),
         ],
     ),
@@ -119,7 +116,6 @@ PAINT_GROUPS: dict[str, PaintGroup] = {
         bases=[
             ("WHITE",   "White"),
             ("PASTEL",  "Pastel Base"),
-            ("MEDIUM",  "Medium Base"),
             ("DEEP",    "Deep Base"),
         ],
     ),
@@ -130,7 +126,6 @@ PAINT_GROUPS: dict[str, PaintGroup] = {
         bases=[
             ("WHITE",   "White"),
             ("PASTEL",  "Pastel Base"),
-            ("MEDIUM",  "Medium Base"),
             ("DEEP",    "Deep Base"),
         ],
     ),

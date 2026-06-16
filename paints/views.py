@@ -45,7 +45,7 @@ class PaintListView(AdminRequiredMixin, ListView):
         if category:
             qs = qs.filter(category=category)
 
-        # Search — name, category label, paint_type, base_type, colour
+        # Search — name, category label, base_type, colour
         q = self.request.GET.get("q", "").strip()
         if q:
             qs = qs.filter(Q(name__icontains=q) | Q(colour__icontains=q))
@@ -189,11 +189,9 @@ class PaintPricingView(AdminRequiredMixin, View):
             "quality":          get_catalogue_quality(),
             "vat_rate":         AppSetting.get_vat_rate(),
             "category_choices": Paint.Category.choices,
-            "paint_type_choices": Paint.PaintType.choices,
             "base_type_choices":  Paint.BaseType.choices,
             "q":                request.GET.get("q", ""),
             "current_category": request.GET.get("category", ""),
-            "current_paint_type": request.GET.get("paint_type", ""),
             "current_base_type":  request.GET.get("base_type", ""),
             "current_status":   request.GET.get("status", "all"),
             "current_price_state": request.GET.get("price_state", ""),
