@@ -119,62 +119,184 @@ def apply_paint_pricing_to_line_item(line_item: QuotationLineItem) -> QuotationL
     # Snapshot existing metadata and preserve keys
     meta = dict(line_item.metadata or {})
 
-    # Obtain snapshot prices from the line_item (these represent the price for priced_volume_litres)
-    price_excl_snapshot = line_item.price_excl_vat
-    price_incl_snapshot = line_item.price_incl_vat
+    # Helper to JSON-safe-serialize Decimals and other values
+    def _to_json_safe(v):
+        if isinstance(v, Decimal):
+            return str(v)
+        return v
 
+    # Load or build immutable product snapshot
+    product_snapshot = meta.get("product_snapshot")
     paint = line_item.paint
-    if paint is None:
-        meta.update({
-            "pricing_status": "pending",
-            "pricing_pending_reason": "paint_not_matched",
-        })
-        line_item.metadata = meta
-        line_item.save(update_fields=["metadata"])
-        return line_item
+    created_snapshot = False
 
-    priced_volume = getattr(paint, "priced_volume_litres", None)
-    spread_rate = getattr(paint, "spread_rate_per_litre", None)
+    if product_snapshot is None:
+        # If no linked paint, we cannot build a product snapshot from catalogue
+        if paint is None:
+            # Backward-compatibility: existing callers previously used "paint_not_matched",
+            # Pack 4B2 uses explicit missing_product_snapshot reason for clarity.
+            meta.update({
+                "pricing_status": "pending",
+                "pricing_pending_reason": "missing_product_snapshot",
+            })
+            # Clear numeric totals/quantity
+            line_item.quantity = None
+            line_item.unit = ""
+            line_item.total_excl_vat = Decimal("0.00")
+            line_item.total_incl_vat = Decimal("0.00")
+            line_item.metadata = meta
+            line_item.save(update_fields=["quantity", "unit", "total_excl_vat", "total_incl_vat", "metadata"])
+            return line_item
 
-    # Calculate
-    calc = calculate_paint_pricing(
-        price_excl_snapshot=price_excl_snapshot,
-        price_incl_snapshot=price_incl_snapshot,
-        priced_volume_litres=priced_volume,
-        spread_rate_per_litre=spread_rate,
-        area_sqm=line_item.area_sqm,
-        coats=line_item.coats or 0,
-    )
+        # Build snapshot once from line-item price fields and paint non-price attrs
+        product_snapshot = {
+            "paint_pk": int(paint.pk) if paint and paint.pk is not None else None,
+            "pricing_method": str(paint.pricing_method),
+            "category": str(paint.category),
+            "price_excl_vat": _to_json_safe(line_item.price_excl_vat),
+            "price_incl_vat": _to_json_safe(line_item.price_incl_vat),
+            "priced_volume_litres": _to_json_safe(getattr(paint, "priced_volume_litres", None)),
+            "spread_rate_per_litre": _to_json_safe(getattr(paint, "spread_rate_per_litre", None)),
+            "package_size": _to_json_safe(getattr(paint, "package_size", None)),
+            "package_unit": str(getattr(paint, "package_unit", "")),
+            "variant_label": str(getattr(paint, "variant_label", "")),
+            "predetermined_note": str(getattr(paint, "predetermined_note", "")),
+            "standard_coats": int(getattr(paint, "standard_coats", None)) if getattr(paint, "standard_coats", None) is not None else None,
+            "finish": str(getattr(paint, "finish", None)) if getattr(paint, "finish", None) is not None else None,
+            "base_type": str(getattr(paint, "base_type", None)) if getattr(paint, "base_type", None) is not None else None,
+        }
+        # Persist immutable snapshot into metadata
+        meta["product_snapshot"] = product_snapshot
+        created_snapshot = True
 
-    # Update line item fields according to calc
-    if calc["pricing_status"] == "priced":
-        # quantity stored as litres (rounded to 2 dp to match model)
-        qty = Decimal(calc["required_litres"]).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-        line_item.quantity = qty
-        line_item.unit = "L"
-        # total values
-        line_item.total_excl_vat = calc["total_excl_vat"]
-        line_item.total_incl_vat = calc["total_incl_vat"]
+    # Prepare a calculation snapshot (do not mutate stored JSON snapshot)
+    calc_snapshot = dict(product_snapshot)
+
+    # Pricing snapshot prices: if we just created the snapshot, the prices
+    # were sourced from the line_item at creation time. For existing snapshots
+    # we MUST NOT override the snapshot prices - the stored snapshot is
+    # authoritative for repricing. Only override when snapshot was just built.
+    if created_snapshot:
+        calc_snapshot["price_excl_vat"] = _to_json_safe(line_item.price_excl_vat)
+        calc_snapshot["price_incl_vat"] = _to_json_safe(line_item.price_incl_vat)
+
+    # Convert numeric strings back to Decimal where required by dispatcher
+    def _maybe_decimal(v):
+        if v is None:
+            return None
+        try:
+            return Decimal(str(v))
+        except Exception:
+            return None
+
+    calc_snapshot_conv = dict(calc_snapshot)
+    # Convert numeric-string fields to Decimal for calculation; keep other fields as-is
+    calc_snapshot_conv["price_excl_vat"] = _maybe_decimal(calc_snapshot.get("price_excl_vat"))
+    calc_snapshot_conv["price_incl_vat"] = _maybe_decimal(calc_snapshot.get("price_incl_vat"))
+    calc_snapshot_conv["priced_volume_litres"] = _maybe_decimal(calc_snapshot.get("priced_volume_litres"))
+    calc_snapshot_conv["spread_rate_per_litre"] = _maybe_decimal(calc_snapshot.get("spread_rate_per_litre"))
+    calc_snapshot_conv["package_size"] = _maybe_decimal(calc_snapshot.get("package_size"))
+
+    # Determine method-specific inputs from metadata per spec
+    pricing_method = calc_snapshot.get("pricing_method")
+    package_count = meta.get("package_count")
+    roll_count = meta.get("roll_count")
+
+    # Call the canonical dispatcher
+    try:
+        if pricing_method == "AREA_COATING":
+            result = calculate_product_pricing(
+                calc_snapshot_conv,
+                area_sqm=line_item.area_sqm,
+                coats=line_item.coats,
+            )
+        elif pricing_method == "FIXED_PACK":
+            result = calculate_product_pricing(calc_snapshot_conv, package_count=package_count)
+        elif pricing_method == "PER_METRE":
+            result = calculate_product_pricing(calc_snapshot_conv, roll_count=roll_count)
+        elif pricing_method == "NOTE_ONLY":
+            result = calculate_product_pricing(calc_snapshot_conv)
+        else:
+            result = _pending_result("unsupported_pricing_method")
+    except Exception:
+        result = _pending_result("calculation_error")
+
+    # Apply result to line_item fields per spec
+    if result.get("pricing_status") == "priced":
+        qty = result.get("quantity")
+        if qty is not None:
+            # Quantize to two decimal places for DB field
+            try:
+                q = Decimal(qty).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            except Exception:
+                q = None
+            line_item.quantity = q
+        else:
+            line_item.quantity = None
+        line_item.unit = result.get("unit") or ""
+        line_item.total_excl_vat = result.get("total_excl_vat") or Decimal("0.00")
+        line_item.total_incl_vat = result.get("total_incl_vat") or Decimal("0.00")
     else:
-        # Leave totals and quantity at zero/blank
+        # Pending: clear prior numeric values
         line_item.quantity = None
         line_item.unit = ""
         line_item.total_excl_vat = Decimal("0.00")
         line_item.total_incl_vat = Decimal("0.00")
 
-    # Merge metadata snapshots (store Decimal as strings)
-    meta.update({
-        "pricing_status": calc.get("pricing_status"),
-        "pricing_pending_reason": calc.get("pricing_pending_reason"),
-        "spread_rate_per_litre": str(spread_rate) if spread_rate is not None else None,
-        "priced_volume_litres": str(priced_volume) if priced_volume is not None else None,
-        "required_litres": str(calc.get("required_litres")) if calc.get("required_litres") is not None else None,
-        "price_per_litre_excl_vat": str(calc.get("price_per_litre_excl_vat")) if calc.get("price_per_litre_excl_vat") is not None else None,
-        "price_per_litre_incl_vat": str(calc.get("price_per_litre_incl_vat")) if calc.get("price_per_litre_incl_vat") is not None else None,
-        "rate_per_sqm_per_coat_excl_vat": str(calc.get("rate_per_sqm_per_coat_excl_vat")) if calc.get("rate_per_sqm_per_coat_excl_vat") is not None else None,
-        "rate_per_sqm_selected_coats_excl_vat": str(calc.get("rate_per_sqm_selected_coats_excl_vat")) if calc.get("rate_per_sqm_selected_coats_excl_vat") is not None else None,
-        "vat_amount": str(calc.get("vat_amount")) if calc.get("vat_amount") is not None else None,
-    })
+    # Merge metadata: preserve unrelated keys
+    # Update common keys
+    meta["pricing_method"] = pricing_method
+    meta["pricing_status"] = result.get("pricing_status")
+    meta["pricing_pending_reason"] = result.get("pricing_pending_reason")
+    # VAT amount in metadata (string or None)
+    meta["vat_amount"] = _to_json_safe(result.get("vat_amount")) if result.get("vat_amount") is not None else None
+
+    # Merge method-specific metadata safely (JSON-serializing Decimals)
+    # Preserve legacy AREA_COATING keys and ensure they are overwritten appropriately
+    if pricing_method == "AREA_COATING":
+        # Clear or set area-specific keys
+        area_keys = [
+            "spread_rate_per_litre",
+            "priced_volume_litres",
+            "required_litres",
+            "price_per_litre_excl_vat",
+            "price_per_litre_incl_vat",
+            "rate_per_sqm_per_coat_excl_vat",
+            "rate_per_sqm_selected_coats_excl_vat",
+            "vat_amount",
+        ]
+        # Populate from result or set to None when pending
+        for k in area_keys:
+            val = result.get(k)
+            meta[k] = _to_json_safe(val) if val is not None else None
+
+    if pricing_method == "FIXED_PACK":
+        # package_count may come from metadata (user input)
+        meta["package_count"] = _to_json_safe(meta.get("package_count")) if meta.get("package_count") is not None else None
+        meta["package_size"] = _to_json_safe(product_snapshot.get("package_size")) if product_snapshot.get("package_size") is not None else None
+        meta["package_unit"] = _to_json_safe(product_snapshot.get("package_unit"))
+        meta["variant_label"] = _to_json_safe(product_snapshot.get("variant_label"))
+        # price per package from result extras; clear to None when pending
+        val = result.get("price_per_package_excl_vat")
+        meta["price_per_package_excl_vat"] = _to_json_safe(val) if val is not None else None
+        val = result.get("price_per_package_incl_vat")
+        meta["price_per_package_incl_vat"] = _to_json_safe(val) if val is not None else None
+
+    if pricing_method == "PER_METRE":
+        meta["roll_count"] = _to_json_safe(meta.get("roll_count")) if meta.get("roll_count") is not None else None
+        meta["variant_label"] = _to_json_safe(product_snapshot.get("variant_label"))
+        # price per metre from result extras; clear to None when pending
+        val = result.get("price_per_metre_excl_vat")
+        meta["price_per_metre_excl_vat"] = _to_json_safe(val) if val is not None else None
+        val = result.get("price_per_metre_incl_vat")
+        meta["price_per_metre_incl_vat"] = _to_json_safe(val) if val is not None else None
+
+    if pricing_method == "NOTE_ONLY":
+        # Ensure predetermined note remains
+        meta["predetermined_note"] = _to_json_safe(product_snapshot.get("predetermined_note"))
+
+    # Ensure product_snapshot stored (unchanged) and JSON-safe
+    meta["product_snapshot"] = product_snapshot
 
     # Write back metadata and save
     line_item.metadata = meta

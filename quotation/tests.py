@@ -223,7 +223,7 @@ class PricingIntegrationTests(TestCase):
 		)
 		apply_paint_pricing_to_line_item(li)
 		li.refresh_from_db()
-		self.assertEqual(li.metadata.get("pricing_pending_reason"), "paint_not_matched")
+		self.assertEqual(li.metadata.get("pricing_pending_reason"), "missing_product_snapshot")
 
 	def test_missing_area_produces_pending(self):
 		p = Paint.objects.create(
