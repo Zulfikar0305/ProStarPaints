@@ -66,7 +66,7 @@ Trigger via the topbar Help button (toggles offcanvas with id="pspHelpDrawer").
           <li>
             <span class="psp-help-flow-num">2</span>
             <a href="{% url 'paints:paint_list' %}" data-bs-dismiss="offcanvas">
-              <strong>{% trans "Load your paint catalogue" %}</strong>
+              <strong>{% trans "Load your product catalogue" %}</strong>
               <small>{% trans "Add brands, finishes, prices reps will pick from." %}</small>
             </a>
           </li>
@@ -177,12 +177,12 @@ Trigger via the topbar Help button (toggles offcanvas with id="pspHelpDrawer").
       <li class="psp-help-topic" data-keywords="paints catalogue products materials prices">
         <div class="psp-help-topic-head">
           <span class="psp-help-topic-icon"><i class="bi bi-palette"></i></span>
-          <span class="psp-help-topic-title">{% trans "Paints" %}</span>
+          <span class="psp-help-topic-title">{% trans "Products" %}</span>
           <span class="psp-help-topic-pill">{% trans "Admin" %}</span>
         </div>
-        <p>{% trans "Manage the paint catalogue your reps select from. Deactivate items instead of deleting to preserve history on existing quotations." %}</p>
+        <p>{% trans "Manage the product catalogue your reps select from. Deactivate items instead of deleting to preserve history on existing quotations." %}</p>
         <div class="psp-help-topic-actions">
-          <a href="{% url 'paints:paint_list' %}" data-bs-dismiss="offcanvas">{% trans "Manage paints" %} <i class="bi bi-arrow-right"></i></a>
+          <a href="{% url 'paints:paint_list' %}" data-bs-dismiss="offcanvas">{% trans "Manage products" %} <i class="bi bi-arrow-right"></i></a>
         </div>
       </li>
 

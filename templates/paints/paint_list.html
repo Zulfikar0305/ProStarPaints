@@ -1,24 +1,24 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}Paint Catalogue — ProStar Paints{% endblock %}
+{% block title %}Product Catalogue — ProStar Paints{% endblock %}
 
 {% block breadcrumbs %}
-  {% trans "Paints" as bc_current %}
+  {% trans "Products" as bc_current %}
   {% include "widgets/breadcrumbs.html" with current=bc_current %}
 {% endblock %}
 
 {% block content %}
 
-{% trans "Paint catalogue" as ph_title %}
-{% trans "Manage the paint catalogue your reps select from. Deactivate items instead of deleting to preserve history on existing quotations." as ph_text %}
+{% trans "Products & Pricing" as ph_title %}
+{% trans "Manage products and pricing your reps select from. Deactivate items instead of deleting to preserve history on existing quotations." as ph_text %}
 {% include "widgets/page_help.html" with title=ph_title text=ph_text icon="bi-palette" tone="green" %}
 
 <!-- Header -->
 <div class="d-flex align-items-center justify-content-between mb-4">
   <div>
-    <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">{% trans "Paint Catalogue" %}</h4>
-    <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">{% trans "Manage paint products and colours" %}</p>
+    <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">{% trans "Products & Pricing" %}</h4>
+    <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">{% trans "Manage products, pricing and colours" %}</p>
   </div>
   <div class="d-flex gap-2">
     {% if user.is_superuser or user.role == "ADMIN" %}
@@ -27,7 +27,7 @@
     </a>
     {% endif %}
     <a href="{% url 'paints:paint_create' %}" class="btn btn-primary btn-sm">
-      <i class="bi bi-plus-lg me-1"></i>{% trans "Add Paint" %}
+      <i class="bi bi-plus-lg me-1"></i>{% trans "Add Product" %}
     </a>
   </div>
 </div>
@@ -90,14 +90,14 @@
         <thead class="table-light">
           <tr>
             <th style="width:56px;"></th>
-            <th>{% trans "Name" %}</th>
-            <th>{% trans "Category" %}</th>
-
-            <th>{% trans "Base" %}</th>
-            <th>{% trans "Colour" %}</th>
+            <th>{% trans "Product" %}</th>
+            <th class="d-none d-md-table-cell">{% trans "Category" %}</th>
+            <th class="d-none d-lg-table-cell">{% trans "Pricing Method" %}</th>
+            <th>{% trans "Pricing Details" %}</th>
             <th class="text-end">{% trans "Excl. VAT" %}</th>
             <th class="text-end">{% trans "Incl. VAT" %}</th>
-            <th>{% trans "Status" %}</th>
+            <th class="text-center">{% trans "Status" %}</th>
+            <th class="text-end d-none d-md-table-cell">{% trans "Updated" %}</th>
             <th class="text-end">{% trans "Actions" %}</th>
           </tr>
         </thead>
@@ -117,12 +117,28 @@
                 {% endif %}
               </td>
               <td class="fw-semibold">{{ paint.name }}</td>
-              <td>
+              <td class="d-none d-md-table-cell">
                 <span class="badge text-bg-secondary">{{ paint.get_category_display }}</span>
               </td>
 
-              <td class="text-muted small">{{ paint.get_base_type_display }}</td>
-              <td class="text-muted small">{{ paint.colour|default:"—" }}</td>
+              <td class="d-none d-lg-table-cell small text-muted">{{ paint.get_pricing_method_display }}</td>
+              <td class="small text-muted">
+                {% if paint.category == 'INTERIOR' or paint.category == 'EXTERIOR' %}
+                  {{ paint.get_finish_display }} &middot; {{ paint.get_base_type_display }} &middot; {{ paint.spread_rate_per_litre }} m²/L
+                {% elif paint.category == 'PRIMER' or paint.category == 'WATERPROOFING' %}
+                  {{ paint.spread_rate_per_litre }} m²/L &middot; 1 coat
+                {% elif paint.category == 'CRACKS' %}
+                  {{ paint.package_size }} kg
+                {% elif paint.category == 'MOULD' or paint.category == 'CLEANING' %}
+                  {{ paint.package_size }} L
+                {% elif paint.category == 'SANDING' %}
+                  {{ paint.variant_label }} &middot; per metre
+                {% elif paint.category == 'EFFLORESCENCE' or paint.category == 'OLD_PAINT_REMOVAL' %}
+                  Note-only{% if paint.predetermined_note %}: {{ paint.predetermined_note|truncatechars:40 }}{% endif %}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
               <td class="text-end">R {{ paint.price_excl_vat }}</td>
               <td class="text-end fw-semibold">R {{ paint.price_incl_vat }}</td>
               <td>
@@ -132,6 +148,7 @@
                   <span class="badge badge-inactive text-white"><i class="bi bi-x-circle me-1"></i>{% trans "Inactive" %}</span>
                 {% endif %}
               </td>
+              <td class="text-end d-none d-md-table-cell small text-muted">{{ paint.updated_at|date:"Y-m-d H:i" }}</td>
               <td class="text-end">
                 <a href="{% url 'paints:paint_update' paint.pk %}"
                    class="btn btn-sm btn-outline-secondary me-1" title="{% trans 'Edit' %}">
@@ -148,15 +165,15 @@
             <tr>
               <td colspan="9" class="p-0">
                 {% if q or current_category %}
-                  {% trans "No paints match your filters" as es_title %}
+                  {% trans "No products match your filters" as es_title %}
                   {% trans "Try clearing the search or pick a different category." as es_text %}
                   {% trans "Clear filters" as es_action %}
                   {% url 'paints:paint_list' as es_url %}
                   {% include "widgets/empty_state.html" with icon="bi-funnel" title=es_title text=es_text action_url=es_url action_label=es_action action_icon="bi-x-lg" %}
                 {% else %}
-                  {% trans "Your paint catalogue is empty" as es_title %}
+                  {% trans "Your product catalogue is empty" as es_title %}
                   {% trans "Add the products your reps will pull from when configuring quotation sections." as es_text %}
-                  {% trans "Add first paint" as es_action %}
+                  {% trans "Add first product" as es_action %}
                   {% url 'paints:paint_create' as es_url %}
                   {% include "widgets/empty_state.html" with icon="bi-palette" title=es_title text=es_text action_url=es_url action_label=es_action action_icon="bi-plus-lg" %}
                 {% endif %}

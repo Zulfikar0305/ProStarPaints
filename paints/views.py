@@ -71,14 +71,14 @@ class PaintCreateView(AdminRequiredMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["page_title"] = _("Add Paint")
-        ctx["submit_label"] = _("Add Paint")
+        ctx["page_title"] = _("Add Product")
+        ctx["submit_label"] = _("Add Product")
         ctx["vat_rate"] = AppSetting.get_vat_rate()
         return ctx
 
     def form_valid(self, form):
         response = super().form_valid(form)
-        messages.success(self.request, _('Paint "%(name)s" was added successfully.') % {"name": self.object.name})
+        messages.success(self.request, _('Product "%(name)s" was added successfully.') % {"name": self.object.name})
         log_action(
             user=self.request.user,
             action="PAINT_CREATED",
@@ -104,14 +104,14 @@ class PaintUpdateView(AdminRequiredMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["page_title"] = _("Edit Paint — %(name)s") % {"name": self.object.name}
+        ctx["page_title"] = _("Edit Product — %(name)s") % {"name": self.object.name}
         ctx["submit_label"] = _("Save Changes")
         ctx["vat_rate"] = AppSetting.get_vat_rate()
         return ctx
 
     def form_valid(self, form):
         response = super().form_valid(form)
-        messages.success(self.request, _('Paint "%(name)s" was updated successfully.') % {"name": self.object.name})
+        messages.success(self.request, _('Product "%(name)s" was updated successfully.') % {"name": self.object.name})
         log_action(
             user=self.request.user,
             action="PAINT_UPDATED",
@@ -148,7 +148,7 @@ class PaintDeactivateView(AdminRequiredMixin, View):
         audit_action = "PAINT_ACTIVATED" if paint.is_active else "PAINT_DEACTIVATED"
         messages.success(
             request,
-            _('Paint "%(name)s" has been %(action)s.') % {"name": paint.name, "action": _(action_word)},
+            _('Product "%(name)s" has been %(action)s.') % {"name": paint.name, "action": _(action_word)},
         )
         log_action(
             user=request.user,

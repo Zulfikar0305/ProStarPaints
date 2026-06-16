@@ -55,7 +55,7 @@ Includes a small live filter and keyboard navigation.
         {% if is_admin or user.role == "ADMIN" %}
           <li><a href="{% url 'paints:paint_list' %}" class="psp-palette-item" data-keywords="paints catalogue products">
             <span class="psp-palette-item-icon"><i class="bi bi-palette"></i></span>
-            <span class="psp-palette-item-label">{% trans "Paints" %}</span>
+              <span class="psp-palette-item-label">{% trans "Products" %}</span>
           </a></li>
           <li><a href="{% url 'users:user_list' %}" class="psp-palette-item" data-keywords="users team reps admins">
             <span class="psp-palette-item-icon"><i class="bi bi-people"></i></span>

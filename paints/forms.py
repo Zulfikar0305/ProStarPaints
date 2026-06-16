@@ -99,6 +99,29 @@ class PaintForm(forms.ModelForm):
         # Note: `pricing_method` and `package_unit` are intentionally kept as
         # required form fields to enforce catalogue classification at the UI level.
 
+        # If the submitted category is a note-only category, some fields that
+        # would normally be required are not relevant. Relax their `required`
+        # flags so the form can validate and then normalize values server-side
+        # in `clean()` (this mirrors what the UI would submit when JS runs).
+        try:
+            submitted_cat = None
+            # `self.data` is a QueryDict when the form is bound with POST data
+            if getattr(self, "data", None):
+                submitted_cat = self.data.get("category")
+            # Fallback to initial or instance when available
+            if not submitted_cat and kwargs.get("initial"):
+                submitted_cat = kwargs.get("initial").get("category")
+            if not submitted_cat and hasattr(self, "instance") and getattr(self.instance, "pk", None):
+                submitted_cat = getattr(self.instance, "category", None)
+
+            if submitted_cat in (Paint.Category.EFFLORESCENCE, Paint.Category.OLD_PAINT_REMOVAL):
+                for f in ("priced_volume_litres", "spread_rate_per_litre", "package_size", "standard_coats", "variant_label"):
+                    if f in self.fields:
+                        self.fields[f].required = False
+        except Exception:
+            # Defensive: if anything goes wrong here, don't prevent form usage.
+            pass
+
     def clean_price_excl_vat(self):
         value = self.cleaned_data.get("price_excl_vat")
         if value is not None and value < 0:
@@ -279,8 +302,19 @@ class PaintForm(forms.ModelForm):
                 ferror("standard_coats", _("Standard coats must be blank for this category."))
             if variant:
                 ferror("variant_label", _("Variant label must be blank for this category."))
-            # Prices must be zero for note-only items
-            if cleaned_data.get("price_excl_vat") != Decimal("0.00") or cleaned_data.get("price_incl_vat") != Decimal("0.00"):
-                ferror("price_excl_vat", _("Note-only products must have zero prices."))
+            # Normalize and enforce note-only canonical values so the model
+            # receives authoritative values regardless of what the UI sent.
+            cleaned_data["pricing_method"] = Paint.PricingMethod.NOTE_ONLY
+            cleaned_data["finish"] = Paint.Finish.NOT_APPLICABLE
+            cleaned_data["base_type"] = Paint.BaseType.NOT_APPLICABLE
+            cleaned_data["package_unit"] = Paint.PackageUnit.NOT_APPLICABLE
+            cleaned_data["package_size"] = None
+            cleaned_data["spread_rate_per_litre"] = None
+            cleaned_data["standard_coats"] = None
+            cleaned_data["variant_label"] = ""
+
+            # Ensure prices are explicit zeros (Decimal) to satisfy model validation
+            cleaned_data["price_excl_vat"] = Decimal("0.00")
+            cleaned_data["price_incl_vat"] = Decimal("0.00")
 
         return cleaned_data

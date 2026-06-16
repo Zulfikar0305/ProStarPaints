@@ -1,24 +1,24 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}{% trans "Pricing Maintenance" %} — ProStar Paints{% endblock %}
+{% block title %}{% trans "Product Pricing" %} — ProStar Paints{% endblock %}
 
 {% block breadcrumbs %}
-  {% trans "Pricing Maintenance" as bc_current %}
+  {% trans "Product Pricing" as bc_current %}
   {% url 'paints:paint_list' as bc_paints_url %}
-  {% include "widgets/breadcrumbs.html" with parent_label="Paints" parent_url=bc_paints_url current=bc_current %}
+  {% include "widgets/breadcrumbs.html" with parent_label="Products" parent_url=bc_paints_url current=bc_current %}
 {% endblock %}
 
 {% block content %}
 
-{% trans "Pricing Maintenance" as ph_title %}
-{% trans "Bulk-edit paint prices with automatic VAT calculation, then keep an eye on catalogue quality from the same screen." as ph_text %}
+{% trans "Product Pricing" as ph_title %}
+{% trans "Bulk-edit product prices with automatic VAT calculation, then keep an eye on catalogue quality from the same screen." as ph_text %}
 {% include "widgets/page_help.html" with title=ph_title text=ph_text icon="bi-currency-dollar" tone="green" %}
 
 <!-- Header -->
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
   <div>
-    <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">{% trans "Pricing Maintenance" %}</h4>
+    <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">{% trans "Product Pricing" %}</h4>
     <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">
       {% blocktrans with rate=vat_rate %}Edit prices inline — VAT auto-calculated at {{ rate }}%.{% endblocktrans %}
     </p>
@@ -28,7 +28,7 @@
       <i class="bi bi-arrow-left me-1"></i>{% trans "Back to Catalogue" %}
     </a>
     <a href="{% url 'paints:paint_create' %}" class="btn btn-sm btn-primary">
-      <i class="bi bi-plus-lg me-1"></i>{% trans "Add Paint" %}
+      <i class="bi bi-plus-lg me-1"></i>{% trans "Add Product" %}
     </a>
   </div>
 </div>
@@ -42,7 +42,7 @@
         <h6 class="mb-0 fw-bold">{% trans "Catalogue Quality" %}</h6>
         <span class="badge bg-light text-dark border ms-1">{{ quality.score }}%</span>
       </div>
-      <small class="text-muted">{% trans "Across" %} {{ quality.total }} {% trans "paint(s)" %}</small>
+      <small class="text-muted">{% trans "Across" %} {{ quality.total }} {% trans "product(s)" %}</small>
     </div>
     <div class="row g-2 small">
       <div class="col-6 col-md-4 col-lg-2">
@@ -153,10 +153,11 @@
       <table class="table table-hover align-middle mb-0 psp-pricing-table">
         <thead class="table-light small">
           <tr>
-            <th>{% trans "Paint" %}</th>
+            <th>{% trans "Product" %}</th>
             <th class="d-none d-md-table-cell">{% trans "Category" %}</th>
 
-            <th class="d-none d-lg-table-cell">{% trans "Base" %}</th>
+            <th class="d-none d-lg-table-cell">{% trans "Pricing Method" %}</th>
+            <th>{% trans "Pricing Details" %}</th>
             <th class="text-end" style="width:130px;">{% trans "Excl. VAT" %}</th>
             <th class="text-end" style="width:130px;">{% trans "Incl. VAT" %}</th>
             <th class="text-center" style="width:90px;">{% trans "Auto VAT" %}</th>
@@ -174,7 +175,24 @@
             </td>
             <td class="d-none d-md-table-cell small">{{ p.get_category_display }}</td>
 
-            <td class="d-none d-lg-table-cell small">{{ p.get_base_type_display }}</td>
+            <td class="d-none d-lg-table-cell small">{{ p.get_pricing_method_display }}</td>
+            <td class="small text-muted">
+              {% if p.category == 'INTERIOR' or p.category == 'EXTERIOR' %}
+                {{ p.get_finish_display }} &middot; {{ p.get_base_type_display }} &middot; {{ p.spread_rate_per_litre }} m²/L &middot; {{ p.priced_volume_litres }} L
+              {% elif p.category == 'PRIMER' or p.category == 'WATERPROOFING' %}
+                {{ p.spread_rate_per_litre }} m²/L &middot; {{ p.priced_volume_litres }} L &middot; 1 coat
+              {% elif p.category == 'CRACKS' %}
+                {{ p.package_size }} kg &middot; per package
+              {% elif p.category == 'MOULD' or p.category == 'CLEANING' %}
+                {{ p.package_size }} L &middot; per package
+              {% elif p.category == 'SANDING' %}
+                {{ p.variant_label }} &middot; per metre
+              {% elif p.category == 'EFFLORESCENCE' or p.category == 'OLD_PAINT_REMOVAL' %}
+                Note-only{% if p.predetermined_note %}: {{ p.predetermined_note|truncatechars:40 }}{% endif %}
+              {% else %}
+                —
+              {% endif %}
+            </td>
             <td class="text-end">
               <input type="number" step="0.01" min="0" name="price_excl_vat"
                      value="{{ p.price_excl_vat|stringformat:'.2f' }}"
@@ -218,7 +236,7 @@
     {% else %}
     <div class="p-4 text-center text-muted small">
       <i class="bi bi-inbox fs-3 d-block mb-2" aria-hidden="true"></i>
-      {% trans "No paints match the current filters." %}
+      {% trans "No products match the current filters." %}
     </div>
     {% endif %}
   </div>

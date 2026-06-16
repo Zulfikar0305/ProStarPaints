@@ -109,7 +109,7 @@
     <a href="{% url 'paints:paint_list' %}" class="psp-quick-action">
       <div class="psp-quick-action-icon psp-quick-action-icon--green"><i class="bi bi-palette2"></i></div>
       <div>
-        <div class="psp-quick-action-title">{% trans "Paints" %}</div>
+        <div class="psp-quick-action-title">{% trans "Products" %}</div>
         <div class="psp-quick-action-sub">{% trans "Manage catalogue" %}</div>
       </div>
     </a>
@@ -180,10 +180,10 @@
             </div>
             <div class="flex-grow-1">
               <div class="fs-2 fw-bold lh-1 mb-1" style="letter-spacing:-.02em;">{{ total_active_paints }}</div>
-              <div class="section-label">Active Paints</div>
+              <div class="section-label">Active Products</div>
               {% if not total_active_paints %}
                 <a href="{% url 'paints:paint_create' %}" class="small text-decoration-none">
-                  <i class="bi bi-plus-lg"></i>{% trans "Add first paint" %}
+                  <i class="bi bi-plus-lg"></i>{% trans "Add first product" %}
                 </a>
               {% endif %}
             </div>
