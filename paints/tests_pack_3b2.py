@@ -4,6 +4,10 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
+from django.conf import settings
+
+import pathlib
+
 from .forms import PaintForm
 from .models import Paint
 
@@ -233,3 +237,16 @@ class Pack3B2Tests(TestCase):
         form = PaintForm(data=data)
         self.assertFalse(form.is_valid())
         self.assertIn("package_unit", form.errors)
+
+    def test_package_size_options_present_in_js(self):
+        """Ensure the front-end JS exposes the expected package-size mappings."""
+        # Resolve from the project's BASE_DIR to find the static assets
+        js_path = pathlib.Path(settings.BASE_DIR) / 'static' / 'js' / 'product_form.js'
+        self.assertTrue(js_path.exists(), f"product_form.js not found at {js_path}")
+        content = js_path.read_text()
+        # CRACKS should offer 2.00, 5.00, 10.00 with kg labels
+        self.assertIn("['2.00','5.00','10.00']", content)
+        self.assertIn("kg", content)
+        # MOULD / CLEANING should offer 1.00 and 5.00 with L labels
+        self.assertIn("['1.00','5.00']", content)
+        self.assertIn("v+' L'", content)

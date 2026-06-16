@@ -93,13 +93,27 @@
         setReadOnlyBadge('package_unit', 'kg');
         // limit package_size to the allowed set using a select if present
         const pkg = document.querySelector('[name="package_size"]');
-        if (pkg && pkg.tagName === 'INPUT') {
-          // preserve existing value where possible
+        if (pkg) {
+          // Always rebuild the package_size control so options match the
+          // currently selected category (handles switching between categories
+          // where the control may already be a <select> from a previous state).
           const existing = pkg.value;
-          const sel = document.createElement('select'); sel.name = pkg.name; sel.className = pkg.className;
+          const sel = document.createElement('select');
+          sel.name = pkg.name;
+          if (pkg.id) sel.id = pkg.id;
+          sel.className = pkg.className || '';
           ['2.00','5.00','10.00'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.text=v+' kg'; sel.appendChild(o); });
-          if (existing) try { sel.value = existing; } catch(e) {}
-          pkg.parentNode.replaceChild(sel, pkg);
+          // Preserve existing value where possible, including loose numeric matches
+          if (existing) {
+            try { sel.value = existing; } catch(e) {}
+            if (sel.value !== existing) {
+              const n = parseFloat(existing);
+              if (!isNaN(n)) {
+                try { sel.value = n.toFixed(2); } catch(e) {}
+              }
+            }
+          }
+          if (pkg.parentNode) pkg.parentNode.replaceChild(sel, pkg);
         }
       }
 
@@ -115,12 +129,23 @@
         setReadOnlyBadge('pricing_method', pmBadges.FIXED_PACK);
         setReadOnlyBadge('package_unit', 'L');
         const pkg = document.querySelector('[name="package_size"]');
-        if (pkg && pkg.tagName === 'INPUT') {
+        if (pkg) {
           const existing = pkg.value;
-          const sel = document.createElement('select'); sel.name = pkg.name; sel.className = pkg.className;
+          const sel = document.createElement('select');
+          sel.name = pkg.name;
+          if (pkg.id) sel.id = pkg.id;
+          sel.className = pkg.className || '';
           ['1.00','5.00'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.text=v+' L'; sel.appendChild(o); });
-          if (existing) try { sel.value = existing; } catch(e) {}
-          pkg.parentNode.replaceChild(sel, pkg);
+          if (existing) {
+            try { sel.value = existing; } catch(e) {}
+            if (sel.value !== existing) {
+              const n = parseFloat(existing);
+              if (!isNaN(n)) {
+                try { sel.value = n.toFixed(2); } catch(e) {}
+              }
+            }
+          }
+          if (pkg.parentNode) pkg.parentNode.replaceChild(sel, pkg);
         }
       }
 
