@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from decimal import Decimal
 
 
 class Paint(models.Model):
@@ -12,14 +13,6 @@ class Paint(models.Model):
     Prices are stored exclusive of VAT; inclusive price is stored separately
     so the quotation engine can reference either without recalculating.
     """
-
-    class Category(models.TextChoices):
-        INTERIOR       = "INTERIOR",       _("Interior")
-        EXTERIOR       = "EXTERIOR",       _("Exterior")
-        PRIMER         = "PRIMER",         _("Primer")
-        WATERPROOFING  = "WATERPROOFING",  _("Waterproofing")
-        TEXTURE        = "TEXTURE",        _("Texture")
-        SPECIALIST     = "SPECIALIST",     _("Specialist")
 
     class PaintType(models.TextChoices):
         WATER_BASED    = "WATER_BASED",    _("Water Based")
@@ -48,6 +41,22 @@ class Paint(models.Model):
         NATURAL        = "NATURAL",        _("Natural")
         NOT_APPLICABLE = "NOT_APPLICABLE", _("Not Applicable")
 
+    class Category(models.TextChoices):
+        # existing categories preserved
+        INTERIOR       = "INTERIOR",       _("Interior")
+        EXTERIOR       = "EXTERIOR",       _("Exterior")
+        PRIMER         = "PRIMER",         _("Primer")
+        WATERPROOFING  = "WATERPROOFING",  _("Waterproofing")
+        TEXTURE        = "TEXTURE",        _("Texture")
+        SPECIALIST     = "SPECIALIST",     _("Specialist")
+        # New catalogue categories for Product Pack 3A
+        CRACKS         = "CRACKS",         _("Cracks")
+        MOULD          = "MOULD",          _("Mould")
+        CLEANING       = "CLEANING",       _("Cleaning")
+        SANDING        = "SANDING",        _("Sanding")
+        EFFLORESCENCE  = "EFFLORESCENCE",  _("Efflorescence")
+        OLD_PAINT_REMOVAL = "OLD_PAINT_REMOVAL", _("Old Paint Removal")
+
     # Core identity
     name = models.CharField(_("name"), max_length=200)
     description = models.TextField(_("description"), blank=True, default="")
@@ -62,6 +71,12 @@ class Paint(models.Model):
     )
     colour = models.CharField(_("colour"), max_length=100, blank=True, default="")
 
+    class PricingMethod(models.TextChoices):
+        AREA_COATING = "AREA_COATING", _("Area-based coating")
+        FIXED_PACK = "FIXED_PACK", _("Fixed package")
+        PER_METRE = "PER_METRE", _("Per metre")
+        NOTE_ONLY = "NOTE_ONLY", _("Note only")
+
     # Pricing Pack 1A additions
     finish = models.CharField(
         _("finish"),
@@ -69,6 +84,14 @@ class Paint(models.Model):
         choices=Finish.choices,
         null=True,
         blank=True,
+    )
+
+    # Pricing product type (transitional) — defaults to area coating for existing records
+    pricing_method = models.CharField(
+        _("pricing method"),
+        max_length=20,
+        choices=PricingMethod.choices,
+        default=PricingMethod.AREA_COATING,
     )
 
     # Coverage: square metres per litre for one coat
@@ -88,6 +111,49 @@ class Paint(models.Model):
         decimal_places=2,
         default=Decimal("1.00"),
         validators=[MinValueValidator(Decimal("0.01"))],
+    )
+
+    # Generic package information for fixed packs and similar products
+    package_size = models.DecimalField(
+        _("package size"),
+        max_digits=7,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
+
+    class PackageUnit(models.TextChoices):
+        LITRE = "L", _("L")
+        KILOGRAM = "kg", _("kg")
+        METRE = "m", _("m")
+        NOT_APPLICABLE = "NA", _("Not Applicable")
+
+    package_unit = models.CharField(
+        _("package unit"),
+        max_length=10,
+        choices=PackageUnit.choices,
+        default=PackageUnit.NOT_APPLICABLE,
+    )
+
+    variant_label = models.CharField(
+        _("variant label"),
+        max_length=50,
+        blank=True,
+        default="",
+    )
+
+    predetermined_note = models.TextField(
+        _("predetermined note"),
+        blank=True,
+        default="",
+    )
+
+    standard_coats = models.PositiveSmallIntegerField(
+        _("standard coats"),
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1)],
     )
 
     # Pricing — stored in ZAR; two decimal places enforced at DB level

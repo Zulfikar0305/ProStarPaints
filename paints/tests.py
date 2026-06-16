@@ -54,6 +54,68 @@ class PaintModelFieldTests(TestCase):
 		p = Paint(**self._base_paint_kwargs(), finish=None, spread_rate_per_litre=None)
 		p.full_clean()
 
+	def test_defaults_to_area_coating_pricing_method(self):
+		p = Paint.objects.create(**self._base_paint_kwargs())
+		self.assertEqual(p.pricing_method, Paint.PricingMethod.AREA_COATING)
+
+	def test_fixed_pack_cracks_can_store_package_and_unit(self):
+		kw = self._base_paint_kwargs()
+		kw.update({
+			"category": Paint.Category.CRACKS,
+			"pricing_method": Paint.PricingMethod.FIXED_PACK,
+			"package_size": Decimal("2.00"),
+			"package_unit": Paint.PackageUnit.KILOGRAM,
+		})
+		p = Paint.objects.create(**kw)
+		self.assertEqual(p.category, Paint.Category.CRACKS)
+		self.assertEqual(p.package_size, Decimal("2.00"))
+		self.assertEqual(p.package_unit, Paint.PackageUnit.KILOGRAM)
+
+	def test_mould_and_cleaning_fixed_packs(self):
+		kwm = self._base_paint_kwargs()
+		kwm.update({"category": Paint.Category.MOULD, "pricing_method": Paint.PricingMethod.FIXED_PACK, "package_size": Decimal("1.00"), "package_unit": Paint.PackageUnit.LITRE})
+		kwc = self._base_paint_kwargs()
+		kwc.update({"category": Paint.Category.CLEANING, "pricing_method": Paint.PricingMethod.FIXED_PACK, "package_size": Decimal("5.00"), "package_unit": Paint.PackageUnit.LITRE})
+		m = Paint.objects.create(**kwm)
+		c = Paint.objects.create(**kwc)
+		self.assertEqual(m.package_unit, Paint.PackageUnit.LITRE)
+		self.assertEqual(c.package_size, Decimal("5.00"))
+
+	def test_sanding_per_metre_with_variant(self):
+		kws = self._base_paint_kwargs()
+		kws.update({"category": Paint.Category.SANDING, "pricing_method": Paint.PricingMethod.PER_METRE, "package_unit": Paint.PackageUnit.METRE, "variant_label": "80 grit"})
+		s = Paint.objects.create(**kws)
+		self.assertEqual(s.pricing_method, Paint.PricingMethod.PER_METRE)
+		self.assertEqual(s.package_unit, Paint.PackageUnit.METRE)
+		self.assertEqual(s.variant_label, "80 grit")
+
+	def test_note_only_items_store_predetermined_note(self):
+		kwe = self._base_paint_kwargs()
+		kwe.update({"category": Paint.Category.EFFLORESCENCE, "pricing_method": Paint.PricingMethod.NOTE_ONLY, "predetermined_note": "Efflorescence treatment note"})
+		kwo = self._base_paint_kwargs()
+		kwo.update({"category": Paint.Category.OLD_PAINT_REMOVAL, "pricing_method": Paint.PricingMethod.NOTE_ONLY, "predetermined_note": "Old paint removal note"})
+		e = Paint.objects.create(**kwe)
+		o = Paint.objects.create(**kwo)
+		self.assertIn("Efflorescence", e.predetermined_note)
+		self.assertIn("Old paint removal", o.predetermined_note)
+
+	def test_package_size_zero_and_negative_rejected(self):
+		p_zero = Paint(**self._base_paint_kwargs(), package_size=Decimal("0.00"))
+		with self.assertRaises(ValidationError):
+			p_zero.full_clean()
+
+		p_neg = Paint(**self._base_paint_kwargs(), package_size=Decimal("-1.00"))
+		with self.assertRaises(ValidationError):
+			p_neg.full_clean()
+
+	def test_standard_coats_validation(self):
+		p = Paint(**self._base_paint_kwargs(), standard_coats=1)
+		p.full_clean()
+
+		p_zero = Paint(**self._base_paint_kwargs(), standard_coats=0)
+		with self.assertRaises(ValidationError):
+			p_zero.full_clean()
+
 
 class PaintFormVatTests(TestCase):
 	def test_paintform_vat_autocalculate_from_excl(self):
@@ -65,10 +127,58 @@ class PaintFormVatTests(TestCase):
 			"price_excl_vat": Decimal("100.00"),
 			"price_incl_vat": "",
 			"priced_volume_litres": "1.00",
+			"pricing_method": Paint.PricingMethod.AREA_COATING,
+			"package_unit": Paint.PackageUnit.NOT_APPLICABLE,
 		})
 		# Verify validity and show errors if present
 		self.assertTrue(form.is_valid(), form.errors.as_json())
 		# Read the VAT result from cleaned_data (validation already ran)
 		cleaned = form.cleaned_data
 		# Default VAT is 15% -> 100 * 1.15 = 115.00
+		self.assertEqual(cleaned.get("price_incl_vat"), Decimal("115.00"))
+
+	def test_blank_pricing_method_rejected(self):
+		form = PaintForm(data={
+			"name": "Form Paint",
+			"category": Paint.Category.INTERIOR,
+			"paint_type": Paint.PaintType.WATER_BASED,
+			"base_type": Paint.BaseType.WHITE,
+			"price_excl_vat": Decimal("50.00"),
+			"price_incl_vat": "",
+			"priced_volume_litres": "1.00",
+			"pricing_method": "",
+			"package_unit": Paint.PackageUnit.NOT_APPLICABLE,
+		})
+		self.assertFalse(form.is_valid())
+		self.assertIn("pricing_method", form.errors)
+
+	def test_blank_package_unit_rejected(self):
+		form = PaintForm(data={
+			"name": "Form Paint",
+			"category": Paint.Category.INTERIOR,
+			"paint_type": Paint.PaintType.WATER_BASED,
+			"base_type": Paint.BaseType.WHITE,
+			"price_excl_vat": Decimal("50.00"),
+			"price_incl_vat": "",
+			"priced_volume_litres": "1.00",
+			"pricing_method": Paint.PricingMethod.AREA_COATING,
+			"package_unit": "",
+		})
+		self.assertFalse(form.is_valid())
+		self.assertIn("package_unit", form.errors)
+
+	def test_area_coating_not_applicable_validates(self):
+		form = PaintForm(data={
+			"name": "Form Paint",
+			"category": Paint.Category.INTERIOR,
+			"paint_type": Paint.PaintType.WATER_BASED,
+			"base_type": Paint.BaseType.WHITE,
+			"price_excl_vat": Decimal("100.00"),
+			"price_incl_vat": "",
+			"priced_volume_litres": "1.00",
+			"pricing_method": Paint.PricingMethod.AREA_COATING,
+			"package_unit": Paint.PackageUnit.NOT_APPLICABLE,
+		})
+		self.assertTrue(form.is_valid(), form.errors.as_json())
+		cleaned = form.cleaned_data
 		self.assertEqual(cleaned.get("price_incl_vat"), Decimal("115.00"))

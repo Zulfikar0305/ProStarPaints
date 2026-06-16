@@ -32,6 +32,12 @@ class PaintForm(forms.ModelForm):
             "base_type",
             "colour",
             "finish",
+            "pricing_method",
+            "package_size",
+            "package_unit",
+            "variant_label",
+            "predetermined_note",
+            "standard_coats",
             "spread_rate_per_litre",
             "priced_volume_litres",
             "price_excl_vat",
@@ -49,6 +55,12 @@ class PaintForm(forms.ModelForm):
             "colour": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Bright White, Tinted"}),
             "spread_rate_per_litre": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0.01", "placeholder": "e.g. 10.00"}),
             "priced_volume_litres": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0.01", "placeholder": "1.00"}),
+            "pricing_method": forms.Select(attrs={"class": "form-select"}),
+            "package_size": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0.01", "placeholder": "e.g. 2.00"}),
+            "package_unit": forms.Select(attrs={"class": "form-select"}),
+            "variant_label": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. 80 grit"}),
+            "predetermined_note": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Optional predetermined client note"}),
+            "standard_coats": forms.NumberInput(attrs={"class": "form-control", "step": "1", "min": "1", "placeholder": "e.g. 1"}),
             "price_excl_vat": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0", "placeholder": "0.00", "id": "id_price_excl_vat"}),
             "price_incl_vat": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0", "placeholder": "0.00", "id": "id_price_incl_vat"}),
             "image": forms.ClearableFileInput(attrs={"class": "form-control"}),
@@ -62,6 +74,21 @@ class PaintForm(forms.ModelForm):
             "priced_volume_litres": _(
                 "Litres represented by the entered price. Use 1 for a per-litre price."
             ),
+            "pricing_method": _(
+                "How this product is calculated when used in a quotation."
+            ),
+            "package_size": _(
+                "Size of one package, such as 2 kg or 5 L."
+            ),
+            "variant_label": _(
+                "Optional product variant, such as 80 grit."
+            ),
+            "predetermined_note": _(
+                "Client-facing note used for note-only quotation items."
+            ),
+            "standard_coats": _(
+                "Fixed coat count for products such as primer or waterproofing."
+            ),
         }
 
     def __init__(self, *args, **kwargs):
@@ -71,6 +98,8 @@ class PaintForm(forms.ModelForm):
         # must contain a computed value prior to saving.
         if "price_incl_vat" in self.fields:
             self.fields["price_incl_vat"].required = False
+        # Note: `pricing_method` and `package_unit` are intentionally kept as
+        # required form fields to enforce catalogue classification at the UI level.
 
     def clean_price_excl_vat(self):
         value = self.cleaned_data.get("price_excl_vat")
