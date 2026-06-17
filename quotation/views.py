@@ -329,7 +329,7 @@ class QuotationSubstrateSelectionView(QuotationAccessMixin, View):
         )
 
         messages.success(request, "Surfaces saved. Your quotation builder is ready.")
-        return redirect("quotation:quotation_builder", pk=pk)
+        return redirect(f"{reverse('quotation:quotation_builder', kwargs={'pk': pk})}?leaflet=interior_walls")
 
 
 # ---------------------------------------------------------------------------
@@ -521,6 +521,44 @@ class QuotationBuilderView(QuotationAccessMixin, View):
         selected_leaflet_keys = [g["key"] for g in leaflet_groups]
         default_leaflet_key = selected_leaflet_keys[0] if selected_leaflet_keys else None
 
+        # Active leaflet selection (server-driven via ?leaflet=)
+        requested_leaflet = request.GET.get("leaflet")
+        if requested_leaflet in selected_leaflet_keys:
+            active_leaflet_key = requested_leaflet
+        else:
+            active_leaflet_key = default_leaflet_key
+
+        active_leaflet_group = None
+        active_leaflet_selections = []
+        if active_leaflet_key:
+            for g in leaflet_groups:
+                if g["key"] == active_leaflet_key:
+                    active_leaflet_group = g
+                    active_leaflet_selections = g.get("selections", [])
+                    break
+
+        # Build a pk-keyed lookup of the previously-prepared section entries
+        section_entry_map = {}
+        for entry in interior_sections_data + exterior_sections_data:
+            section_entry_map[entry["section"].pk] = entry
+
+        # Build the active sections payload for template consumption. Each
+        # entry mirrors the per-section entry used elsewhere so partials can
+        # be re-used without duplicating preparation logic in templates.
+        active_sections_data = []
+        for sel in active_leaflet_selections:
+            s = sel["section"]
+            entry = section_entry_map.get(s.pk, {})
+            active_sections_data.append({
+                "section": s,
+                "summary": entry.get("summary", {}),
+                "config": entry.get("config"),
+                "is_walls": entry.get("is_walls", s.subsection_key == "interior_walls"),
+                "is_generic": entry.get("is_generic", s.subsection_key in ALL_GENERIC_SECTION_CONFIGS),
+                "selection_label": sel.get("selection_label"),
+                "selection_order": sel.get("selection_order"),
+            })
+
         return render(request, self.template_name, {
             "quotation":              quotation,
             "interior_sections_data": interior_sections_data,
@@ -533,6 +571,10 @@ class QuotationBuilderView(QuotationAccessMixin, View):
             "leaflet_groups":         leaflet_groups,
             "selected_leaflet_keys":  selected_leaflet_keys,
             "default_leaflet_key":    default_leaflet_key,
+            "active_leaflet_key":     active_leaflet_key,
+            "active_leaflet_group":   active_leaflet_group,
+            "active_leaflet_selections": active_leaflet_selections,
+            "active_sections_data":   active_sections_data,
             "is_admin":               self._is_admin(),
             # shared config passed through to all partials
             "wall_types":             WALL_TYPES,
@@ -601,14 +643,14 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
 
         if wall_type not in valid_wall_types:
             messages.error(request, "Please select a valid wall type.")
-            return redirect("quotation:quotation_builder", pk=pk)
+            return redirect(f"{reverse('quotation:quotation_builder', kwargs={'pk': pk})}?leaflet=interior_walls#section-{section.pk}")
 
         finishes = [f for f in finishes if f in valid_finishes]
         surface_conds = [c for c in surface_conds if c in valid_conds]
 
         if not finishes:
             messages.error(request, "Please select at least one finish.")
-            return redirect("quotation:quotation_builder", pk=pk)
+            return redirect(f"{reverse('quotation:quotation_builder', kwargs={'pk': pk})}?leaflet=interior_walls#section-{section.pk}")
 
         try:
             area_sqm = Decimal(area_sqm_raw) if area_sqm_raw else None
@@ -616,7 +658,7 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
                 raise ValueError
         except (ValueError, Exception):
             messages.error(request, "Please enter a valid area (m²).")
-            return redirect("quotation:quotation_builder", pk=pk)
+            return redirect(f"{reverse('quotation:quotation_builder', kwargs={'pk': pk})}?leaflet=interior_walls#section-{section.pk}")
 
         try:
             moisture = int(moisture_raw) if moisture_raw else 0
@@ -788,7 +830,7 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
             recalculate_quotation_totals(quotation)
         except Exception:
             pass
-        return redirect("quotation:quotation_builder", pk=pk)
+        return redirect(f"{reverse('quotation:quotation_builder', kwargs={'pk': pk})}?leaflet=interior_walls#section-{section.pk}")
 
 
 # ---------------------------------------------------------------------------
@@ -823,7 +865,7 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
 
         if not cfg:
             messages.error(request, "Unknown section configuration.")
-            return redirect("quotation:quotation_builder", pk=pk)
+            return redirect(f"{reverse('quotation:quotation_builder', kwargs={'pk': pk})}?leaflet={section.subsection_key}#section-{section.pk}")
 
         POST = request.POST
 
@@ -841,11 +883,11 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
                 request,
                 f"Please select at least one {cfg.type_label.lower()}.",
             )
-            return redirect("quotation:quotation_builder", pk=pk)
+            return redirect(f"{reverse('quotation:quotation_builder', kwargs={'pk': pk})}?leaflet={section.subsection_key}#section-{section.pk}")
 
         if not finishes:
             messages.error(request, "Please select at least one finish.")
-            return redirect("quotation:quotation_builder", pk=pk)
+            return redirect(f"{reverse('quotation:quotation_builder', kwargs={'pk': pk})}?leaflet={section.subsection_key}#section-{section.pk}")
 
         area_sqm_raw = POST.get("area_sqm", "").strip()
         try:
@@ -854,7 +896,7 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
                 raise ValueError
         except (ValueError, Exception):
             messages.error(request, "Please enter a valid area (m\u00b2).")
-            return redirect("quotation:quotation_builder", pk=pk)
+            return redirect(f"{reverse('quotation:quotation_builder', kwargs={'pk': pk})}?leaflet={section.subsection_key}#section-{section.pk}")
 
         moisture_raw = POST.get("moisture_level", "").strip()
         try:
@@ -1030,7 +1072,8 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
         except Exception:
             # Fail silently — totals can be recalculated later
             pass
-        return redirect("quotation:quotation_builder", pk=pk)
+        # Preserve active leaflet state: return to the same leaflet
+        return redirect(f"{reverse('quotation:quotation_builder', kwargs={'pk': pk})}?leaflet={section.subsection_key}#section-{section.pk}")
 
 
 class CreateSelectionView(QuotationAccessMixin, View):
@@ -1042,15 +1085,15 @@ class CreateSelectionView(QuotationAccessMixin, View):
             new_section = create_repeatable_section(quotation=quotation, subsection_key=subsection_key)
         except ValueError:
             messages.error(request, "Invalid or unselected category.")
-            return redirect("quotation:quotation_builder", pk=pk)
+            # Redirect back to builder with the requested category active
+            return redirect(f"{reverse('quotation:quotation_builder', kwargs={'pk': pk})}?leaflet={subsection_key}")
         except IntegrityError:
             messages.error(request, "Unable to create section. Try again.")
-            return redirect("quotation:quotation_builder", pk=pk)
+            return redirect(f"{reverse('quotation:quotation_builder', kwargs={'pk': pk})}?leaflet={subsection_key}")
 
         messages.success(request, "New section added.")
-        return HttpResponseRedirect(
-            f"{reverse('quotation:quotation_builder', kwargs={'pk': quotation.pk})}#section-{new_section.pk}"
-        )
+        # Keep the leaflet for the created section active
+        return redirect(f"{reverse('quotation:quotation_builder', kwargs={'pk': quotation.pk})}?leaflet={new_section.subsection_key}#section-{new_section.pk}")
 
 
 class DeleteSelectionView(QuotationAccessMixin, View):
@@ -1064,13 +1107,14 @@ class DeleteSelectionView(QuotationAccessMixin, View):
             delete_repeatable_section(quotation=quotation, section_pk=section_pk)
         except QuotationSection.DoesNotExist:
             messages.error(request, "Section not found.")
-            return redirect("quotation:quotation_builder", pk=pk)
+            return redirect(f"{reverse('quotation:quotation_builder', kwargs={'pk': pk})}?leaflet={section.subsection_key}")
         except IntegrityError:
             messages.error(request, "Unable to delete section. Try again.")
-            return redirect("quotation:quotation_builder", pk=pk)
+            return redirect(f"{reverse('quotation:quotation_builder', kwargs={'pk': pk})}?leaflet={section.subsection_key}")
 
         messages.success(request, "Section removed.")
-        return redirect("quotation:quotation_builder", pk=pk)
+        # Redirect back to builder with the deleted section's category active
+        return redirect(f"{reverse('quotation:quotation_builder', kwargs={'pk': pk})}?leaflet={section.subsection_key}")
 
 
 # ---------------------------------------------------------------------------

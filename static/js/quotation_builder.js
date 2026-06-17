@@ -80,7 +80,6 @@
     var badge = card.querySelector('.psp-unsaved-badge');
     if (badge) badge.style.display = 'inline-flex';
     card.dataset.unsaved = '1';
-    markRailUnsaved(card.dataset.sectionPk, true);
   });
 
   document.addEventListener('submit', function (e) {
@@ -89,7 +88,6 @@
     var badge = card.querySelector('.psp-unsaved-badge');
     if (badge) badge.style.display = 'none';
     delete card.dataset.unsaved;
-    markRailUnsaved(card.dataset.sectionPk, false);
   });
 
   /* ── 3. Section navigation rail ─────────────────────────────── */
@@ -107,23 +105,7 @@
     card.classList.add('psp-section-flash');
   }
 
-  function markRailUnsaved(pk, unsaved) {
-    if (!pk) return;
-    var item = document.querySelector('.psp-section-rail-item[data-rail-target="' + pk + '"]');
-    if (item) item.classList.toggle('is-unsaved', !!unsaved);
-  }
-
-  /* Rail click → scroll to card (anchor jump would lose smooth/flash) */
-  document.querySelectorAll('.psp-section-rail-item').forEach(function (item) {
-    item.addEventListener('click', function (e) {
-      var pk = item.dataset.railTarget;
-      var card = document.getElementById('gsCard_' + pk);
-      if (card) {
-        e.preventDefault();
-        scrollToCard(card);
-      }
-    });
-  });
+  /* Old Jump-To rail removed — server-controlled tabs handle navigation. */
 
   /* Prev / Next buttons */
   function listSectionCards() {
@@ -169,5 +151,28 @@
       e.returnValue = '';
     }
   });
+
+  /* Clone desktop summary into mobile offcanvas to avoid server-side duplication
+     The summary partial is rendered once (desktop). For mobile we clone its
+     HTML into the offcanvas when opened so the server doesn't render it twice. */
+  (function () {
+    var offcanvas = document.getElementById('builderSummaryOffcanvas');
+    var offBody = document.getElementById('builderSummaryOffcanvasBody');
+    var desktopSummary = document.querySelector('.psp-builder-summary-sticky');
+    if (!offcanvas || !offBody || !desktopSummary) return;
+
+    try {
+      offcanvas.addEventListener('show.bs.offcanvas', function () {
+        offBody.innerHTML = desktopSummary.innerHTML;
+      });
+      offcanvas.addEventListener('hidden.bs.offcanvas', function () {
+        offBody.innerHTML = '';
+      });
+    } catch (e) {
+      /* Fallback: copy on button click if bootstrap events unavailable */
+      var btn = document.getElementById('pspSummaryFloatBtn');
+      if (btn) btn.addEventListener('click', function () { offBody.innerHTML = desktopSummary.innerHTML; });
+    }
+  }());
 
 }());

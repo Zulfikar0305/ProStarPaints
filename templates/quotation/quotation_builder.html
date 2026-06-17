@@ -67,112 +67,58 @@
   <!-- ── Left: builder sections ── -->
   <div class="col-lg-8" id="pspBuilderMain">
 
-    {% if interior_secs or exterior_secs %}
+    {% if leaflet_groups %}
 
-      {# ── Sticky section navigation rail (tablet & desktop) ── #}
-      <nav class="psp-section-rail d-none d-md-flex" aria-label="{% trans 'Section navigation' %}" id="pspSectionRail">
-        <span class="psp-section-rail-label">{% trans "Jump to" %}:</span>
-        <div class="psp-section-rail-track" role="list">
-          {% for entry in interior_sections_data %}
-            {% with section=entry.section %}
-            <a href="#gsCard_{{ section.pk }}"
-               class="psp-section-rail-item"
-               data-rail-target="{{ section.pk }}"
-               data-configured="{{ entry.summary.configured|yesno:'1,0' }}"
-               role="listitem">
-              <i class="bi {% if entry.summary.configured %}bi-check-circle-fill psp-rail-ok{% else %}bi-circle psp-rail-pending{% endif %}" aria-hidden="true"></i>
-              <span>{{ section.display_name }}</span>
-              <span class="psp-rail-unsaved-dot" aria-hidden="true"></span>
-            </a>
-            {% endwith %}
+      {# ── Tabs for selected leaflet groups (server-rendered) ── #}
+      <nav aria-label="Leaflet groups" class="mb-3">
+        <ul class="nav nav-tabs" role="tablist">
+          {% for group in leaflet_groups %}
+            <li class="nav-item" role="presentation">
+              <a class="nav-link {% if group.key == active_leaflet_key %}active{% endif %}"
+                 href="?leaflet={{ group.key }}"
+                 aria-current="{% if group.key == active_leaflet_key %}page{% endif %}">
+                {{ group.display_name }}
+              </a>
+            </li>
           {% endfor %}
-          {% for entry in exterior_sections_data %}
-            {% with section=entry.section %}
-            <a href="#gsCard_{{ section.pk }}"
-               class="psp-section-rail-item psp-section-rail-item--ext"
-               data-rail-target="{{ section.pk }}"
-               data-configured="{{ entry.summary.configured|yesno:'1,0' }}"
-               role="listitem">
-              <i class="bi {% if entry.summary.configured %}bi-check-circle-fill psp-rail-ok{% else %}bi-circle psp-rail-pending{% endif %}" aria-hidden="true"></i>
-              <span>{{ section.display_name }}</span>
-              <span class="psp-rail-unsaved-dot" aria-hidden="true"></span>
-            </a>
-            {% endwith %}
-          {% endfor %}
-        </div>
+        </ul>
       </nav>
 
-      {# ── Interior ── #}
-      {% if interior_secs %}
-        <div class="psp-builder-substrate-label">
-          <i class="bi bi-house me-1"></i>{% trans "Interior Surfaces" %}
-        </div>
-        {% for entry in interior_sections_data %}
+      {% if active_leaflet_group and active_sections_data %}
+        {% for entry in active_sections_data %}
           {% with section=entry.section %}
+            <div class="mb-2 small text-muted">{{ entry.selection_label }}</div>
             {% if entry.is_walls %}
               {% include "quotation/partials/_interior_walls.html" with iw_summary=entry.summary %}
             {% elif entry.is_generic %}
               {% include "quotation/partials/_generic_surface_section.html" with gs_summary=entry.summary section_config=entry.config %}
             {% else %}
-              <div class="card border-0 shadow-sm mb-3"
-                   style="border-left:4px solid var(--psp-purple) !important;">
+              <div class="card border-0 shadow-sm mb-3">
                 <div class="card-body">
                   <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
-                    <i class="bi bi-house-fill text-primary"></i>
+                    <i class="bi bi-file-earmark-text text-primary"></i>
                     <span class="fw-semibold">{{ section.display_name }}</span>
-                    <span class="badge psp-substrate-badge psp-substrate-badge--int">{% trans "Interior" %}</span>
-                    <span class="badge text-bg-secondary" style="font-size:.7rem;">
-                      <i class="bi bi-clock me-1"></i>{% trans "Coming soon" %}
-                    </span>
                   </div>
-                  <p class="small text-muted mb-0 mt-1">{% trans "Configuration coming soon." %}</p>
+                  <p class="small text-muted mb-0 mt-1">{% trans "Configuration for this category is not available." %}</p>
                 </div>
               </div>
             {% endif %}
           {% endwith %}
         {% endfor %}
-      {% endif %}
-
-      {# ── Exterior ── #}
-      {% if exterior_secs %}
-        <div class="psp-builder-substrate-label {% if interior_secs %}mt-2{% endif %}">
-          <i class="bi bi-sun me-1"></i>{% trans "Exterior Surfaces" %}
+      {% else %}
+        <div class="card border-0 shadow-sm">
+          <div class="card-body text-center py-5 text-muted">
+            <i class="bi bi-layers fs-2 d-block mb-2"></i>
+            <p class="mb-3">{% trans "No sections selected for this category." %}</p>
+          </div>
         </div>
-        {% for entry in exterior_sections_data %}
-          {% with section=entry.section %}
-            {% if entry.is_generic %}
-              {% include "quotation/partials/_generic_surface_section.html" with gs_summary=entry.summary section_config=entry.config %}
-            {% else %}
-              <div class="card border-0 shadow-sm mb-3"
-                   style="border-left:4px solid var(--psp-green) !important;">
-                <div class="card-body">
-                  <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
-                    <i class="bi bi-sun-fill" style="color:var(--psp-green);"></i>
-                    <span class="fw-semibold">{{ section.display_name }}</span>
-                    <span class="badge psp-substrate-badge psp-substrate-badge--ext">{% trans "Exterior" %}</span>
-                    {% if entry.summary.configured %}
-                      <span class="badge text-bg-success" style="font-size:.7rem;">
-                        <i class="bi bi-check-lg me-1"></i>{% trans "Configured" %}
-                      </span>
-                    {% else %}
-                      <span class="badge text-bg-secondary" style="font-size:.7rem;">
-                        <i class="bi bi-clock me-1"></i>{% trans "Coming soon" %}
-                      </span>
-                    {% endif %}
-                  </div>
-                  <p class="small text-muted mb-0 mt-1">{% trans "Configuration coming soon." %}</p>
-                </div>
-              </div>
-            {% endif %}
-          {% endwith %}
-        {% endfor %}
       {% endif %}
 
     {% else %}
       <div class="card border-0 shadow-sm">
         <div class="card-body text-center py-5 text-muted">
           <i class="bi bi-layers fs-2 d-block mb-2"></i>
-          <p class="mb-3">{% trans "No surfaces selected yet." %}</p>
+          <p class="mb-3">No quotation categories have been selected.</p>
           <a href="{% url 'quotation:quotation_sections' quotation.pk %}"
              class="btn btn-primary btn-sm">
             <i class="bi bi-grid me-1"></i>{% trans "Select Surfaces" %}
@@ -234,7 +180,7 @@
     <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="{% trans 'Close' %}"></button>
   </div>
   <div class="offcanvas-body pt-2">
-    {% include "quotation/partials/_quotation_summary_panel.html" %}
+    <div id="builderSummaryOffcanvasBody"></div>
   </div>
 </div>
 

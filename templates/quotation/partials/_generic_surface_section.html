@@ -2,10 +2,10 @@
 {% with meta=gs_summary.meta configured=gs_summary.configured %}
 
 <div class="card border-0 shadow-sm mb-3"
-     style="border-left:4px solid {% if section_config.substrate_type == 'EXTERIOR' %}var(--psp-green){% else %}var(--psp-purple){% endif %} !important;"
-     id="gsCard_{{ section.pk }}"
-     data-section-pk="{{ section.pk }}"
-     data-section-name="{{ section.display_name }}">
+  style="border-left:4px solid {% if section_config.substrate_type == 'EXTERIOR' %}var(--psp-green){% else %}var(--psp-purple){% endif %} !important;"
+  id="section-{{ section.pk }}"
+  data-section-pk="{{ section.pk }}"
+  data-section-name="{{ section.display_name }}">
 
   {# ── Card header ── #}
   <div class="card-header bg-transparent py-3 d-flex align-items-center justify-content-between">

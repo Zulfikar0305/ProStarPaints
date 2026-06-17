@@ -2,10 +2,10 @@
 {% with meta=iw_summary.meta configured=iw_summary.configured %}
 
 <div class="card border-0 shadow-sm mb-3"
-     style="border-left:4px solid var(--psp-purple) !important;"
-     id="gsCard_{{ section.pk }}"
-     data-section-pk="{{ section.pk }}"
-     data-section-name="{{ section.display_name }}">
+  style="border-left:4px solid var(--psp-purple) !important;"
+  id="section-{{ section.pk }}"
+  data-section-pk="{{ section.pk }}"
+  data-section-name="{{ section.display_name }}">
 
   {# Card header #}
   <div class="card-header bg-transparent py-3 d-flex align-items-center justify-content-between">

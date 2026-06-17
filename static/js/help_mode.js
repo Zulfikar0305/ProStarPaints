@@ -45,8 +45,6 @@
         body: 'Drafts open in the builder; completed quotations open in a read-only detail view with re-export.' }
     ],
     'quotation:quotation_builder': [
-      { selector: '.psp-section-rail',         title: 'Section rail',
-        body: 'Jump straight to any surface. Configured sections show a green tick; unsaved edits show an amber dot.' },
       { selector: '[data-section-pk]',         title: 'Surface card',
         body: 'Open one card at a time. Choose substrate, finish, paint options and area, then hit Save.' },
       { selector: '.psp-save-bar',             title: 'Sticky save bar',
