@@ -573,6 +573,7 @@ class QuotationBuilderView(QuotationAccessMixin, View):
             "default_leaflet_key":    default_leaflet_key,
             "active_leaflet_key":     active_leaflet_key,
             "active_leaflet_group":   active_leaflet_group,
+            "active_leaflet_can_add": active_leaflet_key in ALL_SUBSECTIONS if active_leaflet_key else False,
             "active_leaflet_selections": active_leaflet_selections,
             "active_sections_data":   active_sections_data,
             "is_admin":               self._is_admin(),

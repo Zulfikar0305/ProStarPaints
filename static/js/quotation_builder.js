@@ -175,4 +175,29 @@
     }
   }());
 
+  /* ── 5. Confirm removal of repeatable selections (progressive enhancement) ── */
+  document.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (!form || !form.dataset) return;
+    /* data-confirm-remove-selection -> dataset.confirmRemoveSelection */
+    if (!form.dataset.confirmRemoveSelection) return;
+
+    var submitBtn = form.querySelector('button[type="submit"]');
+    var label = (submitBtn && submitBtn.getAttribute('aria-label')) || 'Remove selection';
+    var isFinal = form.dataset.isFinal === '1';
+
+    var message = '';
+    if (isFinal) {
+      message = label + '. This is the final selection in this leaflet. Removing it will remove the leaflet from the quotation. Are you sure?';
+    } else {
+      message = label + '. Are you sure you want to remove this selection?';
+    }
+
+    if (!window.confirm(message)) {
+      e.preventDefault();
+      return false;
+    }
+    return true;
+  });
+
 }());

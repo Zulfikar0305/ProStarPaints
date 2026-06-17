@@ -84,6 +84,18 @@
         </ul>
       </nav>
 
+      {# Add control for active leaflet (server-driven) #}
+      {% if active_leaflet_group and active_leaflet_can_add %}
+        <div class="d-flex align-items-center justify-content-end mb-3">
+          <form method="post" action="{% url 'quotation:section_add' quotation.pk active_leaflet_group.key %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-primary btn-sm">
+              + Add another {{ active_leaflet_group.display_name }}
+            </button>
+          </form>
+        </div>
+      {% endif %}
+
       {% if active_leaflet_group and active_sections_data %}
         {% for entry in active_sections_data %}
           {% with section=entry.section %}
@@ -103,6 +115,21 @@
                 </div>
               </div>
             {% endif %}
+
+            {# Remove-selection form: sibling of the section partial (progressive enhancement confirmation) #}
+            <form method="post"
+                  action="{% url 'quotation:section_delete' quotation.pk section.pk %}"
+                  class="mt-2"
+                  data-confirm-remove-selection="true"
+                  data-selection-count="{{ active_leaflet_group.selection_count }}"
+                  data-is-final="{% if active_leaflet_group.selection_count|default:0 == 1 %}1{% else %}0{% endif %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-outline-danger btn-sm"
+                      aria-label="{% trans 'Remove' %} {{ entry.selection_label }}">
+                {% trans "Remove selection" %}
+              </button>
+            </form>
+
           {% endwith %}
         {% endfor %}
       {% else %}
