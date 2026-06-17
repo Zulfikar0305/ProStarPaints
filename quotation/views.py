@@ -45,6 +45,7 @@ from .services import (
     get_quotation_summary,
     create_repeatable_section,
     delete_repeatable_section,
+    get_leaflet_groups,
 )
 from .pricing import apply_paint_pricing_to_line_item, recalculate_quotation_totals
 from .workspace import (
@@ -515,6 +516,11 @@ class QuotationBuilderView(QuotationAccessMixin, View):
         any_configured  = any(v.get("configured", False) for v in section_summaries.values())
         finish_map_json = json.dumps(FINISH_TO_PAINT_GROUPS)
 
+        # Leaflet grouping data for the builder (server-side only)
+        leaflet_groups = get_leaflet_groups(quotation)
+        selected_leaflet_keys = [g["key"] for g in leaflet_groups]
+        default_leaflet_key = selected_leaflet_keys[0] if selected_leaflet_keys else None
+
         return render(request, self.template_name, {
             "quotation":              quotation,
             "interior_sections_data": interior_sections_data,
@@ -524,6 +530,9 @@ class QuotationBuilderView(QuotationAccessMixin, View):
             "section_summaries":      section_summaries,
             "any_configured":         any_configured,
             "quotation_summary":      get_quotation_summary(quotation),
+            "leaflet_groups":         leaflet_groups,
+            "selected_leaflet_keys":  selected_leaflet_keys,
+            "default_leaflet_key":    default_leaflet_key,
             "is_admin":               self._is_admin(),
             # shared config passed through to all partials
             "wall_types":             WALL_TYPES,

@@ -273,3 +273,88 @@ def delete_repeatable_section(*, quotation, section_pk):
             QuotationSection.objects.filter(pk=pk).update(selection_order=idx)
 
         return True
+
+
+def get_leaflet_groups(quotation) -> list:
+    """
+    Build an ordered list of leaflet/category groups from existing
+    `QuotationSection` rows for the provided `quotation`.
+
+    Returns a list of dicts with the keys:
+
+    - `key`: subsection_key
+    - `display_name`: canonical display name (from `ALL_SUBSECTIONS`),
+      or fallback to the section's `display_name` for unknown keys.
+    - `substrate_type`: canonical substrate type or fallback from section.
+    - `sort_order`: canonical category sort order or fallback from section.
+    - `selection_count`: number of selections in this group.
+    - `selections`: ordered list of selection dicts with:
+        - `section`: the `QuotationSection` object
+        - `section_pk`: stable PK of the section
+        - `selection_order`: the numeric order for the selection
+        - `selection_label`: human label for the selection (e.g. "Interior Walls 1")
+
+    Behaviour notes:
+    - Only categories with at least one `QuotationSection` for this
+      quotation are included.
+    - Categories are ordered by `sort_order` (canonical if available),
+      then by display name as a stable tie-breaker.
+    - Selections within a category are ordered by `selection_order`, then PK.
+    - This helper performs no database writes.
+    - Unknown/historical `subsection_key` values are handled safely using
+      the existing section fields as a fallback.
+    """
+    from .models import QuotationSection
+
+    # Query all sections for the quotation ordered for deterministic grouping
+    secs = list(
+        QuotationSection.objects.filter(quotation=quotation)
+        .order_by("sort_order", "selection_order", "pk")
+    )
+
+    # Group by subsection_key
+    groups: dict[str, list[QuotationSection]] = {}
+    for s in secs:
+        groups.setdefault(s.subsection_key, []).append(s)
+
+    result: list[dict] = []
+    for key, items in groups.items():
+        cfg = ALL_SUBSECTIONS.get(key)
+        if cfg:
+            display_name = cfg.display_name
+            substrate_type = cfg.substrate
+            cat_sort = cfg.sort_order
+        else:
+            # Safe fallback for historical/unknown keys
+            first = items[0]
+            display_name = first.display_name
+            substrate_type = first.substrate_type
+            cat_sort = first.sort_order
+
+        ordered = sorted(items, key=lambda s: (s.selection_order or 0, s.pk))
+
+        selections = []
+        for s in ordered:
+            if cfg:
+                sel_label = f"{display_name} {s.selection_order}"
+            else:
+                sel_label = s.display_name
+            selections.append({
+                "section": s,
+                "section_pk": s.pk,
+                "selection_order": s.selection_order,
+                "selection_label": sel_label,
+            })
+
+        result.append({
+            "key": key,
+            "display_name": display_name,
+            "substrate_type": substrate_type,
+            "sort_order": cat_sort,
+            "selection_count": len(ordered),
+            "selections": selections,
+        })
+
+    # Deterministic category ordering: sort_order, then display_name (or key)
+    result.sort(key=lambda g: (g["sort_order"], g["display_name"] or g["key"]))
+    return result
