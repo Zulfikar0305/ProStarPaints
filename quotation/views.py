@@ -660,6 +660,49 @@ def _try_match_paint(paint_name: str, base_type: str) -> Paint | None:
         return None
 
 
+def _find_catalogue_paint_by_label(label: str, category: str | None = None) -> Paint | None:
+    """
+    Attempt to find a catalogue Paint that best matches a UI label and optional category.
+
+    Matching strategy (in order):
+    - exact name (case-insensitive)
+    - name contains label (case-insensitive)
+    - name contains any individual word from label
+    - first active paint in the category (only when category is provided)
+
+    Returns None when no reasonable match found.
+    """
+    try:
+        qs = Paint.objects.filter(is_active=True)
+        if category:
+            qs = qs.filter(category=category)
+
+        # 1) exact
+        p = qs.filter(name__iexact=label).first()
+        if p:
+            return p
+
+        # 2) contains whole label
+        p = qs.filter(name__icontains=label).first()
+        if p:
+            return p
+
+        # 3) try individual words
+        for w in (label or "").split():
+            if not w:
+                continue
+            p = qs.filter(name__icontains=w).first()
+            if p:
+                return p
+
+        # 4) fallback: first in category (only if category provided)
+        if category:
+            return qs.first()
+    except Exception:
+        return None
+    return None
+
+
 class InteriorWallsSaveView(QuotationAccessMixin, View):
     """
     POST-only view that saves the Interior Walls configuration for a section.
@@ -758,14 +801,32 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
         for wp_key in POST.getlist("waterproofing"):
             if wp_key not in wp_labels:
                 continue
-            QuotationLineItem.objects.create(
+            wp_label = wp_labels[wp_key]
+            # Attempt to match a catalogue product for this waterproofing option
+            matched = _find_catalogue_paint_by_label(wp_label, Paint.Category.WATERPROOFING)
+            price_excl = matched.price_excl_vat if matched else Decimal("0")
+            price_incl = matched.price_incl_vat if matched else Decimal("0")
+
+            li = QuotationLineItem.objects.create(
                 quotation   = quotation,
                 section     = section,
                 item_type   = QuotationLineItem.ItemType.WATERPROOFING,
-                description = wp_labels[wp_key],
+                description = wp_label,
+                paint       = matched,
+                coats       = 1,
                 area_sqm    = area_sqm,
-                metadata    = {"key": wp_key},
+                price_excl_vat = price_excl,
+                price_incl_vat = price_incl,
+                metadata    = {"key": wp_key, "paint_matched": matched is not None},
             )
+
+            try:
+                apply_paint_pricing_to_line_item(li)
+            except Exception:
+                meta = dict(li.metadata or {})
+                meta.update({"pricing_status": "pending", "pricing_pending_reason": "pricing_exception"})
+                li.metadata = meta
+                li.save(update_fields=["metadata"])
 
         # ── 3. PRIMER items ─────────────────────────────────────────────────
         primer_labels = dict(PRIMER_OPTIONS)
@@ -777,28 +838,82 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
                 coats = max(1, min(coats, 2))
             except ValueError:
                 coats = 1
-            QuotationLineItem.objects.create(
+
+            pr_label = primer_labels[pr_key]
+            matched = _find_catalogue_paint_by_label(pr_label, Paint.Category.PRIMER)
+            price_excl = matched.price_excl_vat if matched else Decimal("0")
+            price_incl = matched.price_incl_vat if matched else Decimal("0")
+
+            li = QuotationLineItem.objects.create(
                 quotation   = quotation,
                 section     = section,
                 item_type   = QuotationLineItem.ItemType.PRIMER,
-                description = primer_labels[pr_key],
+                description = pr_label,
+                paint       = matched,
                 coats       = coats,
                 area_sqm    = area_sqm,
-                metadata    = {"key": pr_key},
+                price_excl_vat = price_excl,
+                price_incl_vat = price_incl,
+                metadata    = {"key": pr_key, "paint_matched": matched is not None},
             )
+
+            try:
+                apply_paint_pricing_to_line_item(li)
+            except Exception:
+                meta = dict(li.metadata or {})
+                meta.update({"pricing_status": "pending", "pricing_pending_reason": "pricing_exception"})
+                li.metadata = meta
+                li.save(update_fields=["metadata"])
 
         # ── 4. PREP_WORK items ───────────────────────────────────────────────
         prep_labels = dict(OTHER_PREP_OPTIONS)
+        # Mapping of prep option keys to Paint.Category values
+        prep_key_to_category = {
+            "filling": Paint.Category.CRACKS,
+            "mould_treatment": Paint.Category.MOULD,
+            "efflor_removal": Paint.Category.EFFLORESCENCE,
+            "cleaning": Paint.Category.CLEANING,
+            "sanding": Paint.Category.SANDING,
+            "remove_paint": Paint.Category.OLD_PAINT_REMOVAL,
+        }
+
         for prep_key in POST.getlist("prep_work"):
             if prep_key not in prep_labels:
                 continue
-            QuotationLineItem.objects.create(
+            prep_label = prep_labels[prep_key]
+            category = prep_key_to_category.get(prep_key)
+            matched = _find_catalogue_paint_by_label(prep_label, category) if category else None
+
+            # Default metadata for pack/per-metre items when not provided by UI
+            meta = {"key": prep_key, "paint_matched": matched is not None}
+            if matched and matched.pricing_method == Paint.PricingMethod.FIXED_PACK:
+                # Default to one package when user doesn't specify count in the UI
+                meta["package_count"] = 1
+            if matched and matched.pricing_method == Paint.PricingMethod.PER_METRE:
+                # Default to one metre/roll when user doesn't specify count in the UI
+                meta["roll_count"] = 1
+
+            price_excl = matched.price_excl_vat if matched else Decimal("0")
+            price_incl = matched.price_incl_vat if matched else Decimal("0")
+
+            li = QuotationLineItem.objects.create(
                 quotation   = quotation,
                 section     = section,
                 item_type   = QuotationLineItem.ItemType.PREP_WORK,
-                description = prep_labels[prep_key],
-                metadata    = {"key": prep_key},
+                description = prep_label,
+                paint       = matched,
+                price_excl_vat = price_excl,
+                price_incl_vat = price_incl,
+                metadata    = meta,
             )
+
+            try:
+                apply_paint_pricing_to_line_item(li)
+            except Exception:
+                meta = dict(li.metadata or {})
+                meta.update({"pricing_status": "pending", "pricing_pending_reason": "pricing_exception"})
+                li.metadata = meta
+                li.save(update_fields=["metadata"])
 
         # ── 5. PAINT items ───────────────────────────────────────────────────
         # Prefer per-row inputs named paint_row_finish, paint_row_paint_pk,
