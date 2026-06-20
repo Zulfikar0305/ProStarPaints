@@ -177,10 +177,47 @@ def _describe_note(line_item: "QuotationLineItem") -> str:
             if k
         ]
 
-    # Finishes
+    # Finishes — prefer pre-stored finish_labels; otherwise attempt to
+    # derive finish keys from section-level metadata or from sibling PAINT
+    # line items so finish information follows the PAINT rows model.
     finish_labels: list[str] = meta.get("finish_labels") or []
     if not finish_labels:
         finish_keys: list[str] = meta.get("finishes") or []
+        if not finish_keys:
+            # Try to infer from PAINT siblings in the same section
+            try:
+                from .models import QuotationLineItem as _LI
+                sect = line_item.section
+                if sect is not None:
+                    paints_qs = _LI.objects.filter(section=sect, item_type=_LI.ItemType.PAINT)
+                    seen = []
+                    for pli in paints_qs:
+                        fk = None
+                        try:
+                            fk = (pli.metadata or {}).get("finish")
+                        except Exception:
+                            fk = None
+                        # Fallback to product_snapshot finish or paint.finish
+                        if not fk:
+                            try:
+                                ps = (pli.metadata or {}).get("product_snapshot") or {}
+                                fk = ps.get("finish")
+                            except Exception:
+                                fk = None
+                        if not fk and pli.paint and getattr(pli.paint, "finish", None):
+                            try:
+                                fk = str(getattr(pli.paint, "finish")).lower()
+                            except Exception:
+                                fk = None
+                        if fk:
+                            fk = str(fk)
+                            fk = fk.lower()
+                            if fk not in seen:
+                                seen.append(fk)
+                    finish_keys = seen
+            except Exception:
+                finish_keys = []
+
         finish_labels = [
             _FINISH_LABELS.get(k, k.replace("_", " ").capitalize())
             for k in finish_keys

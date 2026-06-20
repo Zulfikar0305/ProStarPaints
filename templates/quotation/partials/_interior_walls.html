@@ -159,6 +159,129 @@
           {% endfor %}
         </div>
 
+        {# ── Paint Rows: repeatable per-row paint selections ── #}
+        <h6 class="fw-bold text-uppercase text-muted small mb-3">
+          <span class="psp-step-badge">4</span>
+          Paint Rows
+          <span class="text-muted fw-normal">(one row per paint / finish)</span>
+        </h6>
+        <div id="paintRows_{{ section.pk }}" class="mb-3">
+          {% for row in iw_summary.saved_paint_rows %}
+            <div class="row g-2 mb-2 p-2 align-items-end paint-row" data-row-index="{{ forloop.counter0 }}">
+              <div class="col-auto">
+                <label class="form-label small text-muted mb-1">Finish</label>
+                <select name="paint_row_finish" class="form-select form-select-sm">
+                  <option value="">-- Select --</option>
+                  {% for fval, flabel in finishes %}
+                    {% with sel_finish=row.metadata.finish|default_if_none:"" %}
+                      <option value="{{ fval }}" {% if sel_finish == fval %}selected{% endif %}>{{ flabel }}</option>
+                    {% endwith %}
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-auto">
+                <label class="form-label small text-muted mb-1">Paint</label>
+                <select name="paint_row_paint_pk" class="form-select form-select-sm paint-row-paint-select">
+                  <option value="">-- Select paint --</option>
+                  {% for p in all_paints %}
+                    <option value="{{ p.pk }}" data-base="{{ p.base_type }}" data-name="{{ p.name }}" {% if p.pk == row.paint_pk %}selected{% endif %}>{{ p.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-auto paint-row-base-col" style="display:{% if row.metadata.base %}block{% else %}none{% endif %};">
+                <label class="form-label small text-muted mb-1">Base / Colour</label>
+                <select name="paint_row_base" class="form-select form-select-sm paint-row-base-select" style="min-width:150px;">
+                  {% if row.metadata.base %}
+                    <option value="{{ row.metadata.base }}" selected>{{ row.metadata.base_label|default:row.metadata.base }}</option>
+                  {% endif %}
+                </select>
+              </div>
+              <div class="col-auto paint-row-calc-col" style="display:{% if row.metadata.required_litres %}block{% else %}none{% endif %};min-width:220px;">
+                <div class="small text-muted">Spread</div>
+                <div class="fw-semibold paint-row-spread">{{ row.metadata.spread_rate_per_litre|default:'—' }}</div>
+                <div class="small text-muted">Litres</div>
+                <div class="fw-semibold paint-row-litres">{{ row.metadata.required_litres|default:'—' }}</div>
+                <div class="small text-muted">Recommended</div>
+                <div class="fw-semibold paint-row-recommended">
+                  {% if row.metadata.recommended_containers %}
+                    {{ row.metadata.recommended_containers }}{% if row.metadata.package_size %} x {{ row.metadata.package_size }}{{ row.metadata.package_unit|default:'' }}{% endif %}
+                  {% else %}
+                    &mdash;
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-auto">
+                <label class="form-label small text-muted mb-1">Area (m&sup2;)</label>
+                <input type="number" name="paint_row_area_sqm" step="0.01" min="0" class="form-control form-control-sm" value="{{ row.area_sqm }}">
+              </div>
+              <div class="col-auto">
+                <label class="form-label small text-muted mb-1">Coats</label>
+                <select name="paint_row_coats" class="form-select form-select-sm">
+                  <option value="1" {% if row.coats == 1 %}selected{% endif %}>1</option>
+                  <option value="2" {% if row.coats == 2 %}selected{% endif %}>2</option>
+                </select>
+              </div>
+              <div class="col-auto">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-paint-row">Remove</button>
+              </div>
+            </div>
+          {% endfor %}
+
+          <div id="paintRowTemplate_{{ section.pk }}" style="display:none;">
+            <div class="row g-2 mb-2 p-2 align-items-end paint-row" data-row-index="__IDX__">
+              <div class="col-auto">
+                <label class="form-label small text-muted mb-1">Finish</label>
+                <select name="paint_row_finish" class="form-select form-select-sm">
+                  <option value="">-- Select --</option>
+                  {% for fval, flabel in finishes %}
+                    <option value="{{ fval }}">{{ flabel }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-auto">
+                <label class="form-label small text-muted mb-1">Paint</label>
+                <select name="paint_row_paint_pk" class="form-select form-select-sm paint-row-paint-select">
+                  <option value="">-- Select paint --</option>
+                  {% for p in all_paints %}
+                    <option value="{{ p.pk }}">{{ p.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-auto paint-row-base-col" style="display:none;">
+                <label class="form-label small text-muted mb-1">Base / Colour</label>
+                <select name="paint_row_base" class="form-select form-select-sm paint-row-base-select" style="min-width:150px;">
+                </select>
+              </div>
+              <div class="col-auto paint-row-calc-col" style="display:none;min-width:220px;">
+                <div class="small text-muted">Spread</div>
+                <div class="fw-semibold paint-row-spread">&mdash;</div>
+                <div class="small text-muted">Litres</div>
+                <div class="fw-semibold paint-row-litres">&mdash;</div>
+                <div class="small text-muted">Recommended</div>
+                <div class="fw-semibold paint-row-recommended">&mdash;</div>
+              </div>
+              <div class="col-auto">
+                <label class="form-label small text-muted mb-1">Area (m&sup2;)</label>
+                <input type="number" name="paint_row_area_sqm" step="0.01" min="0" class="form-control form-control-sm" value="">
+              </div>
+              <div class="col-auto">
+                <label class="form-label small text-muted mb-1">Coats</label>
+                <select name="paint_row_coats" class="form-select form-select-sm">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                </select>
+              </div>
+              <div class="col-auto">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-paint-row">Remove</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <button type="button" class="btn btn-sm btn-outline-primary add-paint-row" data-section-pk="{{ section.pk }}">+ Add paint row</button>
+          </div>
+        </div>
+
         {# Step 4: Paint Options (JS-driven visibility) #}
         <h6 class="fw-bold text-uppercase text-muted small mb-3">
           <span class="psp-step-badge">4</span>
@@ -324,6 +447,8 @@
 (function () {
   var SECTION_PK    = '{{ section.pk }}';
   var FINISH_MAP    = {{ finish_map_json|safe }};
+  var ALL_PAINTS    = {{ all_paints_json|safe }};
+  var PAINT_GROUPS  = {{ paint_groups_json|safe }};
   var THRESHOLD     = {{ moisture_threshold }};
   var SAVED_BASES   = {{ iw_summary.saved_paint_bases_json|safe }};
   var SAVED_COATS   = {{ iw_summary.saved_paint_coats_json|safe }};
@@ -376,8 +501,113 @@
   /* Initial sync on page load (restores visible paint groups for saved finishes) */
   iwSyncFinishes(SECTION_PK);
 
+  /* Minor per-row helpers using server-provided JSON (no pricing logic here) */
+  function _findPaintByPk(pk) {
+    if (!pk) return null;
+    try { pk = parseInt(pk, 10); } catch (e) { return null; }
+    for (var i = 0; i < (ALL_PAINTS || []).length; i++) {
+      if ((ALL_PAINTS[i].pk || 0) === pk) return ALL_PAINTS[i];
+    }
+    return null;
+  }
+
+  function _populateBaseForRow(row, paint) {
+    var baseCol = row.querySelector('.paint-row-base-col');
+    var sel = row.querySelector('.paint-row-base-select');
+    if (!sel) return;
+    sel.innerHTML = '';
+    var opts = null;
+    if (paint && paint.group_key && PAINT_GROUPS && PAINT_GROUPS[paint.group_key] && PAINT_GROUPS[paint.group_key].bases) {
+      opts = PAINT_GROUPS[paint.group_key].bases;
+    } else if (paint && paint.base_type) {
+      opts = [[paint.base_type, paint.base_type]];
+    }
+    if (opts && opts.length) {
+      var empty = document.createElement('option');
+      empty.value = '';
+      empty.textContent = '-- Select --';
+      sel.appendChild(empty);
+      opts.forEach(function (pair) {
+        var o = document.createElement('option');
+        o.value = pair[0];
+        o.textContent = pair[1];
+        if (paint && paint.base_type && paint.base_type === pair[0]) o.selected = true;
+        sel.appendChild(o);
+      });
+      if (baseCol) baseCol.style.display = '';
+    } else {
+      if (baseCol) baseCol.style.display = 'none';
+    }
+  }
+
+  function _setSpreadDisplay(row, paint) {
+    var spreadEl = row.querySelector('.paint-row-spread');
+    var calcCol = row.querySelector('.paint-row-calc-col');
+    if (!spreadEl) return;
+    if (paint && paint.spread_rate_per_litre) {
+      spreadEl.textContent = String(paint.spread_rate_per_litre);
+      if (calcCol) calcCol.style.display = '';
+    } else {
+      spreadEl.textContent = '—';
+      if (calcCol) calcCol.style.display = calcCol.querySelector('.paint-row-litres').textContent.trim() ? '' : 'none';
+    }
+  }
+
+  /* Initialise existing rows */
+  var _rows = Array.from(document.querySelectorAll('#paintRows_' + SECTION_PK + ' .paint-row'));
+  _rows.forEach(function (r) {
+    var sel = r.querySelector('.paint-row-paint-select');
+    if (!sel) return;
+    var p = _findPaintByPk(sel.value);
+    _populateBaseForRow(r, p);
+    _setSpreadDisplay(r, p);
+  });
+
   /* Expose to inline handlers */
   window.iwSyncFinishes = iwSyncFinishes;
   window.iwMoistureWarn = iwMoistureWarn;
+  /* Event delegation for paint-row paint selects */
+  var _paintRowsContainer = document.getElementById('paintRows_' + SECTION_PK);
+  if (_paintRowsContainer) {
+    _paintRowsContainer.addEventListener('change', function (ev) {
+      var t = ev.target;
+      if (t.matches('.paint-row-paint-select')) {
+        var row = t.closest('.paint-row');
+        var paint = _findPaintByPk(t.value);
+        _populateBaseForRow(row, paint);
+        _setSpreadDisplay(row, paint);
+      }
+    });
+  }
+}());
+</script>
+
+<script>
+(function () {
+  var SECTION_PK = '{{ section.pk }}';
+  var container = document.getElementById('paintRows_' + SECTION_PK);
+  if (!container) return;
+
+  function addRow() {
+    var tpl = document.getElementById('paintRowTemplate_' + SECTION_PK);
+    if (!tpl) return;
+    var html = tpl.innerHTML.replace(/__IDX__/g, Date.now());
+    var div = document.createElement('div');
+    div.innerHTML = html;
+    container.insertBefore(div.firstElementChild, tpl);
+  }
+
+  container.addEventListener('click', function (ev) {
+    var t = ev.target;
+    if (t.matches('.add-paint-row')) {
+      addRow();
+      return;
+    }
+    if (t.matches('.remove-paint-row')) {
+      var row = t.closest('.paint-row');
+      if (row) row.remove();
+      return;
+    }
+  });
 }());
 </script>

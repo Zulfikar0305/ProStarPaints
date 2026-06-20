@@ -364,6 +364,7 @@ class QuotationBuilderView(QuotationAccessMixin, View):
         saved_paint_keys    = set()
         saved_paint_bases   = {}   # group_key → base_val
         saved_paint_coats   = {}   # group_key → coats str
+        saved_paint_rows    = []   # list of existing paint-row dicts for this section
 
         for li in line_items:
             if li.item_type == QuotationLineItem.ItemType.WATERPROOFING:
@@ -374,6 +375,20 @@ class QuotationBuilderView(QuotationAccessMixin, View):
             elif li.item_type == QuotationLineItem.ItemType.PREP_WORK:
                 saved_prep_work.add(li.metadata.get("key", ""))
             elif li.item_type == QuotationLineItem.ItemType.PAINT:
+                # Preserve per-paint line information so the UI can render repeatable rows
+                try:
+                    paint_pk = li.paint.pk if li.paint else None
+                except Exception:
+                    paint_pk = None
+                saved_paint_rows.append({
+                    "line_pk": li.pk,
+                    "paint_pk": paint_pk,
+                    "coats": li.coats,
+                    "area_sqm": str(li.area_sqm) if li.area_sqm is not None else "",
+                    "price_excl_vat": str(li.price_excl_vat or 0),
+                    "price_incl_vat": str(li.price_incl_vat or 0),
+                    "metadata": li.metadata or {},
+                })
                 gk = li.metadata.get("paint_group", "")
                 if gk:
                     saved_paint_keys.add(gk)
@@ -390,6 +405,7 @@ class QuotationBuilderView(QuotationAccessMixin, View):
             "saved_paint_keys":    saved_paint_keys,
             "saved_paint_bases":   saved_paint_bases,
             "saved_paint_coats":   saved_paint_coats,
+            "saved_paint_rows":    saved_paint_rows,
             # JSON strings for JS restoration
             "saved_paint_bases_json":  json.dumps(saved_paint_bases),
             "saved_paint_coats_json":  json.dumps(saved_paint_coats),
@@ -417,6 +433,7 @@ class QuotationBuilderView(QuotationAccessMixin, View):
         saved_paint_keys:    set  = set()
         saved_paint_bases:   dict = {}
         saved_paint_coats:   dict = {}
+        saved_paint_rows:    list = []
 
         for li in line_items:
             if li.item_type == QuotationLineItem.ItemType.WATERPROOFING:
@@ -427,6 +444,19 @@ class QuotationBuilderView(QuotationAccessMixin, View):
             elif li.item_type == QuotationLineItem.ItemType.PREP_WORK:
                 saved_prep_work.add(li.metadata.get("key", ""))
             elif li.item_type == QuotationLineItem.ItemType.PAINT:
+                try:
+                    paint_pk = li.paint.pk if li.paint else None
+                except Exception:
+                    paint_pk = None
+                saved_paint_rows.append({
+                    "line_pk": li.pk,
+                    "paint_pk": paint_pk,
+                    "coats": li.coats,
+                    "area_sqm": str(li.area_sqm) if li.area_sqm is not None else "",
+                    "price_excl_vat": str(li.price_excl_vat or 0),
+                    "price_incl_vat": str(li.price_incl_vat or 0),
+                    "metadata": li.metadata or {},
+                })
                 gk = li.metadata.get("paint_group", "")
                 if gk:
                     saved_paint_keys.add(gk)
@@ -443,6 +473,7 @@ class QuotationBuilderView(QuotationAccessMixin, View):
             "saved_paint_keys":    saved_paint_keys,
             "saved_paint_bases":   saved_paint_bases,
             "saved_paint_coats":   saved_paint_coats,
+            "saved_paint_rows":    saved_paint_rows,
             # JSON strings for JS restoration
             "saved_paint_bases_json": json.dumps(saved_paint_bases),
             "saved_paint_coats_json": json.dumps(saved_paint_coats),
@@ -577,6 +608,26 @@ class QuotationBuilderView(QuotationAccessMixin, View):
             "active_leaflet_selections": active_leaflet_selections,
             "active_sections_data":   active_sections_data,
             "is_admin":               self._is_admin(),
+            # All available paints for client-side population of paint-row selects
+            "all_paints_json":       json.dumps([
+                {
+                    "pk": int(p.pk),
+                    "name": p.name,
+                    "spread_rate_per_litre": str(p.spread_rate_per_litre) if p.spread_rate_per_litre is not None else None,
+                    "price_excl_vat": str(p.price_excl_vat),
+                    "price_incl_vat": str(p.price_incl_vat),
+                    "priced_volume_litres": str(p.priced_volume_litres) if p.priced_volume_litres is not None else None,
+                    "finish": p.finish,
+                    "group_key": next((k for k, g in PAINT_GROUPS.items() if g.paint_name.lower() in p.name.lower()), None),
+                    "base_type": p.base_type,
+                }
+                for p in Paint.objects.filter(is_active=True)
+            ]),
+            # JSON map of paint-groups for client-side base selectors
+            "paint_groups_json": json.dumps({
+                k: {"bases": v.bases, "label": v.label} for k, v in PAINT_GROUPS.items()
+            }),
+            "all_paints":            Paint.objects.filter(is_active=True).order_by("name"),
             # shared config passed through to all partials
             "wall_types":             WALL_TYPES,
             "surface_conditions":     SURFACE_CONDITIONS,
@@ -646,12 +697,9 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
             messages.error(request, "Please select a valid wall type.")
             return redirect(f"{reverse('quotation:quotation_builder', kwargs={'pk': pk})}?leaflet=interior_walls#section-{section.pk}")
 
-        finishes = [f for f in finishes if f in valid_finishes]
+        # Finishes are now owned by individual paint rows. Keep section-level
+        # surface conditions validation but do not require section-level finishes.
         surface_conds = [c for c in surface_conds if c in valid_conds]
-
-        if not finishes:
-            messages.error(request, "Please select at least one finish.")
-            return redirect(f"{reverse('quotation:quotation_builder', kwargs={'pk': pk})}?leaflet=interior_walls#section-{section.pk}")
 
         try:
             area_sqm = Decimal(area_sqm_raw) if area_sqm_raw else None
@@ -674,17 +722,24 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
         section.save(update_fields=["is_placeholder"])
 
         # ── 1. NOTE item: wall summary metadata ─────────────────────────────
-        wall_type_label    = dict(WALL_TYPES).get(wall_type, wall_type)
-        finish_labels      = [dict(FINISHES).get(f, f) for f in finishes]
-        cond_labels        = [dict(SURFACE_CONDITIONS).get(c, c) for c in surface_conds]
+        wall_type_label = dict(WALL_TYPES).get(wall_type, wall_type)
+        cond_labels = [dict(SURFACE_CONDITIONS).get(c, c) for c in surface_conds]
 
+        # Sanitize any legacy section-level finishes (may be empty). Finish
+        # metadata is now owned by individual paint rows but keep the
+        # labels for logging/backwards-compatibility.
+        valid_finishes = {k for k, _ in FINISHES}
+        finishes = [f for f in finishes if f in valid_finishes]
+        finish_labels = [dict(FINISHES).get(f, f) for f in finishes]
+
+        # Create a NOTE line for section summary — do not store finishes here;
+        # each PAINT QuotationLineItem will own its own finish metadata.
         QuotationLineItem.objects.create(
             quotation   = quotation,
             section     = section,
             item_type   = QuotationLineItem.ItemType.NOTE,
             description = (
                 f"Interior Walls — {wall_type_label} | "
-                f"Finishes: {', '.join(finish_labels)} | "
                 f"Area: {area_sqm or 'TBC'} m²"
             ),
             area_sqm  = area_sqm,
@@ -693,8 +748,6 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
                 "wall_type_label":   wall_type_label,
                 "surface_conditions": surface_conds,
                 "surface_cond_labels": cond_labels,
-                "finishes":          finishes,
-                "finish_labels":     finish_labels,
                 "moisture_level":    moisture,
                 "notes":             notes,
             },
@@ -748,64 +801,156 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
             )
 
         # ── 5. PAINT items ───────────────────────────────────────────────────
-        active_groups = get_paint_groups_for_finishes(finishes)
-        for pg in active_groups:
-            selected = POST.get(f"paint_selected_{pg.key}")
-            if not selected:
-                continue
-            try:
-                coats = int(POST.get(f"paint_coats_{pg.key}", "1"))
-                coats = max(1, min(coats, 2))
-            except ValueError:
-                coats = 1
+        # Prefer per-row inputs named paint_row_finish, paint_row_paint_pk,
+        # paint_row_area_sqm, paint_row_coats, paint_row_base. If none are
+        # provided, fall back to legacy group-based inputs to preserve
+        # backward compatibility.
+        row_finishes = POST.getlist("paint_row_finish")
+        row_paint_pks = POST.getlist("paint_row_paint_pk")
+        row_areas = POST.getlist("paint_row_area_sqm")
+        row_coats = POST.getlist("paint_row_coats")
+        row_bases = POST.getlist("paint_row_base")
 
-            base_val = POST.get(f"paint_base_{pg.key}", "WHITE").strip()
-            base_label = dict(pg.bases).get(base_val, base_val) if pg.bases else ""
+        rows = max([len(row_finishes), len(row_paint_pks), len(row_areas), len(row_coats), len(row_bases), 0])
 
-            # Attempt paint catalogue match
-            matched_paint = _try_match_paint(pg.paint_name, base_val) if base_val else None
+        if rows == 0:
+            # Legacy behaviour: one PAINT line per paint-group revealed by
+            # section-level finishes. This preserves existing templates that
+            # haven't been migrated yet.
+            active_groups = get_paint_groups_for_finishes(finishes)
+            for pg in active_groups:
+                selected = POST.get(f"paint_selected_{pg.key}")
+                if not selected:
+                    continue
+                try:
+                    coats = int(POST.get(f"paint_coats_{pg.key}", "1"))
+                    coats = max(1, min(coats, 2))
+                except ValueError:
+                    coats = 1
 
-            price_excl = matched_paint.price_excl_vat if matched_paint else Decimal("0")
-            price_incl = matched_paint.price_incl_vat if matched_paint else Decimal("0")
+                base_val = POST.get(f"paint_base_{pg.key}", "WHITE").strip()
+                base_label = dict(pg.bases).get(base_val, base_val) if pg.bases else ""
 
-            description = pg.label
-            if base_label:
-                description += f" — {base_label}"
+                matched_paint = _try_match_paint(pg.paint_name, base_val) if base_val else None
 
-            li = QuotationLineItem.objects.create(
-                quotation      = quotation,
-                section        = section,
-                item_type      = QuotationLineItem.ItemType.PAINT,
-                description    = description,
-                paint          = matched_paint,
-                coats          = coats,
-                area_sqm       = area_sqm,
-                price_excl_vat = price_excl,
-                price_incl_vat = price_incl,
-                metadata       = {
-                    "paint_group":  pg.key,
-                    "paint_name":   pg.paint_name,
-                    "base":         base_val,
-                    "base_label":   base_label,
-                    "paint_matched": matched_paint is not None,
-                },
-            )
+                price_excl = matched_paint.price_excl_vat if matched_paint else Decimal("0")
+                price_incl = matched_paint.price_incl_vat if matched_paint else Decimal("0")
 
-            try:
-                apply_paint_pricing_to_line_item(li)
-            except Exception:
-                meta = dict(li.metadata or {})
-                meta.update({"pricing_status": "pending", "pricing_pending_reason": "pricing_exception"})
-                li.metadata = meta
-                li.save(update_fields=["metadata"])
+                description = pg.label
+                if base_label:
+                    description += f" — {base_label}"
 
-            try:
-                apply_paint_pricing_to_line_item(li)
-            except Exception:
-                meta = dict(li.metadata or {})
-                meta.update({"pricing_status": "pending", "pricing_pending_reason": "pricing_exception"})
-                li.metadata = meta
-                li.save(update_fields=["metadata"])
+                li = QuotationLineItem.objects.create(
+                    quotation      = quotation,
+                    section        = section,
+                    item_type      = QuotationLineItem.ItemType.PAINT,
+                    description    = description,
+                    paint          = matched_paint,
+                    coats          = coats,
+                    area_sqm       = area_sqm,
+                    price_excl_vat = price_excl,
+                    price_incl_vat = price_incl,
+                    metadata       = {
+                        "paint_group":  pg.key,
+                        "paint_name":   pg.paint_name,
+                        "base":         base_val,
+                        "base_label":   base_label,
+                        "paint_matched": matched_paint is not None,
+                    },
+                )
+
+                try:
+                    apply_paint_pricing_to_line_item(li)
+                except Exception:
+                    meta = dict(li.metadata or {})
+                    meta.update({"pricing_status": "pending", "pricing_pending_reason": "pricing_exception"})
+                    li.metadata = meta
+                    li.save(update_fields=["metadata"])
+
+        else:
+            # Per-row handling
+            from paints.models import Paint as _Paint
+            for i in range(rows):
+                finish = (row_finishes[i] if i < len(row_finishes) else "")
+                if not finish:
+                    continue
+                paint_pk = (row_paint_pks[i] if i < len(row_paint_pks) else "")
+                area_raw = (row_areas[i] if i < len(row_areas) else "").strip()
+                coats_raw = (row_coats[i] if i < len(row_coats) else "1").strip()
+                # Do not default per-row base to WHITE; treat empty as None
+                base_raw = (row_bases[i] if i < len(row_bases) else "").strip()
+                base_val = base_raw or None
+
+                try:
+                    coats = int(coats_raw or "1")
+                    coats = max(1, min(coats, 2))
+                except ValueError:
+                    coats = 1
+
+                try:
+                    row_area = Decimal(area_raw) if area_raw else area_sqm
+                    if row_area is not None and row_area < 0:
+                        row_area = None
+                except Exception:
+                    row_area = None
+
+                matched_paint = None
+                if paint_pk:
+                    try:
+                        matched_paint = _Paint.objects.filter(pk=int(paint_pk), is_active=True).first()
+                    except Exception:
+                        matched_paint = None
+
+                paint_group_key = None
+                base_label = ""
+                description = "Paint"
+
+                if matched_paint is None:
+                    groups = get_paint_groups_for_finishes([finish])
+                    for pg in groups:
+                        candidate = _try_match_paint(pg.paint_name, base_val) if base_val else None
+                        if candidate:
+                            matched_paint = candidate
+                            paint_group_key = pg.key
+                            base_label = dict(pg.bases).get(base_val, base_val) if pg.bases else ""
+                            description = pg.label
+                            if base_label:
+                                description += f" — {base_label}"
+                            break
+                else:
+                    description = matched_paint.name
+                    base_label = getattr(matched_paint, 'base_type', '') or ''
+
+                price_excl = matched_paint.price_excl_vat if matched_paint else Decimal("0")
+                price_incl = matched_paint.price_incl_vat if matched_paint else Decimal("0")
+
+                li = QuotationLineItem.objects.create(
+                    quotation      = quotation,
+                    section        = section,
+                    item_type      = QuotationLineItem.ItemType.PAINT,
+                    description    = description,
+                    paint          = matched_paint,
+                    coats          = coats,
+                    area_sqm       = row_area,
+                    price_excl_vat = price_excl,
+                    price_incl_vat = price_incl,
+                    metadata       = {
+                        "finish":       finish,
+                        "paint_group":  paint_group_key,
+                        "paint_name":   matched_paint.name if matched_paint else None,
+                        "base":         base_val,
+                        "base_label":   base_label,
+                        "paint_matched": matched_paint is not None,
+                    },
+                )
+
+                try:
+                    apply_paint_pricing_to_line_item(li)
+                except Exception:
+                    meta = dict(li.metadata or {})
+                    meta.update({"pricing_status": "pending", "pricing_pending_reason": "pricing_exception"})
+                    li.metadata = meta
+                    li.save(update_fields=["metadata"])
 
         log_action(
             user        = request.user,
@@ -918,13 +1063,14 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
         cond_labels   = [dict(cfg.surface_conditions).get(c, c)    for c in surface_conds]
 
         # ── 1. NOTE (section summary metadata) ──────────────────────────────
+        # NOTE: Do not store finishes at section level. Each paint row will
+        # include its own finish metadata. The NOTE remains for general notes.
         QuotationLineItem.objects.create(
             quotation   = quotation,
             section     = section,
             item_type   = QuotationLineItem.ItemType.NOTE,
             description = (
                 f"{cfg.display_name} \u2014 {', '.join(type_labels)} | "
-                f"Finishes: {', '.join(finish_labels)} | "
                 f"Area: {area_sqm or 'TBC'} m\u00b2"
             ),
             area_sqm    = area_sqm,
@@ -936,8 +1082,6 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
                 "type_labels":         type_labels,
                 "surface_conditions":  surface_conds,
                 "surface_cond_labels": cond_labels,
-                "finishes":            finishes,
-                "finish_labels":       finish_labels,
                 "moisture_level":      moisture,
                 "area_sqm":            str(area_sqm) if area_sqm else None,
                 "notes":               notes,
@@ -992,55 +1136,146 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
             )
 
         # ── 5. PAINT items ───────────────────────────────────────────────────
-        active_groups = get_paint_groups_for_finishes(finishes)
-        for pg in active_groups:
-            if not POST.get(f"paint_selected_{pg.key}"):
-                continue
-            try:
-                coats = int(POST.get(f"paint_coats_{pg.key}", "1"))
-                coats = max(1, min(coats, 2))
-            except ValueError:
-                coats = 1
+        # Per-row inputs preferred; fallback to legacy group inputs when
+        # per-row data is not supplied.
+        row_finishes = POST.getlist("paint_row_finish")
+        row_paint_pks = POST.getlist("paint_row_paint_pk")
+        row_areas = POST.getlist("paint_row_area_sqm")
+        row_coats = POST.getlist("paint_row_coats")
+        row_bases = POST.getlist("paint_row_base")
 
-            base_val   = POST.get(f"paint_base_{pg.key}", "WHITE").strip()
-            base_label = dict(pg.bases).get(base_val, base_val) if pg.bases else ""
+        rows = max([len(row_finishes), len(row_paint_pks), len(row_areas), len(row_coats), len(row_bases), 0])
 
-            matched_paint  = _try_match_paint(pg.paint_name, base_val) if base_val else None
-            price_excl     = matched_paint.price_excl_vat if matched_paint else Decimal("0")
-            price_incl     = matched_paint.price_incl_vat if matched_paint else Decimal("0")
+        if rows == 0:
+            active_groups = get_paint_groups_for_finishes(finishes)
+            for pg in active_groups:
+                if not POST.get(f"paint_selected_{pg.key}"):
+                    continue
+                try:
+                    coats = int(POST.get(f"paint_coats_{pg.key}", "1"))
+                    coats = max(1, min(coats, 2))
+                except ValueError:
+                    coats = 1
 
-            description = pg.label
-            if base_label:
-                description += f" \u2014 {base_label}"
+                base_val   = POST.get(f"paint_base_{pg.key}", "WHITE").strip()
+                base_label = dict(pg.bases).get(base_val, base_val) if pg.bases else ""
 
-            li = QuotationLineItem.objects.create(
-                quotation      = quotation,
-                section        = section,
-                item_type      = QuotationLineItem.ItemType.PAINT,
-                description    = description,
-                paint          = matched_paint,
-                coats          = coats,
-                area_sqm       = area_sqm,
-                price_excl_vat = price_excl,
-                price_incl_vat = price_incl,
-                metadata       = {
-                    "paint_group":   pg.key,
-                    "paint_name":    pg.paint_name,
-                    "base":          base_val,
-                    "base_label":    base_label,
-                    "paint_matched": matched_paint is not None,
-                },
-            )
+                matched_paint  = _try_match_paint(pg.paint_name, base_val) if base_val else None
+                price_excl     = matched_paint.price_excl_vat if matched_paint else Decimal("0")
+                price_incl     = matched_paint.price_incl_vat if matched_paint else Decimal("0")
 
-            # Apply central paint pricing logic to the created line item
-            try:
-                apply_paint_pricing_to_line_item(li)
-            except Exception:
-                # Avoid crashing the builder; mark item pending if unexpected error
-                meta = dict(li.metadata or {})
-                meta.update({"pricing_status": "pending", "pricing_pending_reason": "pricing_exception"})
-                li.metadata = meta
-                li.save(update_fields=["metadata"])
+                description = pg.label
+                if base_label:
+                    description += f" \u2014 {base_label}"
+
+                li = QuotationLineItem.objects.create(
+                    quotation      = quotation,
+                    section        = section,
+                    item_type      = QuotationLineItem.ItemType.PAINT,
+                    description    = description,
+                    paint          = matched_paint,
+                    coats          = coats,
+                    area_sqm       = area_sqm,
+                    price_excl_vat = price_excl,
+                    price_incl_vat = price_incl,
+                    metadata       = {
+                        "paint_group":   pg.key,
+                        "paint_name":    pg.paint_name,
+                        "base":          base_val,
+                        "base_label":    base_label,
+                        "paint_matched": matched_paint is not None,
+                    },
+                )
+
+                try:
+                    apply_paint_pricing_to_line_item(li)
+                except Exception:
+                    meta = dict(li.metadata or {})
+                    meta.update({"pricing_status": "pending", "pricing_pending_reason": "pricing_exception"})
+                    li.metadata = meta
+                    li.save(update_fields=["metadata"])
+
+        else:
+            from paints.models import Paint as _Paint
+            for i in range(rows):
+                finish = (row_finishes[i] if i < len(row_finishes) else "")
+                if not finish:
+                    continue
+                paint_pk = (row_paint_pks[i] if i < len(row_paint_pks) else "")
+                area_raw = (row_areas[i] if i < len(row_areas) else "").strip()
+                coats_raw = (row_coats[i] if i < len(row_coats) else "1").strip()
+                base_val = (row_bases[i] if i < len(row_bases) else "WHITE").strip()
+
+                try:
+                    coats = int(coats_raw or "1")
+                    coats = max(1, min(coats, 2))
+                except ValueError:
+                    coats = 1
+
+                try:
+                    row_area = Decimal(area_raw) if area_raw else area_sqm
+                    if row_area is not None and row_area < 0:
+                        row_area = None
+                except Exception:
+                    row_area = None
+
+                matched_paint = None
+                if paint_pk:
+                    try:
+                        matched_paint = _Paint.objects.filter(pk=int(paint_pk), is_active=True).first()
+                    except Exception:
+                        matched_paint = None
+
+                paint_group_key = None
+                base_label = ""
+                description = cfg.display_name
+
+                if matched_paint is None:
+                    groups = get_paint_groups_for_finishes([finish])
+                    for pg in groups:
+                        candidate = _try_match_paint(pg.paint_name, base_val) if base_val else None
+                        if candidate:
+                            matched_paint = candidate
+                            paint_group_key = pg.key
+                            base_label = dict(pg.bases).get(base_val, base_val) if pg.bases else ""
+                            description = pg.label
+                            if base_label:
+                                description += f" \u2014 {base_label}"
+                            break
+                else:
+                    description = matched_paint.name
+                    base_label = getattr(matched_paint, 'base_type', '') or ''
+
+                price_excl = matched_paint.price_excl_vat if matched_paint else Decimal("0")
+                price_incl = matched_paint.price_incl_vat if matched_paint else Decimal("0")
+
+                li = QuotationLineItem.objects.create(
+                    quotation      = quotation,
+                    section        = section,
+                    item_type      = QuotationLineItem.ItemType.PAINT,
+                    description    = description,
+                    paint          = matched_paint,
+                    coats          = coats,
+                    area_sqm       = row_area,
+                    price_excl_vat = price_excl,
+                    price_incl_vat = price_incl,
+                    metadata       = {
+                        "finish":       finish,
+                        "paint_group":  paint_group_key,
+                        "paint_name":   matched_paint.name if matched_paint else None,
+                        "base":         base_val,
+                        "base_label":   base_label,
+                        "paint_matched": matched_paint is not None,
+                    },
+                )
+
+                try:
+                    apply_paint_pricing_to_line_item(li)
+                except Exception:
+                    meta = dict(li.metadata or {})
+                    meta.update({"pricing_status": "pending", "pricing_pending_reason": "pricing_exception"})
+                    li.metadata = meta
+                    li.save(update_fields=["metadata"])
 
         # ── Audit log ────────────────────────────────────────────────────────
         action_key = f"SECTION_SAVED_{cfg.key.upper()}"

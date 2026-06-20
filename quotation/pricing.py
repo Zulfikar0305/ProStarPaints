@@ -263,6 +263,9 @@ def apply_paint_pricing_to_line_item(line_item: QuotationLineItem) -> QuotationL
             "price_per_litre_incl_vat",
             "rate_per_sqm_per_coat_excl_vat",
             "rate_per_sqm_selected_coats_excl_vat",
+            "recommended_containers",
+            "package_size",
+            "package_unit",
             "vat_amount",
         ]
         # Populate from result or set to None when pending
@@ -595,6 +598,24 @@ def calculate_product_pricing(
             "rate_per_sqm_selected_coats_excl_vat": calc.get("rate_per_sqm_selected_coats_excl_vat"),
         }
 
+        # Recommended containers: if package size is provided (litres), compute how many
+        # packages are required to cover the required litres (ceiling division).
+        package_size = _to_decimal(product_snapshot.get("package_size"))
+        package_unit = product_snapshot.get("package_unit")
+        if package_size is not None and package_size > 0 and package_unit == "L":
+            try:
+                req = calc.get("required_litres")
+                if req is not None:
+                    q = (req // package_size)
+                    r = (req % package_size)
+                    recommended = int(q) + (1 if (r and r > 0) else 0)
+                    metadata["recommended_containers"] = recommended
+                    metadata["package_size"] = package_size
+                    metadata["package_unit"] = package_unit
+            except Exception:
+                # If any arithmetic fails, skip recommended containers
+                pass
+
         res = _priced_result_common(
             pricing_method="AREA_COATING",
             quantity=calc.get("required_litres"),
@@ -608,6 +629,9 @@ def calculate_product_pricing(
                 "required_litres": calc.get("required_litres"),
                 "rate_per_sqm_per_coat_excl_vat": calc.get("rate_per_sqm_per_coat_excl_vat"),
                 "rate_per_sqm_selected_coats_excl_vat": calc.get("rate_per_sqm_selected_coats_excl_vat"),
+                "recommended_containers": metadata.get("recommended_containers"),
+                "package_size": metadata.get("package_size"),
+                "package_unit": metadata.get("package_unit"),
             },
         )
         return res
