@@ -142,6 +142,29 @@ def get_quotation_summary(quotation) -> dict:
     total_sections = len(sections)
     progress_pct = round(configured_count / total_sections * 100) if total_sections else 0
 
+    # Monetary totals derived from persisted QuotationLineItem totals
+    from decimal import Decimal
+    paint_total = Decimal("0.00")
+    primer_total = Decimal("0.00")
+    waterproof_total = Decimal("0.00")
+    prep_total = Decimal("0.00")
+    subtotal = Decimal("0.00")
+    total_incl = Decimal("0.00")
+    for li in all_items:
+        excl = Decimal(li.total_excl_vat or 0)
+        incl = Decimal(li.total_incl_vat or 0)
+        subtotal += excl
+        total_incl += incl
+        if li.item_type == ItemType.PAINT:
+            paint_total += excl
+        elif li.item_type == ItemType.PRIMER:
+            primer_total += excl
+        elif li.item_type == ItemType.WATERPROOFING:
+            waterproof_total += excl
+        elif li.item_type == ItemType.PREP_WORK:
+            prep_total += excl
+    vat_amount = total_incl - subtotal
+
     return {
         "customer_name":     quotation.customer_name,
         "project_name":      quotation.project_name or quotation.project_location,
@@ -159,6 +182,15 @@ def get_quotation_summary(quotation) -> dict:
         },
         "moisture_warnings": moisture_warnings,
         "pricing_status":    "pending",
+        "monetary": {
+            "paint_total_excl_vat": str(paint_total),
+            "primer_total_excl_vat": str(primer_total),
+            "waterproofing_total_excl_vat": str(waterproof_total),
+            "prep_total_excl_vat": str(prep_total),
+            "subtotal_excl_vat": str(subtotal),
+            "vat_amount": str(vat_amount),
+            "total_incl_vat": str(total_incl),
+        },
     }
 
 

@@ -268,9 +268,15 @@ def apply_paint_pricing_to_line_item(line_item: QuotationLineItem) -> QuotationL
             "package_unit",
             "vat_amount",
         ]
-        # Populate from result or set to None when pending
+        # Populate from result or set to None when pending. Use top-level result
+        # value OR fall back to result["metadata"][key] when the top-level
+        # value is absent. This keeps the pricing dispatcher contract
+        # unchanged while ensuring metadata promotion works when calculators
+        # place values inside the nested metadata dict.
         for k in area_keys:
             val = result.get(k)
+            if val is None:
+                val = (result.get("metadata") or {}).get(k)
             meta[k] = _to_json_safe(val) if val is not None else None
 
     if pricing_method == "FIXED_PACK":

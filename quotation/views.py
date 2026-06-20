@@ -759,6 +759,19 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
             moisture = 0
 
         # ── Wipe existing line items for this section ───────────────────────
+        # Preserve existing per-row values (area, etc.) so they are not
+        # overwritten by the section reference area when the incoming
+        # per-row inputs are left blank. Fetch these before deleting rows.
+        prev_line_pks = POST.getlist("paint_row_line_pk")
+        prev_areas = {}
+        try:
+            pks = [int(p) for p in prev_line_pks if p]
+            if pks:
+                for pli in section.line_items.filter(pk__in=pks):
+                    prev_areas[str(pli.pk)] = pli.area_sqm
+        except Exception:
+            prev_areas = {}
+
         section.line_items.all().delete()
         # Mark section as configured
         section.is_placeholder = False
@@ -925,6 +938,7 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
         row_areas = POST.getlist("paint_row_area_sqm")
         row_coats = POST.getlist("paint_row_coats")
         row_bases = POST.getlist("paint_row_base")
+        row_line_pks = POST.getlist("paint_row_line_pk")
 
         rows = max([len(row_finishes), len(row_paint_pks), len(row_areas), len(row_coats), len(row_bases), 0])
 
@@ -1003,7 +1017,13 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
                     coats = 1
 
                 try:
-                    row_area = Decimal(area_raw) if area_raw else area_sqm
+                    line_pk = (row_line_pks[i] if i < len(row_line_pks) else "").strip()
+                    if area_raw:
+                        row_area = Decimal(area_raw)
+                    elif line_pk and str(line_pk) in prev_areas and prev_areas.get(str(line_pk)) is not None:
+                        row_area = prev_areas.get(str(line_pk))
+                    else:
+                        row_area = area_sqm
                     if row_area is not None and row_area < 0:
                         row_area = None
                 except Exception:
@@ -1169,6 +1189,18 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
         notes = POST.get("notes", "").strip()
 
         # ── Wipe and rebuild line items ──────────────────────────────────────
+        # Preserve existing per-row values (area, etc.) before deletion so
+        # blank per-row inputs do not overwrite previously-saved per-row areas.
+        prev_line_pks = POST.getlist("paint_row_line_pk")
+        prev_areas = {}
+        try:
+            pks = [int(p) for p in prev_line_pks if p]
+            if pks:
+                for pli in section.line_items.filter(pk__in=pks):
+                    prev_areas[str(pli.pk)] = pli.area_sqm
+        except Exception:
+            prev_areas = {}
+
         section.line_items.all().delete()
         section.is_placeholder = False
         section.save(update_fields=["is_placeholder"])
@@ -1258,6 +1290,7 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
         row_areas = POST.getlist("paint_row_area_sqm")
         row_coats = POST.getlist("paint_row_coats")
         row_bases = POST.getlist("paint_row_base")
+        row_line_pks = POST.getlist("paint_row_line_pk")
 
         rows = max([len(row_finishes), len(row_paint_pks), len(row_areas), len(row_coats), len(row_bases), 0])
 
@@ -1319,7 +1352,9 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
                 paint_pk = (row_paint_pks[i] if i < len(row_paint_pks) else "")
                 area_raw = (row_areas[i] if i < len(row_areas) else "").strip()
                 coats_raw = (row_coats[i] if i < len(row_coats) else "1").strip()
-                base_val = (row_bases[i] if i < len(row_bases) else "WHITE").strip()
+                # Do not default per-row base to WHITE; treat empty as None
+                base_raw = (row_bases[i] if i < len(row_bases) else "").strip()
+                base_val = base_raw or None
 
                 try:
                     coats = int(coats_raw or "1")
@@ -1328,7 +1363,13 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
                     coats = 1
 
                 try:
-                    row_area = Decimal(area_raw) if area_raw else area_sqm
+                    line_pk = (row_line_pks[i] if i < len(row_line_pks) else "").strip()
+                    if area_raw:
+                        row_area = Decimal(area_raw)
+                    elif line_pk and str(line_pk) in prev_areas and prev_areas.get(str(line_pk)) is not None:
+                        row_area = prev_areas.get(str(line_pk))
+                    else:
+                        row_area = area_sqm
                     if row_area is not None and row_area < 0:
                         row_area = None
                 except Exception:

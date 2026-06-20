@@ -181,6 +181,7 @@
         <div id="paintRows_{{ section.pk }}" class="mb-3">
           {% for row in gs_summary.saved_paint_rows %}
             <div class="row g-2 mb-2 p-2 align-items-end paint-row" data-row-index="{{ forloop.counter0 }}">
+              <input type="hidden" name="paint_row_line_pk" value="{{ row.line_pk }}">
               <div class="col-auto">
                 <label class="form-label small text-muted mb-1">Finish</label>
                 <select name="paint_row_finish" class="form-select form-select-sm">
@@ -243,6 +244,7 @@
           {# Template row for JS cloning #}
           <div id="paintRowTemplate_{{ section.pk }}" style="display:none;">
             <div class="row g-2 mb-2 p-2 align-items-end paint-row" data-row-index="__IDX__">
+              <input type="hidden" name="paint_row_line_pk" value="">
               <div class="col-auto">
                 <label class="form-label small text-muted mb-1">Finish</label>
                 <select name="paint_row_finish" class="form-select form-select-sm">
