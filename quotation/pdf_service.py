@@ -65,6 +65,7 @@ def build_pdf_context(quotation, request=None) -> dict:
     from .description_engine import generate_line_item_description
     from .models import QuotationLineItem
     from .services import get_quotation_summary
+    from decimal import Decimal
 
     # ── Line items grouped by section ──────────────────────────────────────
     sections = list(quotation.sections.order_by("sort_order"))
@@ -85,6 +86,19 @@ def build_pdf_context(quotation, request=None) -> dict:
         note_item = next((i for i in sec_items if i.item_type == QuotationLineItem.ItemType.NOTE), None)
         work_items = [i for i in sec_items if i.item_type != QuotationLineItem.ItemType.NOTE]
 
+        # Compute persisted section totals from stored line item totals
+        section_total_excl = Decimal("0.00")
+        section_total_incl = Decimal("0.00")
+        for wi in work_items:
+            try:
+                section_total_excl += Decimal(wi.total_excl_vat or 0)
+            except Exception:
+                pass
+            try:
+                section_total_incl += Decimal(wi.total_incl_vat or 0)
+            except Exception:
+                pass
+
         section_data.append({
             "section":      section,
             "description":  generate_line_item_description(note_item) if note_item else "",
@@ -96,6 +110,9 @@ def build_pdf_context(quotation, request=None) -> dict:
                 }
                 for item in work_items
             ],
+            # Persisted totals (do not recalculate pricing here)
+            "section_total_excl_vat": section_total_excl,
+            "section_total_incl_vat": section_total_incl,
         })
 
     # ── Sales rep profile ──────────────────────────────────────────────────
@@ -107,6 +124,15 @@ def build_pdf_context(quotation, request=None) -> dict:
 
     # ── Summary ───────────────────────────────────────────────────────────
     summary = get_quotation_summary(quotation)
+    # ------------------------------------------------------------------
+    # Specification report generation (Pack 5C4.3)
+    # Build structured specification objects per section so templates
+    # are purely presentation layers.
+    try:
+        from .spec_report import generate_spec_for_sections
+        enriched_sections = generate_spec_for_sections(section_data)
+    except Exception:
+        enriched_sections = section_data
 
     # ── Branding (admin-controlled) + logo data URI ───────────────────────
     try:
@@ -130,7 +156,7 @@ def build_pdf_context(quotation, request=None) -> dict:
         "project_location":   quotation.project_location,
         "created_by":         quotation.created_by,
         "sales_profile":      sales_profile,
-        "sections":           section_data,
+        "sections":           enriched_sections,
         "quotation_summary":  summary,
         "pricing_status":     "pending",
         "logo_data_uri":      logo_data_uri,
