@@ -187,8 +187,12 @@ body {
   </div>
 </div>
 
-<!-- SUMMARY BAR -->
+<!-- PROJECT DETAILS (summary) -->
 <div class="summary-bar">
+  <div class="summary-cell" style="width:25%;">
+    <div class="lbl">Quotation</div>
+    <div class="val">{{ quotation.reference }}</div>
+  </div>
   <div class="summary-cell" style="width:25%;">
     <div class="lbl">Client</div>
     <div class="val">{{ customer_name|default:"—" }}</div>
@@ -198,10 +202,6 @@ body {
     <div class="val">{{ project_name|default:"—" }}</div>
   </div>
   <div class="summary-cell" style="width:25%;">
-    <div class="lbl">Location</div>
-    <div class="val">{{ project_location|default:"—" }}</div>
-  </div>
-  <div class="summary-cell" style="width:25%;">
     <div class="lbl">Prepared By</div>
     <div class="val">{{ sales_profile.signature_name|default:created_by.get_full_name }}</div>
   </div>
@@ -209,7 +209,7 @@ body {
 
 <!-- SECTIONS -->
 {% for sec_data in sections %}
-<div style="page-break-inside: avoid;">
+<div style="page-break-inside: avoid; margin-bottom:10pt;">
 
   <div class="sec-title">{{ sec_data.section.display_name }}</div>
   <div class="sec-subtitle">{{ sec_data.section.get_substrate_type_display }}{% if sec_data.section.subsection_key %} &middot; {{ sec_data.section.subsection_key }}{% endif %}</div>
@@ -218,66 +218,184 @@ body {
   <div class="sec-description">{{ sec_data.description }}</div>
   {% endif %}
 
+  {# -------- Section Overview (presentation-only) -------- #}
+  <div style="border:1px solid #e2e8f0;padding:8pt;margin:8pt 0 10pt 0;font-size:8pt;background:#fff;page-break-inside:avoid;">
+    <div class="sec-subtitle">Section Overview</div>
+    <table style="width:100%;margin-top:6pt;font-size:8pt;">
+      <tr>
+        <td style="width:18%;color:#64748b;">Surface</td>
+        <td style="width:32%;">{% if sec_data.surface_info and sec_data.surface_info.wall_type %}{{ sec_data.surface_info.wall_type }}{% else %}{{ sec_data.section.get_substrate_type_display }}{% endif %}</td>
+        <td style="width:18%;color:#64748b;">Area</td>
+        <td style="width:32%;">{% if sec_data.surface_info and sec_data.surface_info.reference_area %}{{ sec_data.surface_info.reference_area }}{% else %}
+            {% for li in sec_data.line_items %}{% if li.item.area_sqm %}{{ li.item.area_sqm }} m²{% if not forloop.last %}, {% endif %}{% endif %}{% endfor %}
+            {% if not sec_data.line_items %}—{% endif %}
+          {% endif %}</td>
+      </tr>
+      <tr>
+        <td style="color:#64748b;">Condition</td>
+        <td>{% if sec_data.surface_info and sec_data.surface_info.surface_conditions %}{{ sec_data.surface_info.surface_conditions|join:", " }}{% else %}—{% endif %}</td>
+        <td style="color:#64748b;">Moisture</td>
+        <td>
+          {% if sec_data.note_item and sec_data.note_item.metadata and sec_data.note_item.metadata.moisture_level %}
+            {{ sec_data.note_item.metadata.moisture_level }}
+          {% else %}
+            {% comment %}No moisture data available{% endcomment %}—
+          {% endif %}
+        </td>
+      </tr>
+      <tr>
+        <td style="color:#64748b;">Estimated Material Cost</td>
+        <td colspan="3">R {% if sec_data.section_total_excl_vat %}{{ sec_data.section_total_excl_vat|floatformat:2 }}{% else %}—{% endif %}</td>
+      </tr>
+    </table>
+  </div>
+
   {% if sec_data.line_items %}
-  <table class="spec-table">
-    <thead>
-      <tr>
-        <th style="width:6%;">#</th>
-        <th style="width:30%;">Work Item</th>
-        <th style="width:22%;">Paint / Material</th>
-        <th style="width:10%;">Coats</th>
-        <th style="width:12%;">Area / Qty</th>
-        <th style="width:10%;">Condition</th>
-        <th class="right" style="width:10%;">Price</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for li in sec_data.line_items %}
-      <tr>
-        <td class="text-muted" style="font-size:7pt;">{{ forloop.counter }}</td>
-        <td>
-          <div class="type-chip {% if li.item.item_type == 'PREP_WORK' %}prep{% elif li.item.item_type == 'PRIMER' %}primer{% elif li.item.item_type == 'WATERPROOFING' %}water{% endif %}">
-            {{ li.item.get_item_type_display }}
-          </div>
-          <div>{{ li.description }}</div>
-        </td>
-        <td>
-          {% if li.item.paint %}
-            <strong>{{ li.item.paint.name }}</strong>
-            {% if li.item.paint.brand %}<br><span style="color:#64748b;font-size:7.5pt;">{{ li.item.paint.brand }}</span>{% endif %}
-          {% else %}—{% endif %}
-        </td>
-        <td>{% if li.item.coats %}{{ li.item.coats }}{% else %}—{% endif %}</td>
-        <td>
-          {% if li.item.area_sqm %}{{ li.item.area_sqm }} m²
-          {% elif li.item.quantity %}{{ li.item.quantity }} {{ li.item.unit }}
-          {% else %}—{% endif %}
-        </td>
-        <td>
-          {% if li.item.metadata.condition %}{{ li.item.metadata.condition }}{% else %}—{% endif %}
-        </td>
-        <td class="right tbc">TBC</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+
+    {# Preparation requirements: prefer engine-provided steps when available #}
+    <div class="sec-subtitle">Preparation Requirements</div>
+    <div style="font-size:8pt;color:#374151;padding:6pt 0 8pt 0;">
+      {% if sec_data.prep_instructions %}
+        <ol style="margin-left:12pt;padding-left:12pt;">
+          {% for p in sec_data.prep_instructions %}
+            <li style="margin-bottom:7pt;"><strong>STEP {{ forloop.counter }}</strong>&nbsp;&nbsp;{{ p }}</li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <ol style="margin-left:12pt;padding-left:12pt;">
+          {% for li in sec_data.line_items %}
+            {% if li.item.item_type == 'PREP_WORK' %}
+              <li style="margin-bottom:7pt;">{{ li.description }}{% if li.item.paint %} — {{ li.item.paint.name }}{% endif %}</li>
+            {% endif %}
+          {% endfor %}
+        </ol>
+      {% endif %}
+    </div>
+
+    {# Application requirements: present as ordered steps (engine-provided if present) #}
+    <div class="sec-subtitle">Application Requirements</div>
+    <div style="font-size:8pt;color:#374151;padding:6pt 0 8pt 0;">
+      {% if sec_data.application_instructions %}
+        <ol style="margin-left:12pt;padding-left:12pt;">
+          {% for a in sec_data.application_instructions %}
+            <li style="margin-bottom:7pt;"><strong>STEP {{ forloop.counter }}</strong>&nbsp;&nbsp;{{ a }}</li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <ol style="margin-left:12pt;padding-left:12pt;">
+          {% for li in sec_data.line_items %}
+            {% if li.item.item_type != 'PREP_WORK' and li.item.item_type != 'NOTE' %}
+              <li style="margin-bottom:7pt;"><strong>{{ li.item.get_item_type_display }}</strong> — {{ li.description }}</li>
+            {% endif %}
+          {% endfor %}
+        </ol>
+      {% endif %}
+    </div>
+
+    {# Coating System: show engine-provided coating_system table when available #}
+    {% if sec_data.coating_system %}
+      <div class="sec-subtitle">Coating System</div>
+      <table class="spec-table" style="page-break-inside:avoid;margin-bottom:8pt;">
+        <thead>
+          <tr>
+            <th style="width:12%;">Stage</th>
+            <th style="width:44%;">Product</th>
+            <th style="width:14%;">Finish</th>
+            <th style="width:14%;">Base</th>
+            <th style="width:16%;">Coats</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cs in sec_data.coating_system %}
+          <tr>
+            <td>{{ cs.stage }}</td>
+            <td>{% if cs.product %}{{ cs.product }}{% else %}—{% endif %}</td>
+            <td>{% if cs.finish %}{{ cs.finish }}{% else %}—{% endif %}</td>
+            <td>{% if cs.base %}{{ cs.base }}{% else %}—{% endif %}</td>
+            <td>{% if cs.coats %}{{ cs.coats }}{% else %}—{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+
+    {# Technical Information: only show selected persisted fields, hide empties #}
+    {% if sec_data.technical %}
+      <div class="sec-subtitle">Technical Information</div>
+      <div style="font-size:8pt;color:#64748b;padding:6pt 0 8pt 0;">
+        {% for t in sec_data.technical %}
+          {% with info=t.info %}
+            {% if info.spread_rate_per_litre or info.required_litres or info.recommended_containers or info.package_size or info.package_unit %}
+              <div style="margin-bottom:4pt;">•
+                {% comment %}Find product name from material_summary when possible{% endcomment %}
+                {% with line_pk=t.line_item_pk %}
+                  {% with prod=sec_data.material_summary|default_if_none:"" %}
+                    {% for m in prod %}
+                      {% if m.line_item_pk == line_pk %}
+                        <strong>{{ m.product }}</strong> —
+                      {% endif %}
+                    {% endfor %}
+                  {% endwith %}
+                {% endwith %}
+                {% if info.spread_rate_per_litre %}Spread rate: {{ info.spread_rate_per_litre }} m²/L;&nbsp;{% endif %}
+                {% if info.required_litres %}Required: {{ info.required_litres }} L;&nbsp;{% endif %}
+                {% if info.recommended_containers %}Containers: {{ info.recommended_containers }};&nbsp;{% endif %}
+                {% if info.package_size %}Package: {{ info.package_size }}{% if info.package_unit %} {{ info.package_unit }}{% endif %};&nbsp;{% endif %}
+              </div>
+            {% endif %}
+          {% endwith %}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {# Material Costing: clean presentation table using persisted material_summary #}
+    <div class="sec-subtitle">Material Costing</div>
+    <table class="spec-table" style="page-break-inside:avoid;">
+      <thead>
+        <tr>
+          <th style="width:38%;">Product</th>
+          <th style="width:12%;">Area</th>
+          <th style="width:12%;">Coats</th>
+          <th style="width:14%;">Required Litres</th>
+          <th style="width:12%;">Containers</th>
+          <th class="right" style="width:12%;">Est. Material Cost</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if sec_data.material_summary %}
+          {% for m in sec_data.material_summary %}
+            <tr>
+              <td>{% if m.product %}<strong>{{ m.product }}</strong>{% else %}—{% endif %}</td>
+              <td>{% if m.area %}{{ m.area }} m²{% else %}—{% endif %}</td>
+              <td>{% if m.coats %}{{ m.coats }}{% else %}—{% endif %}</td>
+              <td>{% if m.required_litres %}{{ m.required_litres }}{% else %}—{% endif %}</td>
+              <td>{% if m.recommended_containers %}{{ m.recommended_containers }}{% else %}—{% endif %}</td>
+              <td class="right">R {% if m.est_material_cost %}{{ m.est_material_cost|floatformat:2 }}{% else %}—{% endif %}</td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="6" style="text-align:left;color:#94a3b8;padding:8pt;">No material items</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+
+    <div style="text-align:right;font-size:8.5pt;margin-top:6pt;">
+      <strong>Section total (excl. VAT):</strong> R {% if sec_data.section_total_excl_vat %}{{ sec_data.section_total_excl_vat|floatformat:2 }}{% else %}—{% endif %}
+    </div>
+
   {% else %}
-  <div style="font-size:8pt;color:#94a3b8;padding:6pt 0 10pt 0;">No line items for this section.</div>
+    <div style="font-size:8pt;color:#94a3b8;padding:6pt 0 10pt 0;">No line items for this section.</div>
   {% endif %}
 
 </div>
-{% empty %}
-<div style="padding:16pt;text-align:center;color:#94a3b8;font-size:9pt;">
-  No sections configured.
-</div>
 {% endfor %}
 
-<!-- TOTALS -->
+<!-- ESTIMATE SUMMARY -->
 <div class="totals-right">
   <table class="totals-t">
-    <tr><td class="lbl">Subtotal (excl. VAT)</td><td class="val tbc">TBC</td></tr>
-    <tr><td class="lbl">VAT</td><td class="val tbc">TBC</td></tr>
-    <tr><td>Total (incl. VAT)</td><td class="val">TBC — Pending</td></tr>
+    <tr><td class="lbl">Subtotal (excl. VAT)</td><td class="val">R {{ quotation.subtotal_excl_vat|floatformat:2 }}</td></tr>
+    <tr><td class="lbl">VAT</td><td class="val">R {{ quotation.vat_amount|floatformat:2 }}</td></tr>
+    <tr><td>Total (incl. VAT)</td><td class="val">R {{ quotation.total_incl_vat|floatformat:2 }}</td></tr>
   </table>
 </div>
 
@@ -292,7 +410,7 @@ body {
 <div class="footer-bar">
   <span>{{ branding.company_name|default:"ProStar Paints" }} — Detailed Specification Sheet{% if branding.pdf_footer_note %} · {{ branding.pdf_footer_note }}{% endif %}</span>
   <span>{{ quotation.reference }} — {{ customer_name|default:"" }}</span>
-  <span>Generated {{ generated_at|date:"d M Y" }} · Pricing TBC</span>
+  <span>Generated {{ generated_at|date:"d M Y" }} · Pricing shown as saved</span>
 </div>
 
 </body>
