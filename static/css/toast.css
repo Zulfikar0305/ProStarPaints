@@ -1,0 +1,73 @@
+/* Toast notifications for ProStar Paints
+   - Top-right fixed
+   - Stacked, non-blocking, accessible
+*/
+
+#pspToasts {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1080;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  align-items: flex-end;
+  pointer-events: none; /* allow clicks through container except the toasts themselves */
+  max-width: calc(100% - 2rem);
+}
+
+.psp-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  background: var(--psp-surface,#fff);
+  color: var(--psp-text,#0f172a);
+  padding: .6rem .85rem;
+  border-radius: .6rem;
+  box-shadow: 0 8px 24px rgba(2,6,23,0.12);
+  min-width: 260px;
+  max-width: 420px;
+  overflow: hidden;
+  border-left: 4px solid transparent;
+  transform: translateY(-8px) scale(.995);
+  opacity: 0;
+  transition: transform .22s cubic-bezier(.2,.9,.2,1), opacity .22s ease;
+  font-size: .9rem;
+}
+.psp-toast.psp-toast--show {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+.psp-toast.psp-toast--hide {
+  transform: translateY(-8px) scale(.98);
+  opacity: 0;
+}
+
+.psp-toast .psp-toast-body { display:flex; align-items:center; gap:.6rem; width:100%; }
+.psp-toast .psp-toast-text { flex:1; line-height:1.2; }
+.psp-toast .psp-toast-close { background:transparent; border:0; color:inherit; font-size:1rem; opacity:.7; cursor:pointer; padding:.25rem; }
+.psp-toast .psp-toast-close:focus { outline:2px solid rgba(0,0,0,0.08); border-radius:4px; }
+
+/* Progress bar */
+.psp-toast-progress { position: relative; height:4px; background: rgba(0,0,0,0.06); border-radius: 999px; overflow:hidden; margin-top:.45rem; }
+.psp-toast-progress > span { display:block; height:100%; width:100%; background: rgba(0,0,0,0.12); transform-origin: left center; }
+
+/* Type variants */
+.psp-toast--success { border-left-color: #10b981; }
+.psp-toast--success .psp-toast-progress > span { background: rgba(16,185,129,0.25); }
+.psp-toast--danger { border-left-color: #dc2626; }
+.psp-toast--danger .psp-toast-progress > span { background: rgba(220,38,38,0.18); }
+.psp-toast--warning { border-left-color: #f59e0b; }
+.psp-toast--warning .psp-toast-progress > span { background: rgba(245,158,11,0.18); }
+.psp-toast--info { border-left-color: #3b82f6; }
+.psp-toast--info .psp-toast-progress > span { background: rgba(59,130,246,0.18); }
+
+/* Icon */
+.psp-toast .psp-toast-icon { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:6px; font-size:1.05rem; }
+
+/* Responsive: full width on very small viewports */
+@media (max-width:520px) {
+  #pspToasts { left: 0; right: 0; top: 0.5rem; align-items: center; }
+  .psp-toast { width: calc(100% - 2rem); max-width: calc(100% - 2rem); }
+}

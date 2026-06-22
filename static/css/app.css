@@ -4519,145 +4519,9 @@ a:hover > .psp-dq-item { transform: translateY(-2px); box-shadow: var(--psp-shad
 /* Prevent any horizontal overflow inside builder column */
 #pspBuilderMain { min-width: 0; overflow-x: clip; }
 
-/* ============================================================
-   �63  Guided Help Mode  � banner, spotlight, callout, labels
-   ============================================================ */
+/* Guided help / tour styles removed (topbar trigger + banner + keyframes) */
 
-/* Topbar trigger toggled-on state */
-.psp-helpmode-trigger.is-on,
-.psp-helpmode-trigger[aria-pressed="true"] {
-  color: #f59e0b;
-  background: rgba(245,158,11,.14);
-}
-
-/* -- Floating banner --------------------------------------- */
-.psp-help-banner {
-  position: fixed; left: 50%; transform: translateX(-50%);
-  top: .75rem; z-index: 1080;
-  display: inline-flex; align-items: center; gap: .65rem;
-  padding: .45rem .55rem .45rem .85rem;
-  background: linear-gradient(135deg, #fff7ed 0%, #fefce8 100%);
-  border: 1px solid #fcd34d;
-  border-radius: 999px;
-  box-shadow: 0 10px 28px rgba(245,158,11,.22);
-  font-size: .82rem; color: #78350f;
-  max-width: calc(100vw - 1.5rem);
-}
-.psp-help-banner[hidden] { display: none; }
-.psp-help-banner-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: #f59e0b;
-  box-shadow: 0 0 0 4px rgba(245,158,11,.22);
-  animation: pspHelpDot 1.6s ease-in-out infinite;
-  flex: 0 0 auto;
-}
-.psp-help-banner-tour,
-.psp-help-banner-close {
-  display: inline-flex; align-items: center; gap: .3rem;
-  border: 1px solid transparent; background: rgba(255,255,255,.7);
-  color: #78350f; border-radius: 999px;
-  padding: .25rem .65rem; font-size: .75rem; font-weight: 600;
-  cursor: pointer;
-}
-.psp-help-banner-tour:hover { background: #fff; border-color: #fbbf24; }
-.psp-help-banner-close { padding: .25rem .45rem; }
-.psp-help-banner-close:hover { background: #fff; border-color: #fbbf24; }
-@keyframes pspHelpDot {
-  0%,100% { box-shadow: 0 0 0 4px rgba(245,158,11,.18); }
-  50%     { box-shadow: 0 0 0 8px rgba(245,158,11,.02); }
-}
-
-/* -- Highlight glow on help-tagged elements ---------------- */
-[data-help-mode="on"] .psp-help-glow {
-  position: relative;
-  outline: 2px solid rgba(245,158,11,.55);
-  outline-offset: 2px;
-  border-radius: 8px;
-  animation: pspHelpGlow 2.2s ease-in-out infinite;
-}
-@keyframes pspHelpGlow {
-  0%,100% { box-shadow: 0 0 0 0 rgba(245,158,11,.35); }
-  50%     { box-shadow: 0 0 0 6px rgba(245,158,11,0); }
-}
-
-/* -- Demo labels � small chip under tagged controls ------- */
-[data-help-mode="on"] .psp-demo-tagged {
-  position: relative;
-}
-[data-help-mode="on"] .psp-demo-tagged::after {
-  content: attr(data-psp-demo-label);
-  position: absolute;
-  top: calc(100% + 6px); left: 50%; transform: translateX(-50%);
-  background: #0f172a; color: #fff;
-  font-size: .68rem; font-weight: 500; line-height: 1.25;
-  padding: .3rem .55rem; border-radius: 6px;
-  white-space: nowrap; max-width: 260px;
-  pointer-events: none; opacity: 0; z-index: 1075;
-  transition: opacity .15s ease;
-  box-shadow: 0 8px 20px rgba(15,23,42,.18);
-}
-[data-help-mode="on"] .psp-demo-tagged:hover::after,
-[data-help-mode="on"] .psp-demo-tagged:focus-visible::after {
-  opacity: 1;
-}
-/* Demo label inside sidebar � flip to right side so it doesn't get clipped */
-[data-help-mode="on"] .psp-sidebar .psp-demo-tagged::after {
-  top: 50%; left: calc(100% + 8px); transform: translateY(-50%);
-  white-space: normal; min-width: 180px;
-}
-
-/* -- Spotlight ring around walkthrough target -------------- */
-.psp-spotlight {
-  position: absolute; z-index: 1085;
-  border: 2px solid #f59e0b; border-radius: 10px;
-  box-shadow: 0 0 0 9999px rgba(15,23,42,.40);
-  pointer-events: none;
-  transition: top .25s ease, left .25s ease, width .25s ease, height .25s ease;
-}
-.psp-spotlight[hidden] { display: none; }
-
-/* -- Walkthrough callout card ------------------------------ */
-.psp-walkthrough {
-  position: absolute; z-index: 1090;
-  width: min(340px, calc(100vw - 1.5rem));
-  background: #fff;
-  border: 1px solid var(--psp-border, #e2e8f0);
-  border-radius: 14px;
-  box-shadow: 0 20px 50px rgba(15,23,42,.25);
-  padding: .85rem .9rem;
-}
-.psp-walkthrough[hidden] { display: none; }
-.psp-walkthrough-arrow {
-  position: absolute; width: 14px; height: 14px;
-  background: #fff;
-  border-top: 1px solid var(--psp-border, #e2e8f0);
-  border-left: 1px solid var(--psp-border, #e2e8f0);
-}
-.psp-walkthrough[data-arrow="top"]    .psp-walkthrough-arrow { top: -8px; left: 50%; transform: translateX(-50%) rotate(45deg); }
-.psp-walkthrough[data-arrow="bottom"] .psp-walkthrough-arrow { bottom: -8px; left: 50%; transform: translateX(-50%) rotate(225deg); }
-.psp-walkthrough-head {
-  display: flex; align-items: center; gap: .45rem; margin-bottom: .35rem;
-}
-.psp-walkthrough-step-num {
-  font-size: .65rem; font-weight: 700; letter-spacing: .06em;
-  text-transform: uppercase;
-  background: #fef3c7; color: #92400e;
-  padding: .15rem .45rem; border-radius: 999px;
-}
-.psp-walkthrough-title {
-  flex: 1; margin: 0; font-size: .92rem; font-weight: 700; color: #0f172a;
-}
-.psp-walkthrough-close {
-  border: none; background: transparent; color: #64748b;
-  padding: .15rem .35rem; border-radius: 6px; cursor: pointer;
-}
-.psp-walkthrough-close:hover { background: #f1f5f9; color: #0f172a; }
-.psp-walkthrough-body {
-  margin: 0 0 .65rem; font-size: .8rem; color: #475569; line-height: 1.45;
-}
-.psp-walkthrough-actions {
-  display: flex; gap: .4rem; justify-content: flex-end;
-}
+/* Help mode / guided tour CSS removed (spotlight, walkthrough, help-tag styles) */
 
 /* -- Help drawer additions: actions + flow ----------------- */
 .psp-help-actions {
@@ -4714,20 +4578,11 @@ a:hover > .psp-dq-item { transform: translateY(-2px); box-shadow: var(--psp-shad
 
 /* -- Mobile tweaks ---------------------------------------- */
 @media (max-width: 575.98px) {
-  .psp-help-banner { top: .4rem; padding: .35rem .45rem .35rem .65rem; font-size: .75rem; }
-  .psp-walkthrough { width: calc(100vw - 1rem); left: .5rem !important; }
-  .psp-walkthrough-arrow { display: none; }
-  [data-help-mode="on"] .psp-demo-tagged::after {
-    white-space: normal; max-width: 60vw;
-  }
+  /* Tour-related mobile tweaks removed */
 }
 
 /* -- Reduce motion ---------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
-  .psp-help-banner-dot,
-  .psp-help-glow { animation: none; }
-  .psp-spotlight { transition: none; }
+  /* Tour-related reduce-motion rules removed */
 }
-[data-reduce-motion="true"] .psp-help-banner-dot,
-[data-reduce-motion="true"] .psp-help-glow { animation: none; }
-[data-reduce-motion="true"] .psp-spotlight   { transition: none; }
+[data-reduce-motion="true"] { /* Tour motion rules removed */ }

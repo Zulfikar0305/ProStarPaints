@@ -29,25 +29,7 @@ Trigger via the topbar Help button (toggles offcanvas with id="pspHelpDrawer").
              placeholder="{% trans 'Search help topics…' %}" autocomplete="off">
     </div>
 
-    {# ── Guided Help Mode actions ─────────────────────────── #}
-    <div class="psp-help-actions">
-      <button type="button" class="psp-help-action-btn psp-help-action-btn--primary"
-              data-psp-walkthrough-start>
-        <i class="bi bi-play-circle" aria-hidden="true"></i>
-        <span>
-          <strong>{% trans "Start guided help" %}</strong>
-          <small>{% trans "Walks you through this page step by step." %}</small>
-        </span>
-      </button>
-      <button type="button" class="psp-help-action-btn"
-              data-psp-help-mode-toggle aria-pressed="false">
-        <i class="bi bi-lightbulb" aria-hidden="true"></i>
-        <span>
-          <strong>{% trans "Toggle Help mode" %}</strong>
-          <small>{% trans "Highlights important controls. Shortcut: ?" %}</small>
-        </span>
-      </button>
-    </div>
+    {# Guided help actions removed — tour / help-mode deprecated #}
 
     {# ── Recommended setup flow ───────────────────────────── #}
     <div class="psp-help-flow">
@@ -246,11 +228,11 @@ Trigger via the topbar Help button (toggles offcanvas with id="pspHelpDrawer").
       <div class="psp-help-shortcuts-title">{% trans "Keyboard shortcuts" %}</div>
       <ul>
         <li><kbd>Ctrl</kbd> + <kbd>K</kbd> <span>{% trans "Open quick actions" %}</span></li>
-        <li><kbd>?</kbd> <span>{% trans "Toggle Help mode" %}</span></li>
+        {# Help-mode shortcut removed #}
         <li><kbd>N</kbd> <span>{% trans "New quotation" %}</span></li>
         <li><kbd>D</kbd> <span>{% trans "Dashboard" %}</span></li>
-        <li><kbd>&larr;</kbd> / <kbd>&rarr;</kbd> <span>{% trans "Step through guided tour" %}</span></li>
-        <li><kbd>Esc</kbd> <span>{% trans "Close modals or tour" %}</span></li>
+        <li><kbd>&larr;</kbd> / <kbd>&rarr;</kbd> <span>{% trans "Step through items" %}</span></li>
+        <li><kbd>Esc</kbd> <span>{% trans "Close modals or panels" %}</span></li>
       </ul>
       <div class="psp-help-shortcuts-note">{% trans "Single-key shortcuts are disabled while typing in a form." %}</div>
     </div>

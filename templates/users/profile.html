@@ -23,11 +23,11 @@
 </div>
 
 {% if messages %}
-  {% for msg in messages %}
-    <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show py-2 mb-3" role="alert">
-      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-  {% endfor %}
+  <div class="psp-message-data d-none" aria-hidden="true">
+    {% for msg in messages %}
+      <div class="psp-message" data-level="{{ msg.tags|default:'info' }}">{{ msg }}</div>
+    {% endfor %}
+  </div>
 {% endif %}
 
 <form method="post" enctype="multipart/form-data" novalidate id="profileForm">

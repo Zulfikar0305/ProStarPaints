@@ -51,12 +51,11 @@
 </div>
 
 {% if messages %}
-  {% for message in messages %}
-    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show mb-3" role="alert">
-      {{ message }}
-      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-  {% endfor %}
+  <div class="psp-message-data d-none" aria-hidden="true">
+    {% for message in messages %}
+      <div class="psp-message" data-level="{{ message.tags|default:'info' }}">{{ message }}</div>
+    {% endfor %}
+  </div>
 {% endif %}
 
 <!-- ── Main builder layout ─────────────────────────────────────── -->

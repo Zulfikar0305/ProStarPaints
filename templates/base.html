@@ -21,6 +21,7 @@
   />
   <!-- ProStar Paints App Styles -->
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="stylesheet" href="{% static 'css/toast.css' %}">
 
   {% block extra_css %}{% endblock %}
 </head>
@@ -212,20 +213,12 @@
       {% endif %}
 
       <button class="psp-icon-btn psp-help-trigger" type="button"
-              data-bs-toggle="offcanvas"
-              data-bs-target="#pspHelpDrawer"
-              aria-controls="pspHelpDrawer"
-              aria-label="{% trans 'Open help center' %}"
-              title="{% trans 'Help Center' %}">
+          data-bs-toggle="offcanvas"
+          data-bs-target="#pspHelpDrawer"
+          aria-controls="pspHelpDrawer"
+          aria-label="{% trans 'Open help center' %}"
+          title="{% trans 'Help Center' %}">
         <i class="bi bi-question-circle" aria-hidden="true"></i>
-      </button>
-
-      <button class="psp-icon-btn psp-helpmode-trigger" type="button"
-              data-psp-help-mode-toggle
-              aria-pressed="false"
-              aria-label="{% trans 'Toggle guided help mode' %}"
-              title="{% trans 'Help mode (press ?)' %}">
-        <i class="bi bi-lightbulb" aria-hidden="true"></i>
       </button>
 
       {% include "widgets/notification_bell.html" %}
@@ -279,15 +272,12 @@
        style="background-image: url('{% static "images/prostar-logo.png" %}');"></div>
   {% endif %}
 
-  <!-- ── Flash messages ───────────────────────────────────────── -->
+  <!-- ── Global toast notifications (replaces inline banners) ───────────────────────────────────────── -->
+  <div id="pspToasts" class="psp-toasts" aria-live="polite" aria-atomic="false"></div>
   {% if messages %}
-    <div class="psp-alerts px-4 pt-3">
+    <div id="pspMessageData" style="display:none;" aria-hidden="true">
       {% for message in messages %}
-        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show psp-alert" role="alert">
-          <i class="bi bi-{% if message.tags == 'success' %}check-circle-fill{% elif message.tags == 'danger' %}exclamation-circle-fill{% elif message.tags == 'warning' %}exclamation-triangle-fill{% else %}info-circle-fill{% endif %} me-2"></i>
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
+        <div class="psp-message" data-level="{{ message.tags|default:'info' }}">{{ message }}</div>
       {% endfor %}
     </div>
   {% endif %}
@@ -305,7 +295,6 @@
 {% endif %}
 {% include "widgets/command_palette.html" %}
 {% include "widgets/help_drawer.html" %}
-{% include "widgets/help_mode.html" %}
 
 <!-- Bootstrap 5 JS bundle -->
 <script
@@ -612,10 +601,9 @@
 }());
 </script>
 
-{% if user.is_authenticated %}
-<script src="{% static 'js/help_mode.js' %}" defer></script>
-{% endif %}
+{# Help mode removed: help_mode.js no longer included #}
 
 {% block extra_js %}{% endblock %}
+<script src="{% static 'js/toast.js' %}"></script>
 </body>
 </html>
