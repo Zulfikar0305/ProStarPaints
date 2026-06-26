@@ -92,8 +92,9 @@
   {# ── Collapsible form ── #}
   <div class="collapse {% if not configured %}show{% endif %}"
        id="gsFormBody_{{ section.pk }}">
-    <form method="post"
-          action="{% url 'quotation:section_save' quotation.pk section.pk %}">
+        <form method="post"
+          action="{% url 'quotation:section_save' quotation.pk section.pk %}"
+          enctype="multipart/form-data">
       {% csrf_token %}
       <div class="card-body">
 
@@ -166,15 +167,9 @@
           {% endfor %}
         </div>
 
-        {# ── Step 4: Paint Options (JS-driven visibility) ── #}
-        <h6 class="fw-bold text-uppercase text-muted small mb-3">
-          <span class="psp-step-badge">4</span>
-          Paint Options
-          <span class="text-muted fw-normal">(revealed by finish selection)</span>
-        </h6>
         {# ── Paint Rows: repeatable per-row paint selections ── #}
         <h6 class="fw-bold text-uppercase text-muted small mb-3">
-          <span class="psp-step-badge">4a</span>
+          <span class="psp-step-badge">4</span>
           Paint Rows
           <span class="text-muted fw-normal">(one row per paint / finish)</span>
         </h6>
@@ -297,54 +292,7 @@
             <button type="button" class="btn btn-sm btn-outline-primary add-paint-row" data-section-pk="{{ section.pk }}">+ Add paint row</button>
           </div>
         </div>
-        <div id="gsPaintGroups_{{ section.pk }}" class="mb-4">
-          {% for pg in all_paint_groups %}
-            <div class="psp-paint-group border rounded p-3 mb-2"
-                 id="gspg_{{ section.pk }}_{{ pg.key }}"
-                 data-gs-group="{{ pg.key }}"
-                 style="display:none;background:#fafbff;">
-              <div class="d-flex align-items-start gap-3 flex-wrap">
-                <input type="checkbox"
-                       name="paint_selected_{{ pg.key }}"
-                       id="gsps_{{ section.pk }}_{{ pg.key }}"
-                       value="1"
-                       class="form-check-input mt-1"
-                       style="width:1.15em;height:1.15em;flex-shrink:0;"
-                       {% if pg.key in gs_summary.saved_paint_keys %}checked{% endif %}>
-                <div class="flex-grow-1">
-                  <label for="gsps_{{ section.pk }}_{{ pg.key }}"
-                         class="fw-semibold small mb-2 d-block">{{ pg.label }}</label>
-                  <div class="row g-2">
-                    {% if pg.bases %}
-                      <div class="col-auto">
-                        <label class="form-label small text-muted mb-1">Base / Colour</label>
-                        <select name="paint_base_{{ pg.key }}"
-                                class="form-select form-select-sm"
-                                style="min-width:150px;">
-                          {% for bval, blabel in pg.bases %}
-                            <option value="{{ bval }}">{{ blabel }}</option>
-                          {% endfor %}
-                        </select>
-                      </div>
-                    {% endif %}
-                    <div class="col-auto">
-                      <label class="form-label small text-muted mb-1">Coats</label>
-                      <select name="paint_coats_{{ pg.key }}"
-                              class="form-select form-select-sm"
-                              style="min-width:75px;">
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          {% endfor %}
-          <p id="gsPaintGroupsEmpty_{{ section.pk }}" class="text-muted small mb-0">
-            <i class="bi bi-arrow-up me-1"></i>Select at least one finish to see paint options.
-          </p>
-        </div>
+        {# Paint Options removed — per-row paint rows now contain all configuration. #}
 
         {# ── Step 5: Measurements ── #}
         <h6 class="fw-bold text-uppercase text-muted small mb-3">
@@ -385,19 +333,98 @@
           <span class="psp-step-badge psp-step-badge--blue">6</span>
           Waterproofing <span class="text-muted fw-normal">(optional)</span>
         </h6>
-        <div class="row g-2 mb-4">
-          {% for val, label in waterproofing_options %}
-            <div class="col-12 col-sm-6 col-md-4">
-              <label class="psp-substrate-check {% if val in gs_summary.saved_waterproofing %}checked{% endif %}"
-                     for="gswp_{{ section.pk }}_{{ val }}">
-                <input type="checkbox"
-                       id="gswp_{{ section.pk }}_{{ val }}"
-                       name="waterproofing" value="{{ val }}"
-                       {% if val in gs_summary.saved_waterproofing %}checked{% endif %}>
-                <i class="bi bi-check2 psp-substrate-tick"></i>{{ label }}
-              </label>
+        <div class="form-check mb-2">
+          <input class="form-check-input" type="checkbox" value="1" id="useWaterproof_{{ section.pk }}" {% if gs_summary.saved_waterproof_rows|length %}checked{% endif %}>
+          <label class="form-check-label small text-muted" for="useWaterproof_{{ section.pk }}">Use Waterproofing</label>
+        </div>
+        <div id="waterproofRows_{{ section.pk }}" class="mb-3" style="display:{% if gs_summary.saved_waterproof_rows|length %}block{% else %}none{% endif %};">
+          {% for row in gs_summary.saved_waterproof_rows %}
+            <div class="row g-2 mb-2 p-2 align-items-end waterproof-row" data-row-index="{{ forloop.counter0 }}">
+              <input type="hidden" name="waterproof_row_line_pk" value="{{ row.line_pk }}">
+              <div class="col-auto">
+                <label class="form-label small text-muted mb-1">Product</label>
+                <select name="waterproof_row_key" class="form-select form-select-sm">
+                  <option value="">-- Select --</option>
+                  {% for val, label in waterproofing_options %}
+                    <option value="{{ val }}" {% if row.key == val %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-auto">
+                <label class="form-label small text-muted mb-1">Area (m&sup2;)</label>
+                <input type="number" name="waterproof_row_area_sqm" step="0.01" min="0" class="form-control form-control-sm" value="{{ row.area_sqm }}">
+              </div>
+              <div class="col-auto">
+                <label class="form-label small text-muted mb-1">Coats</label>
+                <select name="waterproof_row_coats" class="form-select form-select-sm">
+                  <option value="1" {% if row.coats == 1 %}selected{% endif %}>1</option>
+                  <option value="2" {% if row.coats == 2 %}selected{% endif %}>2</option>
+                </select>
+              </div>
+              <div class="col-auto waterproof-row-calc-col" style="display:{% if row.metadata.required_litres %}block{% else %}none{% endif %};min-width:220px;">
+                <div class="small text-muted">Spread</div>
+                <div class="fw-semibold waterproof-row-spread">{{ row.metadata.spread_rate_per_litre|default:'—' }}</div>
+                <div class="small text-muted">Litres</div>
+                <div class="fw-semibold waterproof-row-litres">{{ row.metadata.required_litres|default:'—' }}</div>
+                <div class="small text-muted">Recommended</div>
+                <div class="fw-semibold waterproof-row-recommended">
+                  {% if row.metadata.recommended_containers %}
+                    {{ row.metadata.recommended_containers }}{% if row.metadata.package_size %} x {{ row.metadata.package_size }}{{ row.metadata.package_unit|default:'' }}{% endif %}
+                  {% else %}
+                    &mdash;
+                  {% endif %}
+                </div>
+                <div class="small text-muted mt-2">Estimated Material Cost</div>
+                <div class="fw-semibold waterproof-row-cost">{{ row.total_excl_vat|default:'—' }}</div>
+              </div>
+              <div class="col-auto">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-waterproof-row">Remove</button>
+              </div>
             </div>
           {% endfor %}
+
+          <div id="waterproofRowTemplate_{{ section.pk }}" style="display:none;">
+            <div class="row g-2 mb-2 p-2 align-items-end waterproof-row" data-row-index="__IDX__">
+              <input type="hidden" name="waterproof_row_line_pk" value="">
+              <div class="col-auto">
+                <label class="form-label small text-muted mb-1">Product</label>
+                <select name="waterproof_row_key" class="form-select form-select-sm">
+                  <option value="">-- Select --</option>
+                  {% for val, label in waterproofing_options %}
+                    <option value="{{ val }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-auto">
+                <label class="form-label small text-muted mb-1">Area (m&sup2;)</label>
+                <input type="number" name="waterproof_row_area_sqm" step="0.01" min="0" class="form-control form-control-sm" value="">
+              </div>
+              <div class="col-auto">
+                <label class="form-label small text-muted mb-1">Coats</label>
+                <select name="waterproof_row_coats" class="form-select form-select-sm">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                </select>
+              </div>
+              <div class="col-auto waterproof-row-calc-col" style="display:none;min-width:220px;">
+                <div class="small text-muted">Spread</div>
+                <div class="fw-semibold waterproof-row-spread">&mdash;</div>
+                <div class="small text-muted">Litres</div>
+                <div class="fw-semibold waterproof-row-litres">&mdash;</div>
+                <div class="small text-muted">Recommended</div>
+                <div class="fw-semibold waterproof-row-recommended">&mdash;</div>
+                <div class="small text-muted mt-2">Estimated Material Cost</div>
+                <div class="fw-semibold waterproof-row-cost">&mdash;</div>
+              </div>
+              <div class="col-auto">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-waterproof-row">Remove</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3 add-waterproof-area" style="display:{% if gs_summary.saved_waterproof_rows|length %}block{% else %}none{% endif %};">
+            <button type="button" class="btn btn-sm btn-outline-primary add-waterproof-row" data-section-pk="{{ section.pk }}">+ Add waterproof</button>
+          </div>
         </div>
 
         {# ── Step 7: Primer ── #}
@@ -405,28 +432,98 @@
           <span class="psp-step-badge psp-step-badge--blue">7</span>
           Primer <span class="text-muted fw-normal">(optional)</span>
         </h6>
-        <div class="row g-2 mb-4">
-          {% for val, label in primer_options %}
-            <div class="col-12 col-sm-6 col-md-5">
-              <div class="d-flex align-items-center gap-2 p-2 border rounded"
-                   style="background:#f8fafc;">
-                <input type="checkbox"
-                       id="gspr_{{ section.pk }}_{{ val }}"
-                       name="primers" value="{{ val }}"
-                       class="form-check-input"
-                       style="width:1.1em;height:1.1em;flex-shrink:0;"
-                       {% if val in gs_summary.saved_primers %}checked{% endif %}>
-                <label for="gspr_{{ section.pk }}_{{ val }}"
-                       class="small fw-medium flex-grow-1 mb-0">{{ label }}</label>
-                <select name="primer_coats_{{ val }}"
-                        class="form-select form-select-sm"
-                        style="width:80px;flex-shrink:0;">
-                  <option value="1">1 coat</option>
-                  <option value="2">2 coats</option>
+        <div class="form-check mb-2">
+          <input class="form-check-input" type="checkbox" value="1" id="usePrimer_{{ section.pk }}" {% if gs_summary.saved_primer_rows|length %}checked{% endif %}>
+          <label class="form-check-label small text-muted" for="usePrimer_{{ section.pk }}">Use Primer</label>
+        </div>
+        <div id="primerRows_{{ section.pk }}" class="mb-3" style="display:{% if gs_summary.saved_primer_rows|length %}block{% else %}none{% endif %};">
+          {% for row in gs_summary.saved_primer_rows %}
+            <div class="row g-2 mb-2 p-2 align-items-end primer-row" data-row-index="{{ forloop.counter0 }}">
+              <input type="hidden" name="primer_row_line_pk" value="{{ row.line_pk }}">
+              <div class="col-auto">
+                <label class="form-label small text-muted mb-1">Product</label>
+                <select name="primer_row_key" class="form-select form-select-sm">
+                  <option value="">-- Select --</option>
+                  {% for val, label in primer_options %}
+                    <option value="{{ val }}" {% if row.key == val %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
                 </select>
+              </div>
+              <div class="col-auto">
+                <label class="form-label small text-muted mb-1">Area (m&sup2;)</label>
+                <input type="number" name="primer_row_area_sqm" step="0.01" min="0" class="form-control form-control-sm" value="{{ row.area_sqm }}">
+              </div>
+              <div class="col-auto">
+                <label class="form-label small text-muted mb-1">Coats</label>
+                <select name="primer_row_coats" class="form-select form-select-sm">
+                  <option value="1" {% if row.coats == 1 %}selected{% endif %}>1</option>
+                  <option value="2" {% if row.coats == 2 %}selected{% endif %}>2</option>
+                </select>
+              </div>
+              <div class="col-auto primer-row-calc-col" style="display:{% if row.metadata.required_litres %}block{% else %}none{% endif %};min-width:220px;">
+                <div class="small text-muted">Spread</div>
+                <div class="fw-semibold primer-row-spread">{{ row.metadata.spread_rate_per_litre|default:'—' }}</div>
+                <div class="small text-muted">Litres</div>
+                <div class="fw-semibold primer-row-litres">{{ row.metadata.required_litres|default:'—' }}</div>
+                <div class="small text-muted">Recommended</div>
+                <div class="fw-semibold primer-row-recommended">
+                  {% if row.metadata.recommended_containers %}
+                    {{ row.metadata.recommended_containers }}{% if row.metadata.package_size %} x {{ row.metadata.package_size }}{{ row.metadata.package_unit|default:'' }}{% endif %}
+                  {% else %}
+                    &mdash;
+                  {% endif %}
+                </div>
+                <div class="small text-muted mt-2">Estimated Material Cost</div>
+                <div class="fw-semibold primer-row-cost">{{ row.total_excl_vat|default:'—' }}</div>
+              </div>
+              <div class="col-auto">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-primer-row">Remove</button>
               </div>
             </div>
           {% endfor %}
+
+          <div id="primerRowTemplate_{{ section.pk }}" style="display:none;">
+            <div class="row g-2 mb-2 p-2 align-items-end primer-row" data-row-index="__IDX__">
+              <input type="hidden" name="primer_row_line_pk" value="">
+              <div class="col-auto">
+                <label class="form-label small text-muted mb-1">Product</label>
+                <select name="primer_row_key" class="form-select form-select-sm">
+                  <option value="">-- Select --</option>
+                  {% for val, label in primer_options %}
+                    <option value="{{ val }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-auto">
+                <label class="form-label small text-muted mb-1">Area (m&sup2;)</label>
+                <input type="number" name="primer_row_area_sqm" step="0.01" min="0" class="form-control form-control-sm" value="">
+              </div>
+              <div class="col-auto">
+                <label class="form-label small text-muted mb-1">Coats</label>
+                <select name="primer_row_coats" class="form-select form-select-sm">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                </select>
+              </div>
+              <div class="col-auto primer-row-calc-col" style="display:none;min-width:220px;">
+                <div class="small text-muted">Spread</div>
+                <div class="fw-semibold primer-row-spread">&mdash;</div>
+                <div class="small text-muted">Litres</div>
+                <div class="fw-semibold primer-row-litres">&mdash;</div>
+                <div class="small text-muted">Recommended</div>
+                <div class="fw-semibold primer-row-recommended">&mdash;</div>
+                <div class="small text-muted mt-2">Estimated Material Cost</div>
+                <div class="fw-semibold primer-row-cost">&mdash;</div>
+              </div>
+              <div class="col-auto">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-primer-row">Remove</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3 add-primer-area" style="display:{% if gs_summary.saved_primer_rows|length %}block{% else %}none{% endif %};">
+            <button type="button" class="btn btn-sm btn-outline-primary add-primer-row" data-section-pk="{{ section.pk }}">+ Add primer</button>
+          </div>
         </div>
 
         {# ── Step 8: Other Prep Work ── #}
@@ -450,6 +547,24 @@
               </label>
             </div>
           {% endfor %}
+        </div>
+
+        {# Images #}
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">Images</label>
+          <div class="d-flex flex-wrap gap-2 mb-2" id="sectionImages_{{ section.pk }}" data-delete-url-template="{% url 'quotation:section_image_delete' quotation.pk section.pk 0 %}">
+            {% for img in section.images.all %}
+              <div class="position-relative" style="width:88px;height:88px;">
+                <img src="{{ img.image.url }}" alt="" class="rounded border" style="width:88px;height:88px;object-fit:cover;">
+                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1" onclick="submitSectionImageDelete({{ quotation.pk }}, {{ section.pk }}, {{ img.pk }})" aria-label="Delete image"><i class="bi bi-trash"></i></button>
+              </div>
+            {% endfor %}
+          </div>
+          <div>
+            <input type="file" name="section_images" accept="image/*" multiple id="sectionImageInput_{{ section.pk }}" style="display:none;">
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('sectionImageInput_{{ section.pk }}').click();">Upload Images</button>
+            <small class="text-muted ms-2">Max 3 images. JPG/PNG/WebP/GIF. Max 3MB each.</small>
+          </div>
         </div>
 
         {# ── Notes ── #}
@@ -631,6 +746,68 @@
 </script>
 
 <script>
+function getCookie(name) {
+  var cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    var cookies = document.cookie.split(';');
+    for (var i = 0; i < cookies.length; i++) {
+      var cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+function submitSectionImageDelete(quotationPk, sectionPk, imagePk) {
+  var container = document.getElementById('sectionImages_' + sectionPk);
+  if (!container) return;
+  var templateUrl = container.dataset.deleteUrlTemplate || '';
+  if (!templateUrl) return;
+  var url = templateUrl.replace('/0/delete/', '/' + imagePk + '/delete/');
+  var csrftoken = getCookie('csrftoken');
+  var form = document.createElement('form');
+  form.method = 'post';
+  form.action = url;
+  var inp = document.createElement('input');
+  inp.type = 'hidden';
+  inp.name = 'csrfmiddlewaretoken';
+  inp.value = csrftoken || '';
+  form.appendChild(inp);
+  document.body.appendChild(form);
+  form.submit();
+}
+</script>
+
+<script>
+(function () {
+  var input = document.getElementById('sectionImageInput_{{ section.pk }}');
+  var container = document.getElementById('sectionImages_{{ section.pk }}');
+  if (!input) return;
+  input.addEventListener('change', function () {
+    var files = Array.from(this.files || []);
+    files.forEach(function (file) {
+      if (!file.type.startsWith('image/')) return;
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var wrapper = document.createElement('div');
+        wrapper.style.width = '88px'; wrapper.style.height = '88px'; wrapper.className = 'position-relative';
+        var img = document.createElement('img');
+        img.src = e.target.result;
+        img.className = 'rounded border';
+        img.style.width = '88px'; img.style.height = '88px'; img.style.objectFit = 'cover';
+        wrapper.appendChild(img);
+        container.appendChild(wrapper);
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+}());
+</script>
+
+<script>
 (function () {
   var SECTION_PK = '{{ section.pk }}';
   var container = document.getElementById('paintRows_' + SECTION_PK);
@@ -645,6 +822,13 @@
     container.insertBefore(div.firstElementChild, tpl);
   }
 
+  // Initialize: ensure exactly one initial row exists when no server-saved rows
+  (function ensureInitial() {
+    var existing = container.querySelectorAll('.paint-row');
+    if (!existing || existing.length === 0) {
+      addRow();
+    }
+  })();
   container.addEventListener('click', function (ev) {
     var t = ev.target;
     if (t.matches('.add-paint-row')) {
@@ -657,5 +841,84 @@
       return;
     }
   });
+
+  // Waterproofing rows
+  (function () {
+    var wpContainer = document.getElementById('waterproofRows_' + SECTION_PK);
+    if (!wpContainer) return;
+    function addWpRow() {
+      var tpl = document.getElementById('waterproofRowTemplate_' + SECTION_PK);
+      if (!tpl) return;
+      var html = tpl.innerHTML.replace(/__IDX__/g, Date.now());
+      var div = document.createElement('div');
+      div.innerHTML = html;
+      wpContainer.insertBefore(div.firstElementChild, tpl);
+    }
+    wpContainer.addEventListener('click', function (ev) {
+      var t = ev.target;
+      if (t.matches('.add-waterproof-row')) {
+        addWpRow();
+        return;
+      }
+      if (t.matches('.remove-waterproof-row')) {
+        var row = t.closest('.waterproof-row');
+        if (row) row.remove();
+        return;
+      }
+    });
+    // Toggle visibility via Use Waterproofing checkbox
+    var useWp = document.getElementById('useWaterproof_' + SECTION_PK);
+    var addWpArea = document.querySelector('#waterproofRows_' + SECTION_PK + ' .add-waterproof-area');
+    if (useWp) {
+      useWp.addEventListener('change', function () {
+        var show = !!this.checked;
+        document.getElementById('waterproofRows_' + SECTION_PK).style.display = show ? '' : 'none';
+        if (addWpArea) addWpArea.style.display = (show && document.querySelectorAll('#waterproofRows_' + SECTION_PK + ' .waterproof-row').length) ? '' : (show ? '' : 'none');
+        // when checked and no rows exist, create one
+        if (show && document.querySelectorAll('#waterproofRows_' + SECTION_PK + ' .waterproof-row').length === 0) {
+          addWpRow();
+        }
+      });
+    }
+  })();
+
+  // Primer rows
+  (function () {
+    var prContainer = document.getElementById('primerRows_' + SECTION_PK);
+    if (!prContainer) return;
+    function addPrRow() {
+      var tpl = document.getElementById('primerRowTemplate_' + SECTION_PK);
+      if (!tpl) return;
+      var html = tpl.innerHTML.replace(/__IDX__/g, Date.now());
+      var div = document.createElement('div');
+      div.innerHTML = html;
+      prContainer.insertBefore(div.firstElementChild, tpl);
+    }
+    prContainer.addEventListener('click', function (ev) {
+      var t = ev.target;
+      if (t.matches('.add-primer-row')) {
+        addPrRow();
+        return;
+      }
+      if (t.matches('.remove-primer-row')) {
+        var row = t.closest('.primer-row');
+        if (row) row.remove();
+        return;
+      }
+    });
+    // Toggle visibility via Use Primer checkbox
+    var usePr = document.getElementById('usePrimer_' + SECTION_PK);
+    var addPrArea = document.querySelector('#primerRows_' + SECTION_PK + ' .add-primer-area');
+    if (usePr) {
+      usePr.addEventListener('change', function () {
+        var show = !!this.checked;
+        document.getElementById('primerRows_' + SECTION_PK).style.display = show ? '' : 'none';
+        if (addPrArea) addPrArea.style.display = show ? '' : 'none';
+        if (show && document.querySelectorAll('#primerRows_' + SECTION_PK + ' .primer-row').length === 0) {
+          addPrRow();
+        }
+      });
+    }
+  })();
 }());
 </script>

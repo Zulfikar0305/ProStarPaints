@@ -4,6 +4,9 @@ from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.core.files.storage import default_storage
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 
 
 # ---------------------------------------------------------------------------
@@ -289,6 +292,73 @@ class QuotationLineItem(models.Model):
 
     def __str__(self) -> str:
         return f"{self.quotation.reference} — {self.get_item_type_display()}: {self.description[:60]}"
+
+
+# ---------------------------------------------------------------------------
+# QuotationSectionImage
+# ---------------------------------------------------------------------------
+
+
+class QuotationSectionImage(models.Model):
+    """
+    An image uploaded against a specific QuotationSection. Sections can have
+    up to three images; images are stored in `quotation/images/` and are
+    associated with the uploading user for auditing.
+    """
+
+    section = models.ForeignKey(
+        QuotationSection,
+        on_delete=models.CASCADE,
+        related_name="images",
+        verbose_name=_("section"),
+    )
+    image = models.ImageField(
+        _("image"),
+        upload_to="quotation/images/",
+    )
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="quotation_section_images",
+        verbose_name=_("uploaded by"),
+    )
+    sort_order = models.PositiveSmallIntegerField(_("sort order"), default=0)
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
+
+    class Meta:
+        ordering = ["section__pk", "sort_order", "pk"]
+        verbose_name = _("quotation section image")
+        verbose_name_plural = _("quotation section images")
+
+    def __str__(self) -> str:
+        return f"{self.section} — image {self.pk or ''}"
+
+    def save(self, *args, **kwargs):
+        # Auto-assign a sort_order when creating new images so they append
+        if not self.pk and (self.sort_order is None or int(self.sort_order) == 0):
+            try:
+                last = (
+                    QuotationSectionImage.objects.filter(section=self.section)
+                    .aggregate(models.Max("sort_order"))
+                    .get("sort_order__max")
+                )
+                self.sort_order = (last or 0) + 1
+            except Exception:
+                self.sort_order = 1
+        super().save(*args, **kwargs)
+
+
+@receiver(post_delete, sender=QuotationSectionImage)
+def _delete_section_image_file(sender, instance, **kwargs):
+    """Remove image file from storage when the DB record is deleted."""
+    try:
+        if instance.image and instance.image.name:
+            default_storage.delete(instance.image.name)
+    except Exception:
+        # Deletion must not raise — swallow exceptions
+        pass
 
 
 # ---------------------------------------------------------------------------

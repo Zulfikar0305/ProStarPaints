@@ -250,6 +250,17 @@ body {
     </table>
   </div>
 
+  {% if sec_data.images %}
+    <div class="sec-subtitle">Images</div>
+    <div style="display:flex;gap:8px;margin-top:6pt;margin-bottom:10pt;">
+      {% for img_uri in sec_data.images %}
+        <div style="width:120px;height:90px;overflow:hidden;border:1px solid #e2e8f0;">
+          <img src="{{ img_uri }}" style="width:100%;height:100%;object-fit:cover;display:block;">
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
   {% if sec_data.line_items %}
 
     {# Preparation requirements: prefer engine-provided steps when available #}

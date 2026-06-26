@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.http import HttpResponseRedirect
 from django.db import IntegrityError
+from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import DetailView, ListView, View
 
@@ -36,6 +37,7 @@ from .models import (
     QuotationPdfExport,
     QuotationPin,
     QuotationSection,
+    QuotationSectionImage,
 )
 from .preflight import get_quotation_preflight
 from .services import (
@@ -365,13 +367,37 @@ class QuotationBuilderView(QuotationAccessMixin, View):
         saved_paint_bases   = {}   # group_key → base_val
         saved_paint_coats   = {}   # group_key → coats str
         saved_paint_rows    = []   # list of existing paint-row dicts for this section
+        saved_primer_rows   = []   # repeatable primer rows (per-row)
+        saved_waterproof_rows = [] # repeatable waterproofing rows (per-row)
 
         for li in line_items:
             if li.item_type == QuotationLineItem.ItemType.WATERPROOFING:
                 saved_waterproofing.add(li.metadata.get("key", ""))
+                saved_waterproof_rows.append({
+                    "line_pk": li.pk,
+                    "key": li.metadata.get("key", ""),
+                    "coats": li.coats,
+                    "area_sqm": str(li.area_sqm) if li.area_sqm is not None else "",
+                    "price_excl_vat": str(li.price_excl_vat or 0),
+                    "price_incl_vat": str(li.price_incl_vat or 0),
+                    "total_excl_vat": str(li.total_excl_vat or 0),
+                    "total_incl_vat": str(li.total_incl_vat or 0),
+                    "metadata": li.metadata or {},
+                })
             elif li.item_type == QuotationLineItem.ItemType.PRIMER:
                 k = li.metadata.get("key", "")
                 saved_primers[k] = str(li.coats)
+                saved_primer_rows.append({
+                    "line_pk": li.pk,
+                    "key": k,
+                    "coats": li.coats,
+                    "area_sqm": str(li.area_sqm) if li.area_sqm is not None else "",
+                    "price_excl_vat": str(li.price_excl_vat or 0),
+                    "price_incl_vat": str(li.price_incl_vat or 0),
+                    "total_excl_vat": str(li.total_excl_vat or 0),
+                    "total_incl_vat": str(li.total_incl_vat or 0),
+                    "metadata": li.metadata or {},
+                })
             elif li.item_type == QuotationLineItem.ItemType.PREP_WORK:
                 saved_prep_work.add(li.metadata.get("key", ""))
             elif li.item_type == QuotationLineItem.ItemType.PAINT:
@@ -406,6 +432,8 @@ class QuotationBuilderView(QuotationAccessMixin, View):
             "saved_paint_bases":   saved_paint_bases,
             "saved_paint_coats":   saved_paint_coats,
             "saved_paint_rows":    saved_paint_rows,
+            "saved_primer_rows":   saved_primer_rows,
+            "saved_waterproof_rows": saved_waterproof_rows,
             # JSON strings for JS restoration
             "saved_paint_bases_json":  json.dumps(saved_paint_bases),
             "saved_paint_coats_json":  json.dumps(saved_paint_coats),
@@ -434,13 +462,37 @@ class QuotationBuilderView(QuotationAccessMixin, View):
         saved_paint_bases:   dict = {}
         saved_paint_coats:   dict = {}
         saved_paint_rows:    list = []
+        saved_primer_rows:   list = []
+        saved_waterproof_rows: list = []
 
         for li in line_items:
             if li.item_type == QuotationLineItem.ItemType.WATERPROOFING:
                 saved_waterproofing.add(li.metadata.get("key", ""))
+                saved_waterproof_rows.append({
+                    "line_pk": li.pk,
+                    "key": li.metadata.get("key", ""),
+                    "coats": li.coats,
+                    "area_sqm": str(li.area_sqm) if li.area_sqm is not None else "",
+                    "price_excl_vat": str(li.price_excl_vat or 0),
+                    "price_incl_vat": str(li.price_incl_vat or 0),
+                    "total_excl_vat": str(li.total_excl_vat or 0),
+                    "total_incl_vat": str(li.total_incl_vat or 0),
+                    "metadata": li.metadata or {},
+                })
             elif li.item_type == QuotationLineItem.ItemType.PRIMER:
                 k = li.metadata.get("key", "")
                 saved_primers[k] = str(li.coats)
+                saved_primer_rows.append({
+                    "line_pk": li.pk,
+                    "key": k,
+                    "coats": li.coats,
+                    "area_sqm": str(li.area_sqm) if li.area_sqm is not None else "",
+                    "price_excl_vat": str(li.price_excl_vat or 0),
+                    "price_incl_vat": str(li.price_incl_vat or 0),
+                    "total_excl_vat": str(li.total_excl_vat or 0),
+                    "total_incl_vat": str(li.total_incl_vat or 0),
+                    "metadata": li.metadata or {},
+                })
             elif li.item_type == QuotationLineItem.ItemType.PREP_WORK:
                 saved_prep_work.add(li.metadata.get("key", ""))
             elif li.item_type == QuotationLineItem.ItemType.PAINT:
@@ -474,6 +526,8 @@ class QuotationBuilderView(QuotationAccessMixin, View):
             "saved_paint_bases":   saved_paint_bases,
             "saved_paint_coats":   saved_paint_coats,
             "saved_paint_rows":    saved_paint_rows,
+            "saved_primer_rows":   saved_primer_rows,
+            "saved_waterproof_rows": saved_waterproof_rows,
             # JSON strings for JS restoration
             "saved_paint_bases_json": json.dumps(saved_paint_bases),
             "saved_paint_coats_json": json.dumps(saved_paint_coats),
@@ -762,10 +816,14 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
         # Preserve existing per-row values (area, etc.) so they are not
         # overwritten by the section reference area when the incoming
         # per-row inputs are left blank. Fetch these before deleting rows.
-        prev_line_pks = POST.getlist("paint_row_line_pk")
+        # Collect previous per-row line PKs from paint/primer/waterproof rows
+        prev_line_pks = []
+        prev_line_pks.extend(POST.getlist("paint_row_line_pk"))
+        prev_line_pks.extend(POST.getlist("primer_row_line_pk"))
+        prev_line_pks.extend(POST.getlist("waterproof_row_line_pk"))
         prev_areas = {}
         try:
-            pks = [int(p) for p in prev_line_pks if p]
+            pks = list({int(p) for p in prev_line_pks if p})
             if pks:
                 for pli in section.line_items.filter(pk__in=pks):
                     prev_areas[str(pli.pk)] = pli.area_sqm
@@ -810,73 +868,163 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
         )
 
         # ── 2. WATERPROOFING items ───────────────────────────────────────────
+        wp_row_keys = POST.getlist("waterproof_row_key")
+        wp_row_areas = POST.getlist("waterproof_row_area_sqm")
+        wp_row_coats = POST.getlist("waterproof_row_coats")
+        wp_row_line_pks = POST.getlist("waterproof_row_line_pk")
+
+        # Determine if per-row inputs were provided (prefer them)
+        wp_rows = max([len(wp_row_keys), len(wp_row_areas), len(wp_row_coats), len(wp_row_line_pks), 0])
         wp_labels = dict(WATERPROOFING_OPTIONS)
-        for wp_key in POST.getlist("waterproofing"):
-            if wp_key not in wp_labels:
-                continue
-            wp_label = wp_labels[wp_key]
-            # Attempt to match a catalogue product for this waterproofing option
-            matched = _find_catalogue_paint_by_label(wp_label, Paint.Category.WATERPROOFING)
-            price_excl = matched.price_excl_vat if matched else Decimal("0")
-            price_incl = matched.price_incl_vat if matched else Decimal("0")
 
-            li = QuotationLineItem.objects.create(
-                quotation   = quotation,
-                section     = section,
-                item_type   = QuotationLineItem.ItemType.WATERPROOFING,
-                description = wp_label,
-                paint       = matched,
-                coats       = 1,
-                area_sqm    = area_sqm,
-                price_excl_vat = price_excl,
-                price_incl_vat = price_incl,
-                metadata    = {"key": wp_key, "paint_matched": matched is not None},
-            )
+        # Per-row waterproofing preferred; fallback to legacy checkbox behaviour
+        from paints.models import Paint as _Paint
+        if wp_rows == 0 or all(not k.strip() for k in wp_row_keys):
+            for wp_key in POST.getlist("waterproofing"):
+                if wp_key not in wp_labels:
+                    continue
+                QuotationLineItem.objects.create(
+                    quotation   = quotation,
+                    section     = section,
+                    item_type   = QuotationLineItem.ItemType.WATERPROOFING,
+                    description = wp_labels[wp_key],
+                    area_sqm    = area_sqm,
+                    metadata    = {"key": wp_key},
+                )
+        else:
+            for i in range(wp_rows):
+                key = (wp_row_keys[i] if i < len(wp_row_keys) else "").strip()
+                if not key:
+                    continue
+                area_raw = (wp_row_areas[i] if i < len(wp_row_areas) else "").strip()
+                coats_raw = (wp_row_coats[i] if i < len(wp_row_coats) else "1").strip()
+                line_pk = (wp_row_line_pks[i] if i < len(wp_row_line_pks) else "").strip()
 
-            try:
-                apply_paint_pricing_to_line_item(li)
-            except Exception:
-                meta = dict(li.metadata or {})
-                meta.update({"pricing_status": "pending", "pricing_pending_reason": "pricing_exception"})
-                li.metadata = meta
-                li.save(update_fields=["metadata"])
+                try:
+                    coats = int(coats_raw or "1")
+                    coats = max(1, min(coats, 2))
+                except ValueError:
+                    coats = 1
+
+                try:
+                    if area_raw:
+                        row_area = Decimal(area_raw)
+                    elif line_pk and str(line_pk) in prev_areas and prev_areas.get(str(line_pk)) is not None:
+                        row_area = prev_areas.get(str(line_pk))
+                    else:
+                        row_area = area_sqm
+                    if row_area is not None and row_area < 0:
+                        row_area = None
+                except Exception:
+                    row_area = None
+
+                wp_label = wp_labels.get(key, key)
+                matched = _find_catalogue_paint_by_label(wp_label, Paint.Category.WATERPROOFING)
+                price_excl = matched.price_excl_vat if matched else Decimal("0")
+                price_incl = matched.price_incl_vat if matched else Decimal("0")
+
+                li = QuotationLineItem.objects.create(
+                    quotation   = quotation,
+                    section     = section,
+                    item_type   = QuotationLineItem.ItemType.WATERPROOFING,
+                    description = wp_label,
+                    paint       = matched,
+                    coats       = coats,
+                    area_sqm    = row_area,
+                    price_excl_vat = price_excl,
+                    price_incl_vat = price_incl,
+                    metadata    = {"key": key, "paint_matched": matched is not None},
+                )
+
+                try:
+                    apply_paint_pricing_to_line_item(li)
+                except Exception:
+                    meta = dict(li.metadata or {})
+                    meta.update({"pricing_status": "pending", "pricing_pending_reason": "pricing_exception"})
+                    li.metadata = meta
+                    li.save(update_fields=["metadata"])
 
         # ── 3. PRIMER items ─────────────────────────────────────────────────
+        pr_row_keys = POST.getlist("primer_row_key")
+        pr_row_areas = POST.getlist("primer_row_area_sqm")
+        pr_row_coats = POST.getlist("primer_row_coats")
+        pr_row_line_pks = POST.getlist("primer_row_line_pk")
+
+        pr_rows = max([len(pr_row_keys), len(pr_row_areas), len(pr_row_coats), len(pr_row_line_pks), 0])
         primer_labels = dict(PRIMER_OPTIONS)
-        for pr_key in POST.getlist("primers"):
-            if pr_key not in primer_labels:
-                continue
-            try:
-                coats = int(POST.get(f"primer_coats_{pr_key}", "1"))
-                coats = max(1, min(coats, 2))
-            except ValueError:
-                coats = 1
 
-            pr_label = primer_labels[pr_key]
-            matched = _find_catalogue_paint_by_label(pr_label, Paint.Category.PRIMER)
-            price_excl = matched.price_excl_vat if matched else Decimal("0")
-            price_incl = matched.price_incl_vat if matched else Decimal("0")
+        # Per-row primer preferred; fallback to legacy checkbox behaviour
+        from paints.models import Paint as _Paint
+        if pr_rows == 0 or all(not k.strip() for k in pr_row_keys):
+            for pr_key in POST.getlist("primers"):
+                if pr_key not in primer_labels:
+                    continue
+                try:
+                    coats = int(POST.get(f"primer_coats_{pr_key}", "1"))
+                    coats = max(1, min(coats, 2))
+                except ValueError:
+                    coats = 1
+                QuotationLineItem.objects.create(
+                    quotation   = quotation,
+                    section     = section,
+                    item_type   = QuotationLineItem.ItemType.PRIMER,
+                    description = primer_labels[pr_key],
+                    coats       = coats,
+                    area_sqm    = area_sqm,
+                    metadata    = {"key": pr_key},
+                )
+        else:
+            for i in range(pr_rows):
+                key = (pr_row_keys[i] if i < len(pr_row_keys) else "").strip()
+                if not key:
+                    continue
+                area_raw = (pr_row_areas[i] if i < len(pr_row_areas) else "").strip()
+                coats_raw = (pr_row_coats[i] if i < len(pr_row_coats) else "1").strip()
+                line_pk = (pr_row_line_pks[i] if i < len(pr_row_line_pks) else "").strip()
 
-            li = QuotationLineItem.objects.create(
-                quotation   = quotation,
-                section     = section,
-                item_type   = QuotationLineItem.ItemType.PRIMER,
-                description = pr_label,
-                paint       = matched,
-                coats       = coats,
-                area_sqm    = area_sqm,
-                price_excl_vat = price_excl,
-                price_incl_vat = price_incl,
-                metadata    = {"key": pr_key, "paint_matched": matched is not None},
-            )
+                try:
+                    coats = int(coats_raw or "1")
+                    coats = max(1, min(coats, 2))
+                except ValueError:
+                    coats = 1
 
-            try:
-                apply_paint_pricing_to_line_item(li)
-            except Exception:
-                meta = dict(li.metadata or {})
-                meta.update({"pricing_status": "pending", "pricing_pending_reason": "pricing_exception"})
-                li.metadata = meta
-                li.save(update_fields=["metadata"])
+                try:
+                    if area_raw:
+                        row_area = Decimal(area_raw)
+                    elif line_pk and str(line_pk) in prev_areas and prev_areas.get(str(line_pk)) is not None:
+                        row_area = prev_areas.get(str(line_pk))
+                    else:
+                        row_area = area_sqm
+                    if row_area is not None and row_area < 0:
+                        row_area = None
+                except Exception:
+                    row_area = None
+
+                pr_label = primer_labels.get(key, key)
+                matched = _find_catalogue_paint_by_label(pr_label, Paint.Category.PRIMER)
+                price_excl = matched.price_excl_vat if matched else Decimal("0")
+                price_incl = matched.price_incl_vat if matched else Decimal("0")
+
+                li = QuotationLineItem.objects.create(
+                    quotation   = quotation,
+                    section     = section,
+                    item_type   = QuotationLineItem.ItemType.PRIMER,
+                    description = pr_label,
+                    paint       = matched,
+                    coats       = coats,
+                    area_sqm    = row_area,
+                    price_excl_vat = price_excl,
+                    price_incl_vat = price_incl,
+                    metadata    = {"key": key, "paint_matched": matched is not None},
+                )
+
+                try:
+                    apply_paint_pricing_to_line_item(li)
+                except Exception:
+                    meta = dict(li.metadata or {})
+                    meta.update({"pricing_status": "pending", "pricing_pending_reason": "pricing_exception"})
+                    li.metadata = meta
+                    li.save(update_fields=["metadata"])
 
         # ── 4. PREP_WORK items ───────────────────────────────────────────────
         prep_labels = dict(OTHER_PREP_OPTIONS)
@@ -942,64 +1090,9 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
 
         rows = max([len(row_finishes), len(row_paint_pks), len(row_areas), len(row_coats), len(row_bases), 0])
 
-        if rows == 0:
-            # Legacy behaviour: one PAINT line per paint-group revealed by
-            # section-level finishes. This preserves existing templates that
-            # haven't been migrated yet.
-            active_groups = get_paint_groups_for_finishes(finishes)
-            for pg in active_groups:
-                selected = POST.get(f"paint_selected_{pg.key}")
-                if not selected:
-                    continue
-                try:
-                    coats = int(POST.get(f"paint_coats_{pg.key}", "1"))
-                    coats = max(1, min(coats, 2))
-                except ValueError:
-                    coats = 1
-
-                base_val = POST.get(f"paint_base_{pg.key}", "WHITE").strip()
-                base_label = dict(pg.bases).get(base_val, base_val) if pg.bases else ""
-
-                matched_paint = _try_match_paint(pg.paint_name, base_val) if base_val else None
-
-                price_excl = matched_paint.price_excl_vat if matched_paint else Decimal("0")
-                price_incl = matched_paint.price_incl_vat if matched_paint else Decimal("0")
-
-                description = pg.label
-                if base_label:
-                    description += f" — {base_label}"
-
-                li = QuotationLineItem.objects.create(
-                    quotation      = quotation,
-                    section        = section,
-                    item_type      = QuotationLineItem.ItemType.PAINT,
-                    description    = description,
-                    paint          = matched_paint,
-                    coats          = coats,
-                    area_sqm       = area_sqm,
-                    price_excl_vat = price_excl,
-                    price_incl_vat = price_incl,
-                    metadata       = {
-                        "paint_group":  pg.key,
-                        "paint_name":   pg.paint_name,
-                        "base":         base_val,
-                        "base_label":   base_label,
-                        "paint_matched": matched_paint is not None,
-                    },
-                )
-
-                try:
-                    apply_paint_pricing_to_line_item(li)
-                except Exception:
-                    meta = dict(li.metadata or {})
-                    meta.update({"pricing_status": "pending", "pricing_pending_reason": "pricing_exception"})
-                    li.metadata = meta
-                    li.save(update_fields=["metadata"])
-
-        else:
-            # Per-row handling
-            from paints.models import Paint as _Paint
-            for i in range(rows):
+        # Per-row handling only — legacy paint-group inputs removed.
+        from paints.models import Paint as _Paint
+        for i in range(rows):
                 finish = (row_finishes[i] if i < len(row_finishes) else "")
                 if not finish:
                     continue
@@ -1111,6 +1204,31 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
             recalculate_quotation_totals(quotation)
         except Exception:
             pass
+
+        # Handle optional section image uploads (single-file posts or multi-file)
+        MAX_IMAGE_BYTES = 4 * 1024 * 1024
+        try:
+            files = request.FILES.getlist('section_images') if getattr(request, 'FILES', None) else []
+        except Exception:
+            files = []
+
+        if files:
+            try:
+                existing = section.images.count()
+                for f in files:
+                    if existing >= 3:
+                        break
+                    ctype = getattr(f, 'content_type', '')
+                    if not ctype or not ctype.startswith('image/'):
+                        continue
+                    if hasattr(f, 'size') and f.size and f.size > MAX_IMAGE_BYTES:
+                        continue
+                    QuotationSectionImage.objects.create(section=section, image=f, uploaded_by=request.user)
+                    existing += 1
+            except Exception:
+                # Swallow — image issues should not prevent the section save
+                pass
+
         return redirect(f"{reverse('quotation:quotation_builder', kwargs={'pk': pk})}?leaflet=interior_walls#section-{section.pk}")
 
 
@@ -1188,250 +1306,302 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
 
         notes = POST.get("notes", "").strip()
 
-        # ── Wipe and rebuild line items ──────────────────────────────────────
+        # ── Wipe and rebuild line items (atomic + lock) ─────────────────────
         # Preserve existing per-row values (area, etc.) before deletion so
         # blank per-row inputs do not overwrite previously-saved per-row areas.
-        prev_line_pks = POST.getlist("paint_row_line_pk")
+        # Collect previous per-row line PKs from paint/primer/waterproof rows
+        prev_line_pks = []
+        prev_line_pks.extend(POST.getlist("paint_row_line_pk"))
+        prev_line_pks.extend(POST.getlist("primer_row_line_pk"))
+        prev_line_pks.extend(POST.getlist("waterproof_row_line_pk"))
         prev_areas = {}
+        # Ensure logging variables exist even if the atomic block fails
+        type_labels = []
+        finish_labels = []
+        cond_labels = []
         try:
-            pks = [int(p) for p in prev_line_pks if p]
-            if pks:
-                for pli in section.line_items.filter(pk__in=pks):
-                    prev_areas[str(pli.pk)] = pli.area_sqm
+            with transaction.atomic():
+                # Acquire DB lock on the section row
+                section = QuotationSection.objects.select_for_update().get(pk=section.pk)
+                pks = list({int(p) for p in prev_line_pks if p})
+                if pks:
+                    for pli in section.line_items.filter(pk__in=pks):
+                        prev_areas[str(pli.pk)] = pli.area_sqm
+
+                section.line_items.all().delete()
+                section.is_placeholder = False
+                section.save(update_fields=["is_placeholder"])
+
+                type_labels   = [dict(cfg.types).get(t, t)                  for t in selected_types]
+                finish_labels = [dict(cfg.finishes).get(f, f)              for f in finishes]
+                cond_labels   = [dict(cfg.surface_conditions).get(c, c)    for c in surface_conds]
+
+                # ── 1. NOTE (section summary metadata) ──────────────────────────────
+                # NOTE: Do not store finishes at section level. Each paint row will
+                # include its own finish metadata. The NOTE remains for general notes.
+                QuotationLineItem.objects.create(
+                    quotation   = quotation,
+                    section     = section,
+                    item_type   = QuotationLineItem.ItemType.NOTE,
+                    description = (
+                        f"{cfg.display_name} \u2014 {', '.join(type_labels)} | "
+                        f"Area: {area_sqm or 'TBC'} m\u00b2"
+                    ),
+                    area_sqm    = area_sqm,
+                    metadata    = {
+                        "section_key":         cfg.key,
+                        "section_name":        cfg.display_name,
+                        "substrate_type":      cfg.substrate_type,
+                        "types":               selected_types,
+                        "type_labels":         type_labels,
+                        "surface_conditions":  surface_conds,
+                        "surface_cond_labels": cond_labels,
+                        "moisture_level":      moisture,
+                        "area_sqm":            str(area_sqm) if area_sqm else None,
+                        "notes":               notes,
+                    },
+                )
+
+                # ── 2. WATERPROOFING items ───────────────────────────────────────────
+                wp_row_keys = POST.getlist("waterproof_row_key")
+                wp_row_areas = POST.getlist("waterproof_row_area_sqm")
+                wp_row_coats = POST.getlist("waterproof_row_coats")
+                wp_row_line_pks = POST.getlist("waterproof_row_line_pk")
+
+                wp_rows = max([len(wp_row_keys), len(wp_row_areas), len(wp_row_coats), len(wp_row_line_pks), 0])
+                wp_labels = dict(WATERPROOFING_OPTIONS)
+
+                if wp_rows == 0 or all(not k.strip() for k in wp_row_keys):
+                    for wp_key in POST.getlist("waterproofing"):
+                        if wp_key not in wp_labels:
+                            continue
+                        QuotationLineItem.objects.create(
+                            quotation   = quotation,
+                            section     = section,
+                            item_type   = QuotationLineItem.ItemType.WATERPROOFING,
+                            description = wp_labels[wp_key],
+                            area_sqm    = area_sqm,
+                            metadata    = {"key": wp_key},
+                        )
+                else:
+                    for i in range(wp_rows):
+                        key = (wp_row_keys[i] if i < len(wp_row_keys) else "").strip()
+                        if not key:
+                            continue
+                        area_raw = (wp_row_areas[i] if i < len(wp_row_areas) else "").strip()
+                        coats_raw = (wp_row_coats[i] if i < len(wp_row_coats) else "1").strip()
+                        line_pk = (wp_row_line_pks[i] if i < len(wp_row_line_pks) else "").strip()
+
+                        try:
+                            coats = int(coats_raw or "1")
+                            coats = max(1, min(coats, 2))
+                        except ValueError:
+                            coats = 1
+
+                        try:
+                            if area_raw:
+                                row_area = Decimal(area_raw)
+                            elif line_pk and str(line_pk) in prev_areas and prev_areas.get(str(line_pk)) is not None:
+                                row_area = prev_areas.get(str(line_pk))
+                            else:
+                                row_area = area_sqm
+                            if row_area is not None and row_area < 0:
+                                row_area = None
+                        except Exception:
+                            row_area = None
+
+                        wp_label = wp_labels.get(key, key)
+                        QuotationLineItem.objects.create(
+                            quotation   = quotation,
+                            section     = section,
+                            item_type   = QuotationLineItem.ItemType.WATERPROOFING,
+                            description = wp_label,
+                            coats       = coats,
+                            area_sqm    = row_area,
+                            metadata    = {"key": key},
+                        )
+
+                # ── 3. PRIMER items ─────────────────────────────────────────────────
+                pr_row_keys = POST.getlist("primer_row_key")
+                pr_row_areas = POST.getlist("primer_row_area_sqm")
+                pr_row_coats = POST.getlist("primer_row_coats")
+                pr_row_line_pks = POST.getlist("primer_row_line_pk")
+
+                pr_rows = max([len(pr_row_keys), len(pr_row_areas), len(pr_row_coats), len(pr_row_line_pks), 0])
+                primer_labels = dict(PRIMER_OPTIONS)
+
+                if pr_rows == 0 or all(not k.strip() for k in pr_row_keys):
+                    for pr_key in POST.getlist("primers"):
+                        if pr_key not in primer_labels:
+                            continue
+                        try:
+                            coats = int(POST.get(f"primer_coats_{pr_key}", "1"))
+                            coats = max(1, min(coats, 2))
+                        except ValueError:
+                            coats = 1
+                        QuotationLineItem.objects.create(
+                            quotation   = quotation,
+                            section     = section,
+                            item_type   = QuotationLineItem.ItemType.PRIMER,
+                            description = primer_labels[pr_key],
+                            coats       = coats,
+                            area_sqm    = area_sqm,
+                            metadata    = {"key": pr_key},
+                        )
+                else:
+                    for i in range(pr_rows):
+                        key = (pr_row_keys[i] if i < len(pr_row_keys) else "").strip()
+                        if not key:
+                            continue
+                        area_raw = (pr_row_areas[i] if i < len(pr_row_areas) else "").strip()
+                        coats_raw = (pr_row_coats[i] if i < len(pr_row_coats) else "1").strip()
+                        line_pk = (pr_row_line_pks[i] if i < len(pr_row_line_pks) else "").strip()
+
+                        try:
+                            coats = int(coats_raw or "1")
+                            coats = max(1, min(coats, 2))
+                        except ValueError:
+                            coats = 1
+
+                        try:
+                            if area_raw:
+                                row_area = Decimal(area_raw)
+                            elif line_pk and str(line_pk) in prev_areas and prev_areas.get(str(line_pk)) is not None:
+                                row_area = prev_areas.get(str(line_pk))
+                            else:
+                                row_area = area_sqm
+                            if row_area is not None and row_area < 0:
+                                row_area = None
+                        except Exception:
+                            row_area = None
+
+                        pr_label = primer_labels.get(key, key)
+                        QuotationLineItem.objects.create(
+                            quotation   = quotation,
+                            section     = section,
+                            item_type   = QuotationLineItem.ItemType.PRIMER,
+                            description = pr_label,
+                            coats       = coats,
+                            area_sqm    = row_area,
+                            metadata    = {"key": key},
+                        )
+
+                # ── 4. PREP_WORK items ───────────────────────────────────────────────
+                prep_labels = dict(OTHER_PREP_OPTIONS)
+                for prep_key in POST.getlist("prep_work"):
+                    if prep_key not in prep_labels:
+                        continue
+                    QuotationLineItem.objects.create(
+                        quotation   = quotation,
+                        section     = section,
+                        item_type   = QuotationLineItem.ItemType.PREP_WORK,
+                        description = prep_labels[prep_key],
+                        metadata    = {"key": prep_key},
+                    )
+
+                # ── 5. PAINT items ───────────────────────────────────────────────────
+                # Per-row inputs preferred; fallback to legacy group inputs when
+                # per-row data is not supplied.
+                row_finishes = POST.getlist("paint_row_finish")
+                row_paint_pks = POST.getlist("paint_row_paint_pk")
+                row_areas = POST.getlist("paint_row_area_sqm")
+                row_coats = POST.getlist("paint_row_coats")
+                row_bases = POST.getlist("paint_row_base")
+                row_line_pks = POST.getlist("paint_row_line_pk")
+
+                rows = max([len(row_finishes), len(row_paint_pks), len(row_areas), len(row_coats), len(row_bases), 0])
+
+                # Per-row handling only — legacy paint-group inputs removed.
+                from paints.models import Paint as _Paint
+                for i in range(rows):
+                        finish = (row_finishes[i] if i < len(row_finishes) else "")
+                        if not finish:
+                            continue
+                        paint_pk = (row_paint_pks[i] if i < len(row_paint_pks) else "")
+                        area_raw = (row_areas[i] if i < len(row_areas) else "").strip()
+                        coats_raw = (row_coats[i] if i < len(row_coats) else "1").strip()
+                        # Do not default per-row base to WHITE; treat empty as None
+                        base_raw = (row_bases[i] if i < len(row_bases) else "").strip()
+                        base_val = base_raw or None
+
+                        try:
+                            coats = int(coats_raw or "1")
+                            coats = max(1, min(coats, 2))
+                        except ValueError:
+                            coats = 1
+
+                        try:
+                            line_pk = (row_line_pks[i] if i < len(row_line_pks) else "").strip()
+                            if area_raw:
+                                row_area = Decimal(area_raw)
+                            elif line_pk and str(line_pk) in prev_areas and prev_areas.get(str(line_pk)) is not None:
+                                row_area = prev_areas.get(str(line_pk))
+                            else:
+                                row_area = area_sqm
+                            if row_area is not None and row_area < 0:
+                                row_area = None
+                        except Exception:
+                            row_area = None
+
+                        matched_paint = None
+                        if paint_pk:
+                            try:
+                                matched_paint = _Paint.objects.filter(pk=int(paint_pk), is_active=True).first()
+                            except Exception:
+                                matched_paint = None
+
+                        paint_group_key = None
+                        base_label = ""
+                        description = cfg.display_name
+
+                        if matched_paint is None:
+                            groups = get_paint_groups_for_finishes([finish])
+                            for pg in groups:
+                                candidate = _try_match_paint(pg.paint_name, base_val) if base_val else None
+                                if candidate:
+                                    matched_paint = candidate
+                                    paint_group_key = pg.key
+                                    base_label = dict(pg.bases).get(base_val, base_val) if pg.bases else ""
+                                    description = pg.label
+                                    if base_label:
+                                        description += f" \u2014 {base_label}"
+                                    break
+                        else:
+                            description = matched_paint.name
+                            base_label = getattr(matched_paint, 'base_type', '') or ''
+
+                        price_excl = matched_paint.price_excl_vat if matched_paint else Decimal("0")
+                        price_incl = matched_paint.price_incl_vat if matched_paint else Decimal("0")
+
+                        li = QuotationLineItem.objects.create(
+                            quotation      = quotation,
+                            section        = section,
+                            item_type      = QuotationLineItem.ItemType.PAINT,
+                            description    = description,
+                            paint          = matched_paint,
+                            coats          = coats,
+                            area_sqm       = row_area,
+                            price_excl_vat = price_excl,
+                            price_incl_vat = price_incl,
+                            metadata       = {
+                                "finish":       finish,
+                                "paint_group":  paint_group_key,
+                                "paint_name":   matched_paint.name if matched_paint else None,
+                                "base":         base_val,
+                                "base_label":   base_label,
+                                "paint_matched": matched_paint is not None,
+                            },
+                        )
+
+                        try:
+                            apply_paint_pricing_to_line_item(li)
+                        except Exception:
+                            meta = dict(li.metadata or {})
+                            meta.update({"pricing_status": "pending", "pricing_pending_reason": "pricing_exception"})
+                            li.metadata = meta
+                            li.save(update_fields=["metadata"])
         except Exception:
             prev_areas = {}
-
-        section.line_items.all().delete()
-        section.is_placeholder = False
-        section.save(update_fields=["is_placeholder"])
-
-        type_labels   = [dict(cfg.types).get(t, t)                  for t in selected_types]
-        finish_labels = [dict(cfg.finishes).get(f, f)              for f in finishes]
-        cond_labels   = [dict(cfg.surface_conditions).get(c, c)    for c in surface_conds]
-
-        # ── 1. NOTE (section summary metadata) ──────────────────────────────
-        # NOTE: Do not store finishes at section level. Each paint row will
-        # include its own finish metadata. The NOTE remains for general notes.
-        QuotationLineItem.objects.create(
-            quotation   = quotation,
-            section     = section,
-            item_type   = QuotationLineItem.ItemType.NOTE,
-            description = (
-                f"{cfg.display_name} \u2014 {', '.join(type_labels)} | "
-                f"Area: {area_sqm or 'TBC'} m\u00b2"
-            ),
-            area_sqm    = area_sqm,
-            metadata    = {
-                "section_key":         cfg.key,
-                "section_name":        cfg.display_name,
-                "substrate_type":      cfg.substrate_type,
-                "types":               selected_types,
-                "type_labels":         type_labels,
-                "surface_conditions":  surface_conds,
-                "surface_cond_labels": cond_labels,
-                "moisture_level":      moisture,
-                "area_sqm":            str(area_sqm) if area_sqm else None,
-                "notes":               notes,
-            },
-        )
-
-        # ── 2. WATERPROOFING items ───────────────────────────────────────────
-        wp_labels = dict(WATERPROOFING_OPTIONS)
-        for wp_key in POST.getlist("waterproofing"):
-            if wp_key not in wp_labels:
-                continue
-            QuotationLineItem.objects.create(
-                quotation   = quotation,
-                section     = section,
-                item_type   = QuotationLineItem.ItemType.WATERPROOFING,
-                description = wp_labels[wp_key],
-                area_sqm    = area_sqm,
-                metadata    = {"key": wp_key},
-            )
-
-        # ── 3. PRIMER items ─────────────────────────────────────────────────
-        primer_labels = dict(PRIMER_OPTIONS)
-        for pr_key in POST.getlist("primers"):
-            if pr_key not in primer_labels:
-                continue
-            try:
-                coats = int(POST.get(f"primer_coats_{pr_key}", "1"))
-                coats = max(1, min(coats, 2))
-            except ValueError:
-                coats = 1
-            QuotationLineItem.objects.create(
-                quotation   = quotation,
-                section     = section,
-                item_type   = QuotationLineItem.ItemType.PRIMER,
-                description = primer_labels[pr_key],
-                coats       = coats,
-                area_sqm    = area_sqm,
-                metadata    = {"key": pr_key},
-            )
-
-        # ── 4. PREP_WORK items ───────────────────────────────────────────────
-        prep_labels = dict(OTHER_PREP_OPTIONS)
-        for prep_key in POST.getlist("prep_work"):
-            if prep_key not in prep_labels:
-                continue
-            QuotationLineItem.objects.create(
-                quotation   = quotation,
-                section     = section,
-                item_type   = QuotationLineItem.ItemType.PREP_WORK,
-                description = prep_labels[prep_key],
-                metadata    = {"key": prep_key},
-            )
-
-        # ── 5. PAINT items ───────────────────────────────────────────────────
-        # Per-row inputs preferred; fallback to legacy group inputs when
-        # per-row data is not supplied.
-        row_finishes = POST.getlist("paint_row_finish")
-        row_paint_pks = POST.getlist("paint_row_paint_pk")
-        row_areas = POST.getlist("paint_row_area_sqm")
-        row_coats = POST.getlist("paint_row_coats")
-        row_bases = POST.getlist("paint_row_base")
-        row_line_pks = POST.getlist("paint_row_line_pk")
-
-        rows = max([len(row_finishes), len(row_paint_pks), len(row_areas), len(row_coats), len(row_bases), 0])
-
-        if rows == 0:
-            active_groups = get_paint_groups_for_finishes(finishes)
-            for pg in active_groups:
-                if not POST.get(f"paint_selected_{pg.key}"):
-                    continue
-                try:
-                    coats = int(POST.get(f"paint_coats_{pg.key}", "1"))
-                    coats = max(1, min(coats, 2))
-                except ValueError:
-                    coats = 1
-
-                base_val   = POST.get(f"paint_base_{pg.key}", "WHITE").strip()
-                base_label = dict(pg.bases).get(base_val, base_val) if pg.bases else ""
-
-                matched_paint  = _try_match_paint(pg.paint_name, base_val) if base_val else None
-                price_excl     = matched_paint.price_excl_vat if matched_paint else Decimal("0")
-                price_incl     = matched_paint.price_incl_vat if matched_paint else Decimal("0")
-
-                description = pg.label
-                if base_label:
-                    description += f" \u2014 {base_label}"
-
-                li = QuotationLineItem.objects.create(
-                    quotation      = quotation,
-                    section        = section,
-                    item_type      = QuotationLineItem.ItemType.PAINT,
-                    description    = description,
-                    paint          = matched_paint,
-                    coats          = coats,
-                    area_sqm       = area_sqm,
-                    price_excl_vat = price_excl,
-                    price_incl_vat = price_incl,
-                    metadata       = {
-                        "paint_group":   pg.key,
-                        "paint_name":    pg.paint_name,
-                        "base":          base_val,
-                        "base_label":    base_label,
-                        "paint_matched": matched_paint is not None,
-                    },
-                )
-
-                try:
-                    apply_paint_pricing_to_line_item(li)
-                except Exception:
-                    meta = dict(li.metadata or {})
-                    meta.update({"pricing_status": "pending", "pricing_pending_reason": "pricing_exception"})
-                    li.metadata = meta
-                    li.save(update_fields=["metadata"])
-
-        else:
-            from paints.models import Paint as _Paint
-            for i in range(rows):
-                finish = (row_finishes[i] if i < len(row_finishes) else "")
-                if not finish:
-                    continue
-                paint_pk = (row_paint_pks[i] if i < len(row_paint_pks) else "")
-                area_raw = (row_areas[i] if i < len(row_areas) else "").strip()
-                coats_raw = (row_coats[i] if i < len(row_coats) else "1").strip()
-                # Do not default per-row base to WHITE; treat empty as None
-                base_raw = (row_bases[i] if i < len(row_bases) else "").strip()
-                base_val = base_raw or None
-
-                try:
-                    coats = int(coats_raw or "1")
-                    coats = max(1, min(coats, 2))
-                except ValueError:
-                    coats = 1
-
-                try:
-                    line_pk = (row_line_pks[i] if i < len(row_line_pks) else "").strip()
-                    if area_raw:
-                        row_area = Decimal(area_raw)
-                    elif line_pk and str(line_pk) in prev_areas and prev_areas.get(str(line_pk)) is not None:
-                        row_area = prev_areas.get(str(line_pk))
-                    else:
-                        row_area = area_sqm
-                    if row_area is not None and row_area < 0:
-                        row_area = None
-                except Exception:
-                    row_area = None
-
-                matched_paint = None
-                if paint_pk:
-                    try:
-                        matched_paint = _Paint.objects.filter(pk=int(paint_pk), is_active=True).first()
-                    except Exception:
-                        matched_paint = None
-
-                paint_group_key = None
-                base_label = ""
-                description = cfg.display_name
-
-                if matched_paint is None:
-                    groups = get_paint_groups_for_finishes([finish])
-                    for pg in groups:
-                        candidate = _try_match_paint(pg.paint_name, base_val) if base_val else None
-                        if candidate:
-                            matched_paint = candidate
-                            paint_group_key = pg.key
-                            base_label = dict(pg.bases).get(base_val, base_val) if pg.bases else ""
-                            description = pg.label
-                            if base_label:
-                                description += f" \u2014 {base_label}"
-                            break
-                else:
-                    description = matched_paint.name
-                    base_label = getattr(matched_paint, 'base_type', '') or ''
-
-                price_excl = matched_paint.price_excl_vat if matched_paint else Decimal("0")
-                price_incl = matched_paint.price_incl_vat if matched_paint else Decimal("0")
-
-                li = QuotationLineItem.objects.create(
-                    quotation      = quotation,
-                    section        = section,
-                    item_type      = QuotationLineItem.ItemType.PAINT,
-                    description    = description,
-                    paint          = matched_paint,
-                    coats          = coats,
-                    area_sqm       = row_area,
-                    price_excl_vat = price_excl,
-                    price_incl_vat = price_incl,
-                    metadata       = {
-                        "finish":       finish,
-                        "paint_group":  paint_group_key,
-                        "paint_name":   matched_paint.name if matched_paint else None,
-                        "base":         base_val,
-                        "base_label":   base_label,
-                        "paint_matched": matched_paint is not None,
-                    },
-                )
-
-                try:
-                    apply_paint_pricing_to_line_item(li)
-                except Exception:
-                    meta = dict(li.metadata or {})
-                    meta.update({"pricing_status": "pending", "pricing_pending_reason": "pricing_exception"})
-                    li.metadata = meta
-                    li.save(update_fields=["metadata"])
 
         # ── Audit log ────────────────────────────────────────────────────────
         action_key = f"SECTION_SAVED_{cfg.key.upper()}"
@@ -1509,6 +1679,23 @@ class DeleteSelectionView(QuotationAccessMixin, View):
         return redirect(f"{reverse('quotation:quotation_builder', kwargs={'pk': pk})}?leaflet={section.subsection_key}")
 
 
+class SectionImageDeleteView(QuotationAccessMixin, View):
+    """Delete a section image (DB record + storage file)."""
+
+    def post(self, request, pk, section_pk, image_pk, *args, **kwargs):
+        quotation = get_object_or_404(self.get_base_qs(), pk=pk)
+        section = get_object_or_404(QuotationSection, pk=section_pk, quotation=quotation)
+        img = get_object_or_404(QuotationSectionImage, pk=image_pk, section=section)
+
+        try:
+            img.delete()
+            messages.success(request, "Image deleted.")
+        except Exception:
+            messages.error(request, "Could not delete image.")
+
+        return redirect(f"{reverse('quotation:quotation_builder', kwargs={'pk': pk})}?leaflet={section.subsection_key}#section-{section.pk}")
+
+
 # ---------------------------------------------------------------------------
 # Review
 # ---------------------------------------------------------------------------
@@ -1541,10 +1728,13 @@ class QuotationReviewView(QuotationAccessMixin, View):
                 }
                 for li in items
             ]
+            # Include section images (thumbnail URLs) for the review page
+            images = [img.image.url for img in sec.images.order_by("sort_order")]
             section_data.append({
                 "section":    sec,
                 "configured": len(items) > 0,
                 "items":      enriched_items,
+                "images":     images,
             })
 
         # Simple totals (sum of stored price fields — will be zero until pricing is wired)

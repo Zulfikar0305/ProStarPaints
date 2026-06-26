@@ -99,6 +99,25 @@ def build_pdf_context(quotation, request=None) -> dict:
             except Exception:
                 pass
 
+        # Collect any images attached to the section and encode as base64 data-URIs
+        images_data_uris = []
+        try:
+            from django.core.files.storage import default_storage
+            import mimetypes
+            for img in section.images.all():
+                try:
+                    with default_storage.open(img.image.name, 'rb') as fh:
+                        raw = fh.read()
+                    mime, _ = mimetypes.guess_type(img.image.name)
+                    if not mime:
+                        mime = 'image/png'
+                    images_data_uris.append('data:%s;base64,%s' % (mime, base64.b64encode(raw).decode()))
+                except Exception:
+                    # Skip unreadable images silently
+                    continue
+        except Exception:
+            images_data_uris = []
+
         section_data.append({
             "section":      section,
             "description":  generate_line_item_description(note_item) if note_item else "",
@@ -110,6 +129,7 @@ def build_pdf_context(quotation, request=None) -> dict:
                 }
                 for item in work_items
             ],
+            "images": images_data_uris,
             # Persisted totals (do not recalculate pricing here)
             "section_total_excl_vat": section_total_excl,
             "section_total_incl_vat": section_total_incl,
@@ -256,8 +276,22 @@ def render_quotation_pdf(
             template_key,
             exc,
         )
+        # Provide a short, actionable hint when native WeasyPrint
+        # dependencies are missing (common on Windows/dev machines).
+        hint = ""
+        try:
+            msg = str(exc)
+            if isinstance(exc, (ImportError, OSError)) or "libgobject" in msg or "WeasyPrint" in msg:
+                hint = (
+                    "\n\nHint: WeasyPrint requires native libraries (Pango/Cairo). "
+                    "On Windows install instructions are here: "
+                    "https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#installation"
+                )
+        except Exception:
+            hint = ""
+
         export.status = QuotationPdfExport.Status.FAILED
-        export.error_message = str(exc)[:1000]
+        export.error_message = (str(exc) + hint)[:1000]
         export.save()
 
     return export

@@ -15,6 +15,7 @@ from .views import (
     QuotationSubstrateSelectionView,
     CreateSelectionView,
     DeleteSelectionView,
+    SectionImageDeleteView,
 )
 
 app_name = "quotation"
@@ -35,6 +36,8 @@ urlpatterns = [
          InteriorWallsSaveView.as_view(), name="interior_walls_save"),
     path("<int:pk>/sections/<int:section_pk>/save/",
          GenericSectionSaveView.as_view(), name="section_save"),
+        path("<int:pk>/sections/<int:section_pk>/images/<int:image_pk>/delete/",
+            SectionImageDeleteView.as_view(), name="section_image_delete"),
         # Repeatable selection endpoints (backend only)
             path("<int:pk>/sections/<str:subsection_key>/add/",
                 CreateSelectionView.as_view(), name="section_add"),
