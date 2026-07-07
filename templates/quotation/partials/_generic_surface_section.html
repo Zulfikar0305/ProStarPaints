@@ -1,11 +1,16 @@
 {% load i18n %}
 {% with meta=gs_summary.meta configured=gs_summary.configured %}
 
-<div class="card border-0 shadow-sm mb-3"
+  <div class="card border-0 shadow-sm mb-3"
   style="border-left:4px solid {% if section_config.substrate_type == 'EXTERIOR' %}var(--psp-green){% else %}var(--psp-purple){% endif %} !important;"
   id="section-{{ section.pk }}"
   data-section-pk="{{ section.pk }}"
+  data-substrate-type="{{ section_config.substrate_type }}"
   data-section-name="{{ section.display_name }}">
+  {# include leaflet key so client JS can detect cross-leaflet edits #}
+  {% if section.subsection_key %}
+    <script>document.currentScript && document.currentScript.parentElement && document.currentScript.parentElement.setAttribute('data-leaflet-key','{{ section.subsection_key }}');</script>
+  {% endif %}
 
   {# ── Card header ── #}
   <div class="card-header bg-transparent py-3 d-flex align-items-center justify-content-between">
@@ -538,15 +543,66 @@
           {% for val, label in other_prep_options %}
             <div class="col-12 col-sm-6 col-md-4 col-lg-3">
               <label class="psp-substrate-check {% if val in gs_summary.saved_prep_work %}checked{% endif %}"
-                     for="gsprep_{{ section.pk }}_{{ val }}">
-                <input type="checkbox"
-                       id="gsprep_{{ section.pk }}_{{ val }}"
-                       name="prep_work" value="{{ val }}"
-                       {% if val in gs_summary.saved_prep_work %}checked{% endif %}>
+                for="gsprep_{{ section.pk }}_{{ val }}">
+                <input type="checkbox" id="gsprep_{{ section.pk }}_{{ val }}" {% if val in gs_summary.saved_prep_work %}checked="checked"{% endif %} name="prep_work" value="{{ val }}">
                 <i class="bi bi-check2 psp-substrate-tick"></i>{{ label }}
               </label>
             </div>
           {% endfor %}
+        </div>
+
+        {# Prep option specific controls (shown when checkbox selected) #}
+        <div class="row g-2 mb-3" id="prepControls_{{ section.pk }}">
+          <div class="col-12 col-sm-6 col-md-4 col-lg-3 prep-control prep-filling" id="prep_filling_ctrl_{{ section.pk }}" style="display:{% if 'filling' in gs_summary.saved_prep_work %}block{% else %}none{% endif %};">
+            <label class="form-label small fw-semibold">Crack repair — pack & quantity</label>
+            <div class="d-flex gap-2">
+              <select name="prep_filling_pack_size" class="form-select form-select-sm" style="max-width:140px;">
+                <option value="">Pack</option>
+                <option value="2">2 kg</option>
+                <option value="5">5 kg</option>
+                <option value="10">10 kg</option>
+              </select>
+              <input type="number" name="prep_filling_quantity" min="1" value="1" class="form-control form-control-sm" style="width:80px;">
+            </div>
+          </div>
+
+          <div class="col-12 col-sm-6 col-md-4 col-lg-3 prep-control prep-mould_treatment" id="prep_mould_treatment_ctrl_{{ section.pk }}" style="display:{% if 'mould_treatment' in gs_summary.saved_prep_work %}block{% else %}none{% endif %};">
+            <label class="form-label small fw-semibold">Mould treatment — pack & quantity</label>
+            <div class="d-flex gap-2">
+              <select name="prep_mould_treatment_pack_size" class="form-select form-select-sm" style="max-width:140px;">
+                <option value="">Pack</option>
+                <option value="1">1 L</option>
+                <option value="5">5 L</option>
+              </select>
+              <input type="number" name="prep_mould_treatment_quantity" min="1" value="1" class="form-control form-control-sm" style="width:80px;">
+            </div>
+          </div>
+
+          <div class="col-12 col-sm-6 col-md-4 col-lg-3 prep-control prep-cleaning" id="prep_cleaning_ctrl_{{ section.pk }}" style="display:{% if 'cleaning' in gs_summary.saved_prep_work %}block{% else %}none{% endif %};">
+            <label class="form-label small fw-semibold">Cleaning — pack & quantity</label>
+            <div class="d-flex gap-2">
+              <select name="prep_cleaning_pack_size" class="form-select form-select-sm" style="max-width:140px;">
+                <option value="">Pack</option>
+                <option value="1">1 L</option>
+                <option value="5">5 L</option>
+              </select>
+              <input type="number" name="prep_cleaning_quantity" min="1" value="1" class="form-control form-control-sm" style="width:80px;">
+            </div>
+          </div>
+
+          <div class="col-12 col-sm-6 col-md-4 col-lg-3 prep-control prep-sanding" id="prep_sanding_ctrl_{{ section.pk }}" style="display:{% if 'sanding' in gs_summary.saved_prep_work %}block{% else %}none{% endif %};">
+            <label class="form-label small fw-semibold">Sanding — grit & rolls</label>
+            <div class="d-flex gap-2">
+              <select name="prep_sanding_grit" class="form-select form-select-sm" style="max-width:140px;">
+                <option value="">Grit</option>
+                <option value="40">40</option>
+                <option value="60">60</option>
+                <option value="80">80</option>
+                <option value="100">100</option>
+              </select>
+              <input type="number" name="prep_sanding_rolls" min="1" value="1" class="form-control form-control-sm" style="width:80px;" title="Rolls (1 roll = 1 metre)">
+            </div>
+          </div>
         </div>
 
         {# Images #}
@@ -560,11 +616,11 @@
               </div>
             {% endfor %}
           </div>
-          <div>
-            <input type="file" name="section_images" accept="image/*" multiple id="sectionImageInput_{{ section.pk }}" style="display:none;">
-            <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('sectionImageInput_{{ section.pk }}').click();">Upload Images</button>
-            <small class="text-muted ms-2">Max 3 images. JPG/PNG/WebP/GIF. Max 3MB each.</small>
-          </div>
+            <div>
+              <input type="file" name="section_images" accept="image/*" multiple id="sectionImageInput_{{ section.pk }}" style="display:none;">
+              <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('sectionImageInput_{{ section.pk }}').click();">Upload Images</button>
+              <small class="text-muted ms-2">Max 3 images. JPG/PNG/WebP/GIF. Max 3MB each.</small>
+            </div>
         </div>
 
         {# ── Notes ── #}
@@ -608,12 +664,13 @@
 (function () {
   var SECTION_PK    = '{{ section.pk }}';
   var FINISH_MAP    = {{ finish_map_json|safe }};
-  var ALL_PAINTS    = {{ all_paints_json|safe }};
+  // Global catalogue provided as window.ALL_PAINTS (injected in quotation_builder.html)
   var PAINT_GROUPS  = {{ paint_groups_json|safe }};
   var THRESHOLD     = {{ moisture_threshold }};
   var SAVED_BASES   = {{ gs_summary.saved_paint_bases_json|safe }};
   var SAVED_COATS   = {{ gs_summary.saved_paint_coats_json|safe }};
   var SAVED_PRIMERS = {{ gs_summary.saved_primers_json|safe }};
+  var SAVED_PREP_META = {{ gs_summary.saved_prep_meta_json|safe }};
 
   /* Show/hide paint-group cards based on which finishes are checked */
   function gsSync() {
@@ -662,6 +719,50 @@
 
   /* Run initial sync so paint groups match saved finishes on page load */
   gsSync();
+
+  /* Restore prep-specific selections (pack sizes, quantities, grit) */
+  try {
+    function _normNumStr_gs(v) {
+      if (v === null || v === undefined) return null;
+      try {
+        var n = parseFloat(v);
+        if (!isNaN(n)) {
+          if (Number.isInteger(n)) return String(n);
+          return String(n);
+        }
+      } catch (e) {}
+      return String(v);
+    }
+    if (SAVED_PREP_META && typeof SAVED_PREP_META === 'object') {
+      var pmeta = SAVED_PREP_META || {};
+      var gsContainer = document.getElementById('gsFormBody_' + SECTION_PK);
+      if (pmeta.filling) {
+        var sel = gsContainer && gsContainer.querySelector('[name="prep_filling_pack_size"]');
+        if (sel && pmeta.filling.package_size) sel.value = _normNumStr_gs(pmeta.filling.package_size);
+        var qty = gsContainer && gsContainer.querySelector('[name="prep_filling_quantity"]');
+        if (qty && pmeta.filling.package_count) qty.value = String(pmeta.filling.package_count);
+      }
+      if (pmeta.mould_treatment) {
+        var sel2 = gsContainer && gsContainer.querySelector('[name="prep_mould_treatment_pack_size"]');
+        if (sel2 && pmeta.mould_treatment.package_size) sel2.value = _normNumStr_gs(pmeta.mould_treatment.package_size);
+        var qty2 = gsContainer && gsContainer.querySelector('[name="prep_mould_treatment_quantity"]');
+        if (qty2 && pmeta.mould_treatment.package_count) qty2.value = String(pmeta.mould_treatment.package_count);
+      }
+      if (pmeta.cleaning) {
+        var sel3 = gsContainer && gsContainer.querySelector('[name="prep_cleaning_pack_size"]');
+        if (sel3 && pmeta.cleaning.package_size) sel3.value = _normNumStr_gs(pmeta.cleaning.package_size);
+        var qty3 = gsContainer && gsContainer.querySelector('[name="prep_cleaning_quantity"]');
+        if (qty3 && pmeta.cleaning.package_count) qty3.value = String(pmeta.cleaning.package_count);
+      }
+      if (pmeta.sanding) {
+        var grit = (pmeta.sanding.variant_label || '').toString().match(/(\d+)/);
+        var selG = gsContainer && gsContainer.querySelector('[name="prep_sanding_grit"]');
+        if (selG && grit && grit[1]) selG.value = grit[1];
+        var rolls = gsContainer && gsContainer.querySelector('[name="prep_sanding_rolls"]');
+        if (rolls && pmeta.sanding.roll_count) rolls.value = String(pmeta.sanding.roll_count);
+      }
+    }
+  } catch (e) { /* ignore */ }
 
   /* Minor per-row helpers using server-provided JSON (no pricing logic here) */
   function _findPaintByPk(pk) {
@@ -746,6 +847,29 @@
 </script>
 
 <script>
+(function () {
+  var SECTION_PK = '{{ section.pk }}';
+  var prepKeys = ['filling', 'mould_treatment', 'cleaning', 'sanding', 'efflor_removal', 'remove_paint'];
+  function syncPrepControls() {
+    prepKeys.forEach(function (k) {
+      var chk = document.getElementById('gsprep_' + SECTION_PK + '_' + k);
+      var ctrl = document.getElementById('prep_' + k + '_ctrl_' + SECTION_PK);
+      if (!chk || !ctrl) return;
+      ctrl.style.display = chk.checked ? '' : 'none';
+    });
+  }
+  // Attach listeners
+  prepKeys.forEach(function (k) {
+    var el = document.getElementById('gsprep_' + SECTION_PK + '_' + k);
+    if (!el) return;
+    el.addEventListener('change', syncPrepControls);
+  });
+  // Run initial sync
+  try { syncPrepControls(); } catch (e) { /* ignore */ }
+})();
+</script>
+
+<script>
 function getCookie(name) {
   var cookieValue = null;
   if (document.cookie && document.cookie !== '') {
@@ -781,31 +905,8 @@ function submitSectionImageDelete(quotationPk, sectionPk, imagePk) {
 }
 </script>
 
-<script>
-(function () {
-  var input = document.getElementById('sectionImageInput_{{ section.pk }}');
-  var container = document.getElementById('sectionImages_{{ section.pk }}');
-  if (!input) return;
-  input.addEventListener('change', function () {
-    var files = Array.from(this.files || []);
-    files.forEach(function (file) {
-      if (!file.type.startsWith('image/')) return;
-      var reader = new FileReader();
-      reader.onload = function (e) {
-        var wrapper = document.createElement('div');
-        wrapper.style.width = '88px'; wrapper.style.height = '88px'; wrapper.className = 'position-relative';
-        var img = document.createElement('img');
-        img.src = e.target.result;
-        img.className = 'rounded border';
-        img.style.width = '88px'; img.style.height = '88px'; img.style.objectFit = 'cover';
-        wrapper.appendChild(img);
-        container.appendChild(wrapper);
-      };
-      reader.readAsDataURL(file);
-    });
-  });
-}());
-</script>
+<!-- Legacy inline preview removed. Preview rendering is handled by
+     static/js/quotation_builder.js (DataTransfer-backed queue). -->
 
 <script>
 (function () {
