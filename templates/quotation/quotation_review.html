@@ -307,7 +307,7 @@
                   </span>
                 {% endif %}
               </div>
-              <a href="{% url 'quotation:quotation_builder' quotation.pk %}"
+              <a href="{% url 'quotation:quotation_builder' quotation.pk %}?leaflet={{ section.subsection_key }}#section-{{ section.pk }}"
                  class="btn btn-sm btn-outline-secondary">
                 <i class="bi bi-pencil me-1"></i>{% trans "Edit" %}
               </a>
@@ -391,7 +391,7 @@
               <div class="card-body text-center py-4 text-muted small">
                 <i class="bi bi-exclamation-circle me-1"></i>
                 {% trans "This section has not been configured yet." %}
-                <a href="{% url 'quotation:quotation_builder' quotation.pk %}"
+                 <a href="{% url 'quotation:quotation_builder' quotation.pk %}?leaflet={{ section.subsection_key }}#section-{{ section.pk }}"
                    class="ms-1 text-decoration-none">{% trans "Configure now" %}</a>
               </div>
             {% endif %}

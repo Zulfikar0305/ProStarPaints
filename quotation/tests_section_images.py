@@ -227,3 +227,91 @@ class SectionImageTests(TestCase):
         q2.delete()
         self.assertFalse(default_storage.exists(name2))
         self.assertFalse(QuotationSectionImage.objects.filter(pk=inst2.pk).exists())
+
+    def test_three_image_multi_upload_lifecycle_trace(self):
+        """
+        Reproduce a single POST uploading three images and trace lifecycle:
+        1) present in request.FILES
+        2) DB row created
+        3) DB write persisted
+        4) builder queryset returns it
+        5) builder template renders thumbnail URL
+        """
+        from django.test import RequestFactory
+        from django.contrib.messages.storage.fallback import FallbackStorage
+        from django.contrib.sessions.middleware import SessionMiddleware
+        from django.urls import reverse
+
+        from .views import InteriorWallsSaveView
+        from .models import QuotationSectionImage
+
+        # Build three distinct PNG byte blobs so we can map saved files back
+        try:
+            from PIL import Image
+
+            def make_png_bytes(size):
+                buf = BytesIO()
+                img = Image.new("RGB", size, color=(size[0] % 255, size[1] % 255, (size[0] * size[1]) % 255))
+                img.save(buf, format="PNG")
+                return buf.getvalue()
+        except Exception:
+            # Minimal distinct byte blobs fallback
+            def make_png_bytes(size):
+                return b"PNG" + bytes([size[0] % 256, size[1] % 256])
+
+        contents = [make_png_bytes((10, 10)), make_png_bytes((11, 11)), make_png_bytes((12, 12))]
+        imgs = [SimpleUploadedFile(f"multi{i}.png", contents[i], content_type="image/png") for i in range(3)]
+
+        # Prepare a RequestFactory POST so we can inspect request.FILES directly
+        factory = RequestFactory()
+        path = reverse("quotation:interior_walls_save", kwargs={"pk": self.quotation.pk, "section_pk": self.section.pk})
+        data = {"wall_type": "brick", "section_images": imgs}
+        req = factory.post(path, data)
+        req.user = self.user
+
+        # Attach session + messages (used by the view)
+        sess_mw = SessionMiddleware(lambda req: None)
+        sess_mw.process_request(req)
+        req.session.save()
+        req._messages = FallbackStorage(req)
+
+        # Checkpoint 1: files present in request.FILES
+        files_list_before = req.FILES.getlist("section_images") if getattr(req, "FILES", None) else []
+        self.assertEqual(len(files_list_before), 3, "request.FILES does not contain three uploaded files")
+
+        # Call the view directly (same process) so we can then inspect DB + storage
+        resp = InteriorWallsSaveView.as_view()(req, pk=self.quotation.pk, section_pk=self.section.pk)
+
+        # Checkpoint 2/3: DB rows created and persisted
+        db_images = list(QuotationSectionImage.objects.filter(section=self.section).order_by("sort_order", "pk"))
+        self.assertEqual(len(db_images), 3, f"Expected 3 QuotationSectionImage rows, found {len(db_images)}")
+
+        # Map saved files back to uploaded contents by comparing stored bytes
+        mapped_indices = set()
+        for inst in db_images:
+            self.assertTrue(default_storage.exists(inst.image.name), f"Stored file missing: {inst.image.name}")
+            with default_storage.open(inst.image.name, "rb") as fh:
+                saved = fh.read()
+            try:
+                idx = contents.index(saved)
+            except ValueError:
+                # If exact content-match fails, fail the test — mapping is required
+                self.fail(f"Saved file content for {inst.image.name} does not match any uploaded content")
+            mapped_indices.add(idx)
+
+        self.assertEqual(mapped_indices, {0, 1, 2}, f"Saved files did not map to all uploaded files: {mapped_indices}")
+
+        # Checkpoint 4/5: Builder queryset and template render thumbnail URLs
+        builder_url = reverse("quotation:quotation_builder", kwargs={"pk": self.quotation.pk})
+        resp_get = self.client.get(builder_url)
+        self.assertEqual(resp_get.status_code, 200)
+
+        interior_sections = resp_get.context.get("interior_sections_data")
+        entry = next((e for e in interior_sections if e["section"].pk == self.section.pk), None)
+        self.assertIsNotNone(entry, "Section entry missing from builder context")
+        self.assertTrue(entry["section"].images.exists())
+        self.assertEqual(entry["section"].images.count(), 3)
+
+        html = resp_get.content.decode("utf-8")
+        for inst in db_images:
+            self.assertIn(inst.image.url, html, f"Image URL {inst.image.url} not rendered in builder HTML")

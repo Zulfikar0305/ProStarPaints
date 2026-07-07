@@ -323,11 +323,18 @@ def _describe_prep_work(line_item: "QuotationLineItem") -> str:
     Uses a lookup table of polished sentences keyed by the stored metadata key.
     Falls back to the stored description if the key is not recognised.
     """
+    # Prefer the stored description so the Review page shows exactly what
+    # was saved by the builder. If no description is present, fall back to
+    # the polished sentence lookup keyed by metadata, then a generic fallback.
+    desc = (line_item.description or "").strip()
+    if desc:
+        return desc
+
     meta: dict = line_item.metadata or {}
     key = meta.get("key", "")
     if key and key in _PREP_WORK_SENTENCES:
         return _PREP_WORK_SENTENCES[key]
-    return line_item.description.strip() or "Surface preparation."
+    return "Surface preparation."
 
 
 # ---------------------------------------------------------------------------

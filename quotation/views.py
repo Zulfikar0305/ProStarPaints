@@ -363,6 +363,8 @@ class QuotationBuilderView(QuotationAccessMixin, View):
         saved_waterproofing = set()
         saved_primers       = {}   # key → coats str
         saved_prep_work     = set()
+        # Per-prep metadata (maps prep_key -> metadata dict) so UI can restore
+        saved_prep_meta     = {}
         saved_paint_keys    = set()
         saved_paint_bases   = {}   # group_key → base_val
         saved_paint_coats   = {}   # group_key → coats str
@@ -399,7 +401,12 @@ class QuotationBuilderView(QuotationAccessMixin, View):
                     "metadata": li.metadata or {},
                 })
             elif li.item_type == QuotationLineItem.ItemType.PREP_WORK:
-                saved_prep_work.add(li.metadata.get("key", ""))
+                k = li.metadata.get("key", "")
+                saved_prep_work.add(k)
+                try:
+                    saved_prep_meta[k] = li.metadata or {}
+                except Exception:
+                    saved_prep_meta[k] = {}
             elif li.item_type == QuotationLineItem.ItemType.PAINT:
                 # Preserve per-paint line information so the UI can render repeatable rows
                 try:
@@ -428,6 +435,7 @@ class QuotationBuilderView(QuotationAccessMixin, View):
             "saved_waterproofing": saved_waterproofing,
             "saved_primers":       saved_primers,
             "saved_prep_work":     saved_prep_work,
+            "saved_prep_meta":     saved_prep_meta,
             "saved_paint_keys":    saved_paint_keys,
             "saved_paint_bases":   saved_paint_bases,
             "saved_paint_coats":   saved_paint_coats,
@@ -438,6 +446,7 @@ class QuotationBuilderView(QuotationAccessMixin, View):
             "saved_paint_bases_json":  json.dumps(saved_paint_bases),
             "saved_paint_coats_json":  json.dumps(saved_paint_coats),
             "saved_primers_json":      json.dumps(saved_primers),
+            "saved_prep_meta_json":    json.dumps(saved_prep_meta, default=str),
         }
 
     @staticmethod
@@ -458,6 +467,7 @@ class QuotationBuilderView(QuotationAccessMixin, View):
         saved_waterproofing: set  = set()
         saved_primers:       dict = {}
         saved_prep_work:     set  = set()
+        saved_prep_meta:     dict = {}
         saved_paint_keys:    set  = set()
         saved_paint_bases:   dict = {}
         saved_paint_coats:   dict = {}
@@ -494,7 +504,12 @@ class QuotationBuilderView(QuotationAccessMixin, View):
                     "metadata": li.metadata or {},
                 })
             elif li.item_type == QuotationLineItem.ItemType.PREP_WORK:
-                saved_prep_work.add(li.metadata.get("key", ""))
+                k = li.metadata.get("key", "")
+                saved_prep_work.add(k)
+                try:
+                    saved_prep_meta[k] = li.metadata or {}
+                except Exception:
+                    saved_prep_meta[k] = {}
             elif li.item_type == QuotationLineItem.ItemType.PAINT:
                 try:
                     paint_pk = li.paint.pk if li.paint else None
@@ -522,6 +537,7 @@ class QuotationBuilderView(QuotationAccessMixin, View):
             "saved_waterproofing": saved_waterproofing,
             "saved_primers":       saved_primers,
             "saved_prep_work":     saved_prep_work,
+            "saved_prep_meta":     saved_prep_meta,
             "saved_paint_keys":    saved_paint_keys,
             "saved_paint_bases":   saved_paint_bases,
             "saved_paint_coats":   saved_paint_coats,
@@ -532,6 +548,7 @@ class QuotationBuilderView(QuotationAccessMixin, View):
             "saved_paint_bases_json": json.dumps(saved_paint_bases),
             "saved_paint_coats_json": json.dumps(saved_paint_coats),
             "saved_primers_json":     json.dumps(saved_primers),
+            "saved_prep_meta_json":   json.dumps(saved_prep_meta, default=str),
         }
 
     def get(self, request, pk, *args, **kwargs):
@@ -672,6 +689,7 @@ class QuotationBuilderView(QuotationAccessMixin, View):
                     "price_incl_vat": str(p.price_incl_vat),
                     "priced_volume_litres": str(p.priced_volume_litres) if p.priced_volume_litres is not None else None,
                     "finish": p.finish,
+                    "category": p.category,
                     "group_key": next((k for k, g in PAINT_GROUPS.items() if g.paint_name.lower() in p.name.lower()), None),
                     "base_type": p.base_type,
                 }
@@ -919,7 +937,22 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
                     row_area = None
 
                 wp_label = wp_labels.get(key, key)
-                matched = _find_catalogue_paint_by_label(wp_label, Paint.Category.WATERPROOFING)
+                matched = None
+                try:
+                    # Accept either a catalogue key or a numeric Paint PK
+                    if key:
+                        try:
+                            kint = int(key)
+                            matched = _Paint.objects.filter(pk=kint, is_active=True, category=_Paint.Category.WATERPROOFING).first()
+                            if matched:
+                                wp_label = matched.name
+                        except Exception:
+                            matched = None
+                    if not matched:
+                        matched = _find_catalogue_paint_by_label(wp_label, Paint.Category.WATERPROOFING)
+                except Exception:
+                    matched = _find_catalogue_paint_by_label(wp_label, Paint.Category.WATERPROOFING)
+
                 price_excl = matched.price_excl_vat if matched else Decimal("0")
                 price_incl = matched.price_incl_vat if matched else Decimal("0")
 
@@ -1001,7 +1034,22 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
                     row_area = None
 
                 pr_label = primer_labels.get(key, key)
-                matched = _find_catalogue_paint_by_label(pr_label, Paint.Category.PRIMER)
+                matched = None
+                try:
+                    # Accept either a catalogue key or a numeric Paint PK
+                    if key:
+                        try:
+                            kint = int(key)
+                            matched = _Paint.objects.filter(pk=kint, is_active=True, category=_Paint.Category.PRIMER).first()
+                            if matched:
+                                pr_label = matched.name
+                        except Exception:
+                            matched = None
+                    if not matched:
+                        matched = _find_catalogue_paint_by_label(pr_label, Paint.Category.PRIMER)
+                except Exception:
+                    matched = _find_catalogue_paint_by_label(pr_label, Paint.Category.PRIMER)
+
                 price_excl = matched.price_excl_vat if matched else Decimal("0")
                 price_incl = matched.price_incl_vat if matched else Decimal("0")
 
@@ -1043,16 +1091,96 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
                 continue
             prep_label = prep_labels[prep_key]
             category = prep_key_to_category.get(prep_key)
-            matched = _find_catalogue_paint_by_label(prep_label, category) if category else None
 
-            # Default metadata for pack/per-metre items when not provided by UI
-            meta = {"key": prep_key, "paint_matched": matched is not None}
-            if matched and matched.pricing_method == Paint.PricingMethod.FIXED_PACK:
-                # Default to one package when user doesn't specify count in the UI
-                meta["package_count"] = 1
-            if matched and matched.pricing_method == Paint.PricingMethod.PER_METRE:
-                # Default to one metre/roll when user doesn't specify count in the UI
-                meta["roll_count"] = 1
+            # Attempt to match a catalogue product using pack/variant inputs when available
+            matched = None
+            try:
+                if prep_key == 'filling':
+                    pack_raw = POST.get('prep_filling_pack_size', '').strip()
+                    if pack_raw:
+                        try:
+                            ps = Decimal(pack_raw)
+                            matched = Paint.objects.filter(category=Paint.Category.CRACKS, package_size=ps, is_active=True).first()
+                        except Exception:
+                            matched = None
+                    if not matched:
+                        matched = _find_catalogue_paint_by_label(prep_label, category) if category else None
+
+                    # Build metadata with package_count from quantity input
+                    meta = {"key": prep_key, "paint_matched": matched is not None}
+                    if pack_raw:
+                        try:
+                            meta['package_size'] = str(Decimal(pack_raw))
+                        except Exception:
+                            meta['package_size'] = pack_raw
+                    qty_raw = POST.get('prep_filling_quantity', '').strip()
+                    try:
+                        pkg_cnt = int(qty_raw) if qty_raw else 1
+                        pkg_cnt = max(1, pkg_cnt)
+                    except Exception:
+                        pkg_cnt = 1
+                    if matched and matched.pricing_method == Paint.PricingMethod.FIXED_PACK:
+                        meta["package_count"] = pkg_cnt
+
+                elif prep_key in ('mould_treatment', 'cleaning'):
+                    # Mould and cleaning: pack size in litres
+                    field_prefix = 'prep_mould_treatment' if prep_key == 'mould_treatment' else 'prep_cleaning'
+                    pack_raw = POST.get(f'{field_prefix}_pack_size', '').strip()
+                    if pack_raw:
+                        try:
+                            ps = Decimal(pack_raw)
+                            matched = Paint.objects.filter(category=(Paint.Category.MOULD if prep_key == 'mould_treatment' else Paint.Category.CLEANING), package_size=ps, is_active=True).first()
+                        except Exception:
+                            matched = None
+                    if not matched:
+                        matched = _find_catalogue_paint_by_label(prep_label, category) if category else None
+
+                    meta = {"key": prep_key, "paint_matched": matched is not None}
+                    if pack_raw:
+                        try:
+                            meta['package_size'] = str(Decimal(pack_raw))
+                        except Exception:
+                            meta['package_size'] = pack_raw
+                    qty_raw = POST.get(f'{field_prefix}_quantity', '').strip()
+                    try:
+                        pkg_cnt = int(qty_raw) if qty_raw else 1
+                        pkg_cnt = max(1, pkg_cnt)
+                    except Exception:
+                        pkg_cnt = 1
+                    if matched and matched.pricing_method == Paint.PricingMethod.FIXED_PACK:
+                        meta["package_count"] = pkg_cnt
+
+                elif prep_key == 'sanding':
+                    grit = POST.get('prep_sanding_grit', '').strip()
+                    rolls_raw = POST.get('prep_sanding_rolls', '').strip()
+                    if grit:
+                        # Try variant match first (e.g. '80 grit')
+                        try:
+                            matched = Paint.objects.filter(category=Paint.Category.SANDING, variant_label__icontains=(grit + ' grit'), is_active=True).first()
+                        except Exception:
+                            matched = None
+                    if not matched:
+                        matched = _find_catalogue_paint_by_label(prep_label, category) if category else None
+
+                    meta = {"key": prep_key, "paint_matched": matched is not None}
+                    try:
+                        rolls = int(rolls_raw) if rolls_raw else 1
+                        rolls = max(1, rolls)
+                    except Exception:
+                        rolls = 1
+                    # Persist roll_count for UI restoration irrespective of pricing match
+                    meta["roll_count"] = rolls
+                    # Preserve chosen grit in metadata for description/variant
+                    if grit:
+                        meta["variant_label"] = f"{grit} grit"
+
+                else:
+                    # efflorescence, remove_paint, and others: simple match
+                    matched = _find_catalogue_paint_by_label(prep_label, category) if category else None
+                    meta = {"key": prep_key, "paint_matched": matched is not None}
+            except Exception:
+                matched = _find_catalogue_paint_by_label(prep_label, category) if category else None
+                meta = {"key": prep_key, "paint_matched": matched is not None}
 
             price_excl = matched.price_excl_vat if matched else Decimal("0")
             price_incl = matched.price_incl_vat if matched else Decimal("0")
@@ -1213,11 +1341,11 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
             files = []
 
         if files:
-            try:
-                existing = section.images.count()
-                for f in files:
-                    if existing >= 3:
-                        break
+            existing = section.images.count()
+            for f in files:
+                if existing >= 3:
+                    break
+                try:
                     ctype = getattr(f, 'content_type', '')
                     if not ctype or not ctype.startswith('image/'):
                         continue
@@ -1225,9 +1353,11 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
                         continue
                     QuotationSectionImage.objects.create(section=section, image=f, uploaded_by=request.user)
                     existing += 1
-            except Exception:
-                # Swallow — image issues should not prevent the section save
-                pass
+                except Exception:
+                    # Swallow per-file errors so one bad file doesn't abort the rest
+                    continue
+
+        
 
         return redirect(f"{reverse('quotation:quotation_builder', kwargs={'pk': pk})}?leaflet=interior_walls#section-{section.pk}")
 
@@ -1411,15 +1541,46 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
                             row_area = None
 
                         wp_label = wp_labels.get(key, key)
-                        QuotationLineItem.objects.create(
+                        # Try to match a catalogue product by numeric PK or label
+                        from paints.models import Paint as _Paint
+                        matched = None
+                        try:
+                            if key:
+                                try:
+                                    kint = int(key)
+                                    matched = _Paint.objects.filter(pk=kint, is_active=True, category=_Paint.Category.WATERPROOFING).first()
+                                    if matched:
+                                        wp_label = matched.name
+                                except Exception:
+                                    matched = None
+                            if not matched:
+                                matched = _find_catalogue_paint_by_label(wp_label, Paint.Category.WATERPROOFING)
+                        except Exception:
+                            matched = _find_catalogue_paint_by_label(wp_label, Paint.Category.WATERPROOFING)
+
+                        price_excl = matched.price_excl_vat if matched else Decimal("0")
+                        price_incl = matched.price_incl_vat if matched else Decimal("0")
+
+                        li = QuotationLineItem.objects.create(
                             quotation   = quotation,
                             section     = section,
                             item_type   = QuotationLineItem.ItemType.WATERPROOFING,
                             description = wp_label,
                             coats       = coats,
                             area_sqm    = row_area,
-                            metadata    = {"key": key},
+                            paint       = matched,
+                            price_excl_vat = price_excl,
+                            price_incl_vat = price_incl,
+                            metadata    = {"key": key, "paint_matched": matched is not None},
                         )
+
+                        try:
+                            apply_paint_pricing_to_line_item(li)
+                        except Exception:
+                            meta = dict(li.metadata or {})
+                            meta.update({"pricing_status": "pending", "pricing_pending_reason": "pricing_exception"})
+                            li.metadata = meta
+                            li.save(update_fields=["metadata"])
 
                 # ── 3. PRIMER items ─────────────────────────────────────────────────
                 pr_row_keys = POST.getlist("primer_row_key")
@@ -1476,27 +1637,98 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
                             row_area = None
 
                         pr_label = primer_labels.get(key, key)
-                        QuotationLineItem.objects.create(
+                        from paints.models import Paint as _Paint
+                        matched = None
+                        try:
+                            if key:
+                                try:
+                                    kint = int(key)
+                                    matched = _Paint.objects.filter(pk=kint, is_active=True, category=_Paint.Category.PRIMER).first()
+                                    if matched:
+                                        pr_label = matched.name
+                                except Exception:
+                                    matched = None
+                            if not matched:
+                                matched = _find_catalogue_paint_by_label(pr_label, Paint.Category.PRIMER)
+                        except Exception:
+                            matched = _find_catalogue_paint_by_label(pr_label, Paint.Category.PRIMER)
+
+                        price_excl = matched.price_excl_vat if matched else Decimal("0")
+                        price_incl = matched.price_incl_vat if matched else Decimal("0")
+
+                        li = QuotationLineItem.objects.create(
                             quotation   = quotation,
                             section     = section,
                             item_type   = QuotationLineItem.ItemType.PRIMER,
                             description = pr_label,
                             coats       = coats,
                             area_sqm    = row_area,
-                            metadata    = {"key": key},
+                            paint       = matched,
+                            price_excl_vat = price_excl,
+                            price_incl_vat = price_incl,
+                            metadata    = {"key": key, "paint_matched": matched is not None},
                         )
+
+                        try:
+                            apply_paint_pricing_to_line_item(li)
+                        except Exception:
+                            meta = dict(li.metadata or {})
+                            meta.update({"pricing_status": "pending", "pricing_pending_reason": "pricing_exception"})
+                            li.metadata = meta
+                            li.save(update_fields=["metadata"])
 
                 # ── 4. PREP_WORK items ───────────────────────────────────────────────
                 prep_labels = dict(OTHER_PREP_OPTIONS)
                 for prep_key in POST.getlist("prep_work"):
                     if prep_key not in prep_labels:
                         continue
+                    # Preserve any pack/grit/quantity choices in metadata so UI
+                    # can restore user selections for generic sections.
+                    meta = {"key": prep_key}
+                    try:
+                        if prep_key == 'filling':
+                            pack_raw = POST.get('prep_filling_pack_size', '').strip()
+                            if pack_raw:
+                                try:
+                                    meta['package_size'] = str(Decimal(pack_raw))
+                                except Exception:
+                                    meta['package_size'] = pack_raw
+                            qty_raw = POST.get('prep_filling_quantity', '').strip()
+                            try:
+                                meta['package_count'] = int(qty_raw) if qty_raw else 1
+                            except Exception:
+                                pass
+                        elif prep_key in ('mould_treatment', 'cleaning'):
+                            field_prefix = 'prep_mould_treatment' if prep_key == 'mould_treatment' else 'prep_cleaning'
+                            pack_raw = POST.get(f'{field_prefix}_pack_size', '').strip()
+                            if pack_raw:
+                                try:
+                                    meta['package_size'] = str(Decimal(pack_raw))
+                                except Exception:
+                                    meta['package_size'] = pack_raw
+                            qty_raw = POST.get(f'{field_prefix}_quantity', '').strip()
+                            try:
+                                meta['package_count'] = int(qty_raw) if qty_raw else 1
+                            except Exception:
+                                pass
+                        elif prep_key == 'sanding':
+                            grit = POST.get('prep_sanding_grit', '').strip()
+                            rolls_raw = POST.get('prep_sanding_rolls', '').strip()
+                            if grit:
+                                meta['variant_label'] = f"{grit} grit"
+                            try:
+                                meta['roll_count'] = int(rolls_raw) if rolls_raw else 1
+                            except Exception:
+                                pass
+                    except Exception:
+                        pass
+
                     QuotationLineItem.objects.create(
                         quotation   = quotation,
                         section     = section,
                         item_type   = QuotationLineItem.ItemType.PREP_WORK,
                         description = prep_labels[prep_key],
-                        metadata    = {"key": prep_key},
+                        metadata    = meta,
                     )
 
                 # ── 5. PAINT items ───────────────────────────────────────────────────

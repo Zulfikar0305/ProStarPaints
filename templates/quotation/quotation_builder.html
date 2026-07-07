@@ -60,8 +60,13 @@
 
 <!-- ── Main builder layout ─────────────────────────────────────── -->
 <div class="row g-3 align-items-start"
-     id="pspBuilderContainer"
-     data-moisture-threshold="{{ moisture_threshold }}">
+  id="pspBuilderContainer"
+  data-moisture-threshold="{{ moisture_threshold }}"
+  data-active-leaflet="{{ active_leaflet_key|default:'' }}">
+  <script>
+    /* Expose global ALL_PAINTS for shared JS filtering when templates render per-section copies */
+    window.ALL_PAINTS = {{ all_paints_json|safe }};
+  </script>
 
   <!-- ── Left: builder sections ── -->
   <div class="col-lg-8" id="pspBuilderMain">
@@ -86,7 +91,7 @@
       {# Add control for active leaflet (server-driven) #}
       {% if active_leaflet_group and active_leaflet_can_add %}
         <div class="d-flex align-items-center justify-content-end mb-3">
-          <form method="post" action="{% url 'quotation:section_add' quotation.pk active_leaflet_group.key %}">
+          <form method="post" action="{% url 'quotation:section_add' quotation.pk active_leaflet_group.key %}" data-preserve-unsaved="true" class="psp-add-section-form">
             {% csrf_token %}
             <button type="submit" class="btn btn-outline-primary btn-sm">
               + Add another {{ active_leaflet_group.display_name }}
