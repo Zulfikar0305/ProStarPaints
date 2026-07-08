@@ -1,13 +1,14 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load static i18n %}
 
 {% block title %}Dashboard — ProStar Paints{% endblock %}
 
 {% block extra_css %}
-<style>
-  /* chart-wrap keeps canvas proportional */
-  .chart-wrap { position: relative; }
-</style>
+  <link rel="stylesheet" href="{% static 'css/dashboard_redesign.css' %}">
+  <style>
+    /* keep small compatibility for chart wrapper */
+    .chart-wrap { position: relative; }
+  </style>
 {% endblock %}
 
 {% block content %}
@@ -51,7 +52,7 @@
   </div>
 {% endif %}
 
-{% if user_app_settings.show_data_quality_widget %}
+{% if is_admin and user_app_settings.show_data_quality_widget %}
   {% include "widgets/data_quality.html" %}
 {% endif %}
 
@@ -446,298 +447,187 @@
 
 
 {% else %}
-{# ================================================================ #}
-{# REP DASHBOARD                                                     #}
-{# ================================================================ #}
 
-<!-- Continue latest draft hero -->
-{% if latest_draft_quotation %}
-<div class="psp-continue-card mb-3">
-  <div class="psp-continue-icon"><i class="bi bi-file-earmark-play-fill"></i></div>
-  <div class="psp-continue-meta">
-    <div class="psp-continue-label">{% trans "Pick up where you left off" %}</div>
-    <div class="psp-continue-title">
-      {{ latest_draft_quotation.customer_name|default:latest_draft_quotation.reference }}
-      <span class="text-muted fw-normal" style="font-size:.78rem;">&middot; {{ latest_draft_quotation.reference }}</span>
-    </div>
-    <div class="psp-continue-sub">
-      {% if latest_draft_quotation.project_name %}{{ latest_draft_quotation.project_name }} &middot; {% endif %}
-      {% trans "Last updated" %} {{ latest_draft_quotation.updated_at|timesince }} {% trans "ago" %}
-    </div>
-  </div>
-  <a href="{% url 'quotation:quotation_builder' latest_draft_quotation.pk %}" class="btn btn-primary btn-sm flex-shrink-0">
-    <i class="bi bi-arrow-right-circle me-1"></i>{% trans "Continue" %}
-  </a>
-</div>
-{% endif %}
+{# -----------------------------
+   Redesigned Sales Rep Dashboard
+   Presentation-only: hero, quick actions,
+   needs attention, compact KPIs, activity, quotations
+   ------------------------------#}
 
-<!-- Quick actions -->
-<div class="row g-3 mb-4">
-  <div class="col-6 col-lg">
-    <a href="{% url 'quotation:quotation_start' %}" class="psp-quick-action">
-      <div class="psp-quick-action-icon psp-quick-action-icon--purple"><i class="bi bi-plus-lg"></i></div>
-      <div>
-        <div class="psp-quick-action-title">{% trans "New Quotation" %}</div>
-        <div class="psp-quick-action-sub">{% trans "Start a draft" %}</div>
-      </div>
-    </a>
-  </div>
-  <div class="col-6 col-lg">
-    <a href="{% url 'quotation:quotation_list' %}?status=DRAFT" class="psp-quick-action">
-      <div class="psp-quick-action-icon psp-quick-action-icon--amber"><i class="bi bi-pencil-square"></i></div>
-      <div>
-        <div class="psp-quick-action-title">
-          {% trans "My Drafts" %}
-          {% if my_draft_count %}<span class="badge text-bg-warning text-dark ms-1" style="font-size:.65rem;">{{ my_draft_count }}</span>{% endif %}
-        </div>
-        <div class="psp-quick-action-sub">{% trans "In-progress quotations" %}</div>
-      </div>
-    </a>
-  </div>
-  {% if latest_completed_quotation %}
-  <div class="col-6 col-lg">
-    <a href="{% url 'quotation:pdf_select' latest_completed_quotation.pk %}" class="psp-quick-action">
-      <div class="psp-quick-action-icon psp-quick-action-icon--purple"><i class="bi bi-file-earmark-pdf-fill"></i></div>
-      <div>
-        <div class="psp-quick-action-title">{% trans "Generate PDF" %}</div>
-        <div class="psp-quick-action-sub">{{ latest_completed_quotation.reference }}</div>
-      </div>
-    </a>
-  </div>
-  {% endif %}
-  <div class="col-6 col-lg">
-    <a href="{% url 'invoices:invoice_list' %}" class="psp-quick-action">
-      <div class="psp-quick-action-icon psp-quick-action-icon--green"><i class="bi bi-receipt"></i></div>
-      <div>
-        <div class="psp-quick-action-title">{% trans "Invoices" %}</div>
-        <div class="psp-quick-action-sub">{% trans "Spec sheets & history" %}</div>
-      </div>
-    </a>
-  </div>
-  <div class="col-6 col-lg">
-    <a href="{% url 'users:profile' %}" class="psp-quick-action">
-      <div class="psp-quick-action-icon psp-quick-action-icon--blue"><i class="bi bi-person-circle"></i></div>
-      <div>
-        <div class="psp-quick-action-title">{% trans "My Profile" %}</div>
-        <div class="psp-quick-action-sub">{% trans "Personalise account" %}</div>
-      </div>
-    </a>
+<!-- Hero -->
+<div class="psp-hero card mb-4">
+  <div class="card-body d-flex flex-column flex-md-row align-items-start justify-content-between gap-3">
+    <div class="min-w-0">
+      <h3 class="mb-1">{% trans "Welcome back" %}, <strong>{{ user.get_full_name|default:user.username }}</strong></h3>
+      <div class="text-muted small">{% now "j M Y" %}</div>
+      <p class="text-muted mt-2 mb-0" style="max-width:48rem;">{% trans "Here's what needs your attention today. Quick actions and your recent work are below." %}</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      {% if latest_draft_quotation %}
+        <a href="{% url 'quotation:quotation_builder' latest_draft_quotation.pk %}" class="btn btn-outline-primary">
+          <i class="bi bi-arrow-right-circle me-1"></i>{% trans "Continue Last Quotation" %}
+        </a>
+      {% endif %}
+      <a href="{% url 'quotation:quotation_start' %}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>{% trans "New Quotation" %}
+      </a>
+    </div>
   </div>
 </div>
 
-<!-- KPI Cards -->
-<div class="row g-3 mb-4">
-
-  <div class="col-6 col-lg-3">
-    <div class="card h-100 kpi-card">
-      <div class="card-body d-flex align-items-center gap-3 py-3">
-        <div class="kpi-icon kpi-icon-purple">
-          <i class="bi bi-file-earmark-text-fill"></i>
-        </div>
-        <div>
-          <div class="fs-2 fw-bold lh-1 mb-1" style="letter-spacing:-.02em;">{{ my_total_quotations }}</div>
-          <div class="section-label">{% trans "My Quotations" %}</div>
-        </div>
-      </div>
+<!-- Quick Actions (4) -->
+<div class="psp-quick-actions mb-4">
+  <div class="row g-3">
+    <div class="col-6 col-sm-3">
+      <a href="{% url 'quotation:quotation_start' %}" class="psp-qa-card text-decoration-none">
+        <div class="psp-qa-icon" aria-hidden="true"><i class="bi bi-plus-lg"></i></div>
+        <div class="psp-qa-title">{% trans "New Quotation" %}</div>
+      </a>
+    </div>
+    <div class="col-6 col-sm-3">
+      <a href="{% url 'quotation:quotation_list' %}?status=DRAFT" class="psp-qa-card text-decoration-none">
+        <div class="psp-qa-icon"><i class="bi bi-pencil-square"></i></div>
+        <div class="psp-qa-title">{% trans "My Drafts" %}</div>
+      </a>
+    </div>
+    <div class="col-6 col-sm-3">
+      <a href="{% url 'invoices:invoice_list' %}" class="psp-qa-card text-decoration-none">
+        <div class="psp-qa-icon"><i class="bi bi-receipt"></i></div>
+        <div class="psp-qa-title">{% trans "Invoices" %}</div>
+      </a>
+    </div>
+    <div class="col-6 col-sm-3">
+      <a href="{% url 'users:profile' %}" class="psp-qa-card text-decoration-none">
+        <div class="psp-qa-icon"><i class="bi bi-person-circle"></i></div>
+        <div class="psp-qa-title">{% trans "Profile" %}</div>
+      </a>
     </div>
   </div>
+</div>
 
-  <div class="col-6 col-lg-3">
-    <div class="card h-100 kpi-card">
-      <div class="card-body d-flex align-items-center gap-3 py-3">
-        <div class="kpi-icon kpi-icon-amber">
-          <i class="bi bi-hourglass-split"></i>
-        </div>
-        <div>
-          <div class="fs-2 fw-bold lh-1 mb-1" style="letter-spacing:-.02em;">{{ my_draft_count }}</div>
-          <div class="section-label">{% trans "Open Drafts" %}</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-6 col-lg-3">
-    <div class="card h-100 kpi-card">
-      <div class="card-body d-flex align-items-center gap-3 py-3">
-        <div class="kpi-icon kpi-icon-green">
-          <i class="bi bi-check-circle-fill"></i>
-        </div>
-        <div>
-          <div class="fs-2 fw-bold lh-1 mb-1" style="letter-spacing:-.02em;">{{ my_completed_count }}</div>
-          <div class="section-label">{% trans "Completed" %}</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-6 col-lg-3">
-    <div class="card h-100 kpi-card">
-      <div class="card-body d-flex align-items-center gap-3 py-3">
-        <div class="kpi-icon kpi-icon-blue">
-          <i class="bi bi-activity"></i>
-        </div>
-        <div>
-          <div class="fs-2 fw-bold lh-1 mb-1" style="letter-spacing:-.02em;">{{ my_total_actions }}</div>
-          <div class="section-label">
-            {% trans "My Actions" %}
-            {% if period != 'all' %}<span class="fw-normal" style="text-transform:none;letter-spacing:0;">({% trans "filtered" %})</span>{% endif %}
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-</div><!-- /KPI Cards -->
-
-<!-- Charts -->
-<div class="row g-3 mb-4">
-
-  <!-- Monthly Trend -->
-  <div class="col-12 col-lg-8">
-    <div class="card h-100">
-      <div class="card-header d-flex align-items-center justify-content-between">
-        <span class="fw-semibold" style="font-size:.9rem;">
-          <i class="bi bi-graph-up me-2 text-primary"></i>{% trans "My Monthly Activity" %}
-        </span>
-        <span class="badge text-bg-secondary fw-normal" style="font-size:.67rem;border-radius:50px;">{% trans "last 12 months" %}</span>
-      </div>
-      <div class="card-body pt-2">
-        <div class="chart-wrap" style="height:240px;">
-          <canvas id="repTrendChart"></canvas>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Module Breakdown -->
-  <div class="col-12 col-lg-4">
-    <div class="card h-100">
-      <div class="card-header">
-        <span class="fw-semibold" style="font-size:.9rem;">
-          <i class="bi bi-pie-chart-fill me-2 text-success"></i>{% trans "By Module" %}
-        </span>
-      </div>
-      <div class="card-body d-flex flex-column align-items-center justify-content-center py-3">
-        {% if my_modules %}
-          <div class="chart-wrap" style="height:190px;width:190px;">
-            <canvas id="repModuleChart"></canvas>
-          </div>
-          <div class="mt-3 d-flex flex-wrap justify-content-center gap-2">
-            {% for row in my_modules %}
-              <span class="badge text-bg-secondary fw-normal">{{ row.module|capfirst }}: {{ row.count }}</span>
-            {% endfor %}
-          </div>
-        {% else %}
-          <div class="text-center text-muted py-4">
-            <i class="bi bi-inbox fs-3 d-block mb-2"></i>{% trans "No activity yet" %}
-          </div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
-</div><!-- /charts -->
-
-<!-- Recent Activity + Recent Quotations -->
-<div class="row g-3">
-  {% if user_app_settings.show_recent_activity_widget %}
+<!-- Two-column workspace: Left = attention + Today's Work; Right = KPIs + Recent Activity -->
+<div class="row g-4">
   <div class="col-12 col-xl-7">
-    <div class="card h-100">
-      <div class="card-header d-flex align-items-center">
-        <span class="fw-semibold" style="font-size:.9rem;">
-          <i class="bi bi-clock-history me-2 text-info"></i>{% trans "Recent Activity" %}
-        </span>
-        <span class="ms-2" style="font-size:.75rem;color:var(--psp-text-soft);">({% trans "latest 10" %})</span>
-      </div>
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0 small">
-            <thead class="table-light">
-              <tr>
-                <th class="ps-3">{% trans "Timestamp" %}</th>
-                <th>{% trans "Module" %}</th>
-                <th>{% trans "Action" %}</th>
-                <th>{% trans "Description" %}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for log in recent_activity %}
-                <tr>
-                  <td class="ps-3 text-nowrap text-muted">
-                    {{ log.created_at|date:"d M Y" }}<br>
-                    <span class="text-muted">{{ log.created_at|time:"H:i" }}</span>
-                  </td>
-                  <td>
-                    <span class="badge text-bg-{% if log.module == 'users' %}primary{% elif log.module == 'paints' %}success{% else %}secondary{% endif %}">
-                      {{ log.module|capfirst }}
-                    </span>
-                  </td>
-                  <td><code class="text-dark">{{ log.action }}</code></td>
-                  <td class="text-muted">{{ log.description|truncatechars:80|default:"—" }}</td>
-                </tr>
-              {% empty %}
-                <tr>
-                  <td colspan="4" class="p-0">
-                    <div class="psp-empty">
-                      <div class="psp-empty-icon"><i class="bi bi-clock-history"></i></div>
-                      <div class="psp-empty-title">{% trans "No activity recorded yet" %}</div>
-                      <div class="psp-empty-text">{% trans "Your audit trail will appear here as you work with quotations, paints and customers." %}</div>
-                    </div>
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+    <!-- Needs Your Attention -->
+    <div class="card mb-4 psp-attention">
+      <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h5 class="mb-0">{% trans "Needs Your Attention" %}</h5>
+          <a href="{% url 'quotation:quotation_list' %}" class="small text-decoration-none">{% trans "View all" %} &raquo;</a>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <div class="attention-section">
+              <div class="attention-title">{% trans "Recent Drafts" %}</div>
+              {% if my_recent_quotations %}
+                <ul class="list-unstyled mb-0">
+                  {% for q in my_recent_quotations|slice:":4" %}
+                    <li class="d-flex align-items-center justify-content-between py-2">
+                      <div class="text-truncate me-2"><a href="{% url 'quotation:quotation_builder' q.pk %}">{{ q.customer_name|default:q.reference }}</a></div>
+                      <div class="text-muted small">{{ q.updated_at|timesince }} {% trans "ago" %}</div>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <div class="text-muted small">{% trans "No recent drafts" %}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="attention-section">
+              <div class="attention-title">{% trans "Recently Edited" %}</div>
+              {% if recent_activity %}
+                <ul class="list-unstyled mb-0">
+                  {% for log in recent_activity|slice:":4" %}
+                    <li class="d-flex align-items-center justify-content-between py-2 text-muted small">
+                      <div class="text-truncate">{{ log.action }} — {{ log.module|capfirst }}</div>
+                      <div class="text-nowrap">{{ log.created_at|timesince }} {% trans "ago" %}</div>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <div class="text-muted small">{% trans "No recent edits" %}</div>
+              {% endif %}
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-  {% endif %}
 
-  {% if user_app_settings.show_draft_quotations_widget %}
-  <div class="col-12 col-xl-5">
-    <div class="card h-100">
-      <div class="card-header d-flex align-items-center justify-content-between">
-        <span class="fw-semibold" style="font-size:.9rem;">
-          <i class="bi bi-file-earmark-text me-2 text-primary"></i>{% trans "My Recent Quotations" %}
-        </span>
-        <a href="{% url 'quotation:quotation_list' %}" class="small text-decoration-none">{% trans "View all" %} <i class="bi bi-arrow-right"></i></a>
-      </div>
-      <div class="card-body p-0">
-        {% if my_recent_quotations %}
-          <ul class="psp-recent-list">
-            {% for q in my_recent_quotations %}
-              <li>
-                <a href="{% url 'quotation:quotation_builder' q.pk %}" class="psp-recent-item">
-                  <div class="psp-recent-item-icon"><i class="bi bi-file-earmark-text"></i></div>
-                  <div class="psp-recent-item-meta">
-                    <div class="psp-recent-item-title">{{ q.customer_name|default:q.reference }}</div>
-                    <div class="psp-recent-item-sub">
-                      {{ q.reference }} &middot; {% trans "updated" %} {{ q.updated_at|timesince }} {% trans "ago" %}
-                    </div>
-                  </div>
+    <!-- TODAY'S WORK: three most recently updated quotations as compact cards -->
+    <div class="today-work">
+      <h5 class="mb-3">{% trans "Today's Work" %}</h5>
+      {% if my_recent_quotations %}
+        <div class="d-grid gap-3">
+          {% for q in my_recent_quotations|slice:":3" %}
+            <div class="card today-work-card">
+              <div class="card-body d-flex align-items-start justify-content-between gap-3">
+                <div class="min-w-0">
+                  <div class="fw-semibold text-truncate"><a href="{% url 'quotation:quotation_builder' q.pk %}">{{ q.reference }}</a></div>
+                  <div class="text-muted small">{{ q.customer_name|default:q.reference }}</div>
+                  <div class="text-muted small">{{ q.updated_at|timesince }} {% trans "ago" %}</div>
+                </div>
+                <div class="d-flex flex-column align-items-end gap-2">
                   <span class="badge text-bg-{% if q.status == 'COMPLETED' %}success{% elif q.status == 'DRAFT' %}warning text-dark{% else %}secondary{% endif %}">{{ q.get_status_display }}</span>
-                </a>
+                  <a href="{% url 'quotation:quotation_builder' q.pk %}" class="btn btn-sm btn-primary">{% trans "Continue" %}</a>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-muted small">{% trans "No recent quotations" %}</div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <div class="col-12 col-xl-5">
+    <!-- Compact KPI cards (reduced) -->
+    <div class="d-grid gap-3 mb-4">
+      <div class="card kpi-small">
+        <div class="card-body">
+          <div class="kpi-num">{{ my_total_quotations|default:"—" }}</div>
+          <div class="kpi-label">{% trans "Total Quotations" %}</div>
+        </div>
+      </div>
+      <div class="card kpi-small">
+        <div class="card-body">
+          <div class="kpi-num">{{ my_draft_count|default:"—" }}</div>
+          <div class="kpi-label">{% trans "Drafts" %}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activity (clean timeline) -->
+    <div class="card mb-4">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <h6 class="mb-0">{% trans "Recent Activity" %}</h6>
+        <a href="{% url 'audit:audit_log_list' %}" class="small text-decoration-none">{% trans "View audit log" %}</a>
+      </div>
+      <div class="card-body">
+        {% if recent_activity %}
+          <ul class="psp-timeline list-unstyled mb-0">
+            {% for log in recent_activity|slice:":8" %}
+              <li class="d-flex align-items-start py-2">
+                <div class="timeline-dot me-3 mt-1"></div>
+                <div class="flex-grow-1">
+                  <div class="fw-semibold">{{ log.action }}</div>
+                  <div class="text-muted small">{{ log.module|capfirst }} &middot; {{ log.created_at|timesince }} {% trans "ago" %}</div>
+                </div>
               </li>
             {% endfor %}
           </ul>
         {% else %}
-          <div class="psp-empty">
-            <div class="psp-empty-icon"><i class="bi bi-file-earmark-plus"></i></div>
-            <div class="psp-empty-title">{% trans "No quotations yet" %}</div>
-            <div class="psp-empty-text">{% trans "Start your first quotation to see it appear here." %}</div>
-            <div class="psp-empty-actions">
-              <a href="{% url 'quotation:quotation_start' %}" class="btn btn-primary btn-sm">
-                <i class="bi bi-plus-lg me-1"></i>{% trans "New Quotation" %}
-              </a>
-            </div>
-          </div>
+          <div class="text-muted small">{% trans "No recent activity" %}</div>
         {% endif %}
       </div>
     </div>
+
   </div>
-  {% endif %}
-</div><!-- /recent activity -->
+</div>
 
 {% endif %}
 {% endblock %}

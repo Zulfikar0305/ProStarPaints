@@ -1,0 +1,96 @@
+/* Admin redesign (presentation-only)
+   Applies only when .psp-body[data-user-admin] is present (admin users).
+   Lightweight, non-invasive overrides to give a premium admin look.
+*/
+
+.psp-body[data-user-admin] {
+  --admin-card-radius: 14px;
+  --admin-card-shadow: 0 8px 30px rgba(15,23,42,.06);
+}
+
+/* Main spacing for admin views */
+.psp-body[data-user-admin] .psp-main {
+  padding: 2.25rem;
+}
+
+/* Premium cards */
+.psp-body[data-user-admin] .card,
+.psp-body[data-user-admin] .psp-settings-card,
+.psp-body[data-user-admin] .psp-ws-card {
+  border: none;
+  border-radius: var(--admin-card-radius);
+  box-shadow: var(--admin-card-shadow);
+  background: linear-gradient(180deg, var(--psp-card-bg), rgba(255,255,255,0.98));
+}
+
+.psp-body[data-user-admin] .card-header,
+.psp-body[data-user-admin] .psp-settings-card-header {
+  background: transparent;
+  border-bottom: 0;
+  padding: .9rem 1rem;
+}
+
+.psp-body[data-user-admin] .card-body {
+  padding: 1rem 1rem;
+}
+
+/* Compact KPI tiles */
+.psp-body[data-user-admin] .psp-cc-metric,
+.psp-body[data-user-admin] .kpi-mini {
+  border-radius: 12px;
+  padding: .6rem .8rem;
+  display:flex;align-items:center;gap:.6rem;
+  background: linear-gradient(180deg, rgba(var(--psp-purple-rgb),0.03), rgba(255,255,255,0.02));
+  box-shadow: 0 6px 18px rgba(15,23,42,.04);
+}
+
+.psp-body[data-user-admin] .psp-cc-metric .psp-cc-metric-count,
+.psp-body[data-user-admin] .kpi-mini .kpi-value {
+  font-weight:700;font-size:1.05rem;color:var(--psp-text);
+}
+
+/* Control center cards */
+.psp-body[data-user-admin] .psp-cc-card {
+  display:flex;gap:1rem;align-items:flex-start;padding:1rem;border-radius:12px;background:var(--psp-card-bg);transition:transform .12s ease,box-shadow .12s ease;
+}
+.psp-body[data-user-admin] .psp-cc-card:hover { transform:translateY(-4px); box-shadow:0 12px 32px rgba(15,23,42,.06); }
+.psp-body[data-user-admin] .psp-cc-card-icon { font-size:1.35rem; width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(var(--psp-purple-rgb),0.08);color:var(--psp-purple); }
+.psp-body[data-user-admin] .psp-cc-card-title { font-weight:700; }
+.psp-body[data-user-admin] .psp-cc-card-hint { color:var(--psp-text-soft); font-size:.86rem; margin-top:.25rem; }
+
+/* Tables: modern, rounded rows, hover elevation */
+.psp-body[data-user-admin] .table {
+  border-collapse: separate;
+  border-spacing: 0 10px;
+}
+.psp-body[data-user-admin] .table thead th { background: transparent; position:sticky; top:0; z-index:3; border-bottom:0; padding:.8rem .9rem; color:var(--psp-text-soft); font-weight:600; }
+.psp-body[data-user-admin] .table tbody tr { background:var(--psp-card-bg); border-radius:10px; box-shadow:none; transition:transform .09s ease,box-shadow .12s ease; }
+.psp-body[data-user-admin] .table tbody tr:hover { transform:translateY(-4px); box-shadow:0 10px 24px rgba(15,23,42,.05); }
+.psp-body[data-user-admin] .table td, .psp-body[data-user-admin] .table th { padding:.9rem .85rem; vertical-align:middle; border-top:0; }
+.psp-body[data-user-admin] .table .text-muted { color:var(--psp-text-soft); }
+
+/* Make responsive tables visually consistent */
+.psp-body[data-user-admin] .table-responsive { border-radius:12px; overflow:visible; }
+
+/* Compact action buttons */
+.psp-body[data-user-admin] .btn-sm { padding:.32rem .55rem; border-radius:8px; }
+.psp-body[data-user-admin] .btn-outline-secondary { color:var(--psp-text); border-color:rgba(15,23,42,0.06); }
+
+/* Filter toolbar — single compact pill */
+.psp-body[data-user-admin] .filter-toolbar,
+.psp-body[data-user-admin] .card-body .row.g-2 { background:var(--psp-card-bg); padding:.5rem; border-radius:12px; box-shadow:var(--admin-card-shadow); }
+
+/* Empty state refinements */
+.psp-body[data-user-admin] .psp-empty { padding:2rem; border-radius:12px; background:linear-gradient(180deg, rgba(124,58,237,0.04), rgba(255,255,255,0.02)); }
+
+/* Small tweaks to breadcrumb/heading hierarchy for admin */
+.psp-body[data-user-admin] .psp-main h4 { font-size:1.2rem; }
+
+/* Ensure no horizontal overflow on small screens */
+@media (max-width:767px) {
+  .psp-body[data-user-admin] .psp-main { padding:.9rem; }
+  .psp-body[data-user-admin] .psp-settings-grid { grid-template-columns:1fr; }
+  .psp-body[data-user-admin] .table { border-spacing:0 8px; }
+}
+
+/* Keep changes presentation-only — do not override functional classes or JS hooks. */

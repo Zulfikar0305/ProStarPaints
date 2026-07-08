@@ -14,18 +14,25 @@
 {% trans "These settings only affect your account. Appearance, dashboard widgets, builder defaults, PDF preferences, navigation and notifications — all yours." as ph_text %}
 {% include "widgets/page_help.html" with title=ph_title text=ph_text icon="bi-gear" tone="purple" %}
 
+{% block extra_css %}
+<style>
+.psp-coming-soon { background:var(--psp-card-bg); border-radius:12px; box-shadow:var(--psp-shadow-sm); border:1px solid rgba(15,23,42,0.03); padding:1rem; }
+.psp-coming-soon .badge-coming { background:transparent; color:var(--psp-text-soft); border:1px solid rgba(15,23,42,0.04); font-weight:600; padding:.18rem .55rem; border-radius:999px; font-size:.72rem; }
+.psp-settings-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:.75rem; }
+@media (max-width:767px) { .psp-settings-grid { grid-template-columns:1fr; } }
+.psp-section-title { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:.5rem; }
+.psp-section-title h5 { margin:0; }
+</style>
+{% endblock %}
+
 <div class="d-flex align-items-center justify-content-between mb-3">
   <div>
     <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">
       <i class="bi bi-sliders me-2" style="color:var(--psp-purple);"></i>{% trans "App Settings" %}
     </h4>
-    <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">
-      {% trans "These settings only affect your account. System-wide settings (VAT, branding) live under System Settings — admin only." %}
-    </p>
+    <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">{% trans "These settings only affect your account. System-wide settings (VAT, branding) live under System Settings — admin only." %}</p>
   </div>
-  <a href="{% url 'users:profile' %}" class="btn btn-sm btn-secondary">
-    <i class="bi bi-arrow-left me-1"></i>{% trans "Back to Profile" %}
-  </a>
+  <a href="{% url 'users:profile' %}" class="btn btn-sm btn-secondary"><i class="bi bi-arrow-left me-1"></i>{% trans "Back to Profile" %}</a>
 </div>
 
 {% if messages %}
@@ -36,107 +43,67 @@
   </div>
 {% endif %}
 
-{# Section nav (anchor pills) #}
-<div class="psp-settings-nav mb-3" role="tablist">
-  <a href="#sec-appearance"   class="psp-settings-nav-pill"><i class="bi bi-palette"></i>{% trans "Appearance" %}</a>
-  <a href="#sec-dashboard"    class="psp-settings-nav-pill"><i class="bi bi-speedometer2"></i>{% trans "Dashboard" %}</a>
-  <a href="#sec-quotation"    class="psp-settings-nav-pill"><i class="bi bi-grid-3x3-gap"></i>{% trans "Quotation Builder" %}</a>
-  <a href="#sec-pdf"          class="psp-settings-nav-pill"><i class="bi bi-file-earmark-pdf"></i>{% trans "PDF Defaults" %}</a>
-  <a href="#sec-navigation"   class="psp-settings-nav-pill"><i class="bi bi-compass"></i>{% trans "Navigation" %}</a>
-  <a href="#sec-notifications" class="psp-settings-nav-pill"><i class="bi bi-bell"></i>{% trans "Notifications" %}</a>
-  <a href="#sec-accessibility" class="psp-settings-nav-pill"><i class="bi bi-universal-access"></i>{% trans "Accessibility" %}</a>
-</div>
-
-<form method="post" novalidate id="appSettingsForm">
+<form method="post" novalidate id="appSettingsForm" data-psp-loading="true">
 {% csrf_token %}
 
-{# Reusable macro-like includes use template snippets below #}
+{# ------------------ General ------------------ #}
+<div class="psp-section-title">
+  <h5 class="fw-semibold"><i class="bi bi-gear-fill me-2" style="color:var(--psp-purple);"></i>{% trans "General" %}</h5>
+  <div class="text-muted small">{% trans "Quick preferences" %}</div>
+</div>
 
-<!-- ── Appearance ── -->
-<div class="card psp-settings-card mb-4" id="sec-appearance">
-  <div class="card-header psp-settings-card-header">
-    <span><i class="bi bi-palette-fill me-2" style="color:var(--psp-purple);"></i>{% trans "Appearance" %}</span>
-    <span class="psp-settings-card-hint">{% trans "Theme and accent colour" %}</span>
+<div class="psp-settings-grid mb-3">
+  <div class="card psp-settings-card">
+    <div class="card-body p-3">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label for="{{ form.default_landing_page.id_for_label }}" class="form-label fw-semibold small">{% trans "Default landing page" %}</label>
+          {{ form.default_landing_page }}
+          <div class="form-text small">{% trans "Where to send you after sign in." %}</div>
+        </div>
+        <div class="col-md-6">
+          <label for="{{ form.default_dashboard_period.id_for_label }}" class="form-label fw-semibold small">{% trans "Default dashboard period" %}</label>
+          {{ form.default_dashboard_period }}
+          <div class="form-text small">{% trans "Scope of KPIs on first view." %}</div>
+        </div>
+      </div>
+
+      <hr class="psp-settings-divider">
+
+      <p class="small fw-semibold mb-2">{% trans "Navigation" %}</p>
+      {% include "users/_setting_switch.html" with field=form.show_quick_actions_fab title="Floating quick-actions button" hint="The bottom-right purple + button." %}
+      {% include "users/_setting_switch.html" with field=form.show_command_palette_hint title="Command palette button in topbar" hint="Ctrl+K still works even if hidden." %}
+      {% include "users/_setting_switch.html" with field=form.compact_navigation title="Compact navigation" hint="Tighter sidebar and topbar spacing." %}
+    </div>
   </div>
-  <div class="card-body p-4">
 
-    <p class="small fw-semibold mb-2">{% trans "Theme" %}</p>
-    <div class="row g-2 mb-4">
-      {% for val, label in form.appearance.field.choices %}
-      <div class="col-4">
-        <label class="psp-setting-card text-center w-100 position-relative" for="appearance_{{ val }}">
-          <input type="radio" name="{{ form.appearance.html_name }}" id="appearance_{{ val }}"
-                 value="{{ val }}" {% if form.appearance.value|stringformat:'s' == val %}checked{% endif %}>
-          <div style="font-size:1.4rem;margin-bottom:.25rem;">
-            {% if val == "light" %}<i class="bi bi-sun-fill text-warning"></i>
-            {% elif val == "dark" %}<i class="bi bi-moon-stars-fill" style="color:#475569;"></i>
-            {% else %}<i class="bi bi-display" style="color:var(--psp-purple);"></i>{% endif %}
-          </div>
-          <div class="small fw-semibold">{{ label }}</div>
-        </label>
+  <div class="card psp-settings-card">
+    <div class="card-body p-3">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label for="{{ form.table_density.id_for_label }}" class="form-label fw-semibold small">{% trans "Table density" %}</label>
+          {{ form.table_density }}
+        </div>
+        <div class="col-md-6">
+          <label for="{{ form.rows_per_page.id_for_label }}" class="form-label fw-semibold small">{% trans "Rows per page" %}</label>
+          {{ form.rows_per_page }}
+        </div>
       </div>
-      {% endfor %}
-    </div>
 
-    <p class="small fw-semibold mb-2">{% trans "Accent Colour" %}</p>
-    <div class="row g-2">
-      {% for val, label in form.accent_style.field.choices %}
-      <div class="col-4">
-        <label class="psp-setting-card text-center w-100 position-relative" for="accent_{{ val }}">
-          <input type="radio" name="{{ form.accent_style.html_name }}" id="accent_{{ val }}"
-                 value="{{ val }}" {% if form.accent_style.value|stringformat:'s' == val %}checked{% endif %}>
-          <div style="font-size:1.2rem;margin-bottom:.25rem;">
-            {% if val == "prostar_default" %}<i class="bi bi-circle-fill" style="color:#7c3aed;"></i>
-            {% elif val == "green" %}<i class="bi bi-circle-fill" style="color:#059669;"></i>
-            {% else %}<i class="bi bi-circle-half"></i>{% endif %}
-          </div>
-          <div class="small fw-semibold" style="font-size:.72rem;">{{ label }}</div>
-        </label>
-      </div>
-      {% endfor %}
+      <hr class="psp-settings-divider">
+      {% include "users/_setting_switch.html" with field=form.show_watermark title="Background watermark" hint="Subtle ProStar logo in the content area." %}
+      {% include "users/_setting_switch.html" with field=form.show_help_text title="Show form help text" hint="Helper sentences beneath form fields." %}
     </div>
-
   </div>
 </div>
 
-<!-- ── Dashboard ── -->
-<div class="card psp-settings-card mb-4" id="sec-dashboard">
-  <div class="card-header psp-settings-card-header">
-    <span><i class="bi bi-speedometer2 me-2" style="color:var(--psp-purple);"></i>{% trans "Dashboard" %}</span>
-    <span class="psp-settings-card-hint">{% trans "What you see when you sign in" %}</span>
-  </div>
-  <div class="card-body p-4">
-    <div class="row g-3">
-      <div class="col-md-6">
-        <label for="{{ form.default_landing_page.id_for_label }}" class="form-label fw-semibold small">{% trans "Default landing page" %}</label>
-        {{ form.default_landing_page }}
-        <div class="form-text small">{% trans "Where to send you after sign in." %}</div>
-      </div>
-      <div class="col-md-6">
-        <label for="{{ form.default_dashboard_period.id_for_label }}" class="form-label fw-semibold small">{% trans "Default dashboard period" %}</label>
-        {{ form.default_dashboard_period }}
-        <div class="form-text small">{% trans "Scope of KPIs on first view." %}</div>
-      </div>
-    </div>
-
-    <hr class="psp-settings-divider">
-
-    <p class="small fw-semibold mb-2">{% trans "Widgets" %}</p>
-
-    {% include "users/_setting_switch.html" with field=form.show_onboarding_checklist title="Onboarding checklist" hint="Show the setup checklist until it's complete." %}
-    {% include "users/_setting_switch.html" with field=form.show_data_quality_widget title="Data quality widget" hint="Health bars for profile completeness, pricing, drafts, PDFs." %}
-    {% include "users/_setting_switch.html" with field=form.show_recent_activity_widget title="Recent activity" hint="Audit stream on the dashboard." %}
-    {% include "users/_setting_switch.html" with field=form.show_draft_quotations_widget title="Draft quotations widget" hint="Quick-jump list of open drafts." %}
-  </div>
-</div>
-
-<!-- ── Quotation Builder ── -->
-<div class="card psp-settings-card mb-4" id="sec-quotation">
+{# ------------------ Quotation Builder ------------------ #}
+<div class="card psp-settings-card mb-3" id="sec-quotation">
   <div class="card-header psp-settings-card-header">
     <span><i class="bi bi-grid-3x3-gap me-2" style="color:var(--psp-purple);"></i>{% trans "Quotation Builder" %}</span>
     <span class="psp-settings-card-hint">{% trans "How you build and review quotes" %}</span>
   </div>
-  <div class="card-body p-4">
+  <div class="card-body p-3">
     <div class="row g-3">
       <div class="col-md-6">
         <label for="{{ form.preferred_quotation_view.id_for_label }}" class="form-label fw-semibold small">{% trans "Quotation list view" %}</label>
@@ -167,13 +134,13 @@
   </div>
 </div>
 
-<!-- ── PDF Defaults ── -->
-<div class="card psp-settings-card mb-4" id="sec-pdf">
+{# ------------------ PDF Preferences ------------------ #}
+<div class="card psp-settings-card mb-3" id="sec-pdf">
   <div class="card-header psp-settings-card-header">
-    <span><i class="bi bi-file-earmark-pdf me-2" style="color:var(--psp-purple);"></i>{% trans "PDF Defaults" %}</span>
+    <span><i class="bi bi-file-earmark-pdf me-2" style="color:var(--psp-purple);"></i>{% trans "PDF Preferences" %}</span>
     <span class="psp-settings-card-hint">{% trans "Your preferred template" %}</span>
   </div>
-  <div class="card-body p-4">
+  <div class="card-body p-3">
     <div class="row g-3">
       <div class="col-md-6">
         <label for="{{ form.preferred_pdf_template.id_for_label }}" class="form-label fw-semibold small">{% trans "Preferred PDF template" %}</label>
@@ -189,28 +156,13 @@
   </div>
 </div>
 
-<!-- ── Navigation ── -->
-<div class="card psp-settings-card mb-4" id="sec-navigation">
+{# ------------------ Account ------------------ #}
+<div class="card psp-settings-card mb-3" id="sec-account">
   <div class="card-header psp-settings-card-header">
-    <span><i class="bi bi-compass me-2" style="color:var(--psp-purple);"></i>{% trans "Navigation" %}</span>
-    <span class="psp-settings-card-hint">{% trans "Topbar, sidebar, FAB" %}</span>
+    <span><i class="bi bi-person-circle me-2" style="color:var(--psp-purple);"></i>{% trans "Account" %}</span>
+    <span class="psp-settings-card-hint">{% trans "Notifications & account hints" %}</span>
   </div>
-  <div class="card-body p-4">
-    {% include "users/_setting_switch.html" with field=form.show_quick_actions_fab title="Floating quick-actions button" hint="The bottom-right purple + button." %}
-    {% include "users/_setting_switch.html" with field=form.show_command_palette_hint title="Command palette button in topbar" hint="Ctrl+K still works even if hidden." %}
-    {% include "users/_setting_switch.html" with field=form.compact_navigation title="Compact navigation" hint="Tighter sidebar and topbar spacing." %}
-    {% include "users/_setting_switch.html" with field=form.show_watermark title="Background watermark" hint="Subtle ProStar logo in the content area." %}
-    {% include "users/_setting_switch.html" with field=form.show_help_text title="Show form help text" hint="Helper sentences beneath form fields." %}
-  </div>
-</div>
-
-<!-- ── Notifications ── -->
-<div class="card psp-settings-card mb-4" id="sec-notifications">
-  <div class="card-header psp-settings-card-header">
-    <span><i class="bi bi-bell-fill me-2" style="color:var(--psp-purple);"></i>{% trans "Notifications" %}</span>
-    <span class="psp-settings-card-hint">{% trans "Bell categories" %}</span>
-  </div>
-  <div class="card-body p-4">
+  <div class="card-body p-3">
     {% include "users/_setting_switch.html" with field=form.notify_profile_incomplete title="Profile completeness reminders" hint="Nudge when your profile is missing details." %}
     {% include "users/_setting_switch.html" with field=form.notify_draft_quotations title="Draft quotations" hint="Show drafts that need attention." %}
     {% include "users/_setting_switch.html" with field=form.notify_failed_pdfs title="Failed PDF exports" hint="Surface failed renders so they can be retried." %}
@@ -218,21 +170,55 @@
     {% if user.is_superuser or user.role == "ADMIN" %}
       {% include "users/_setting_switch.html" with field=form.notify_system_activity title="System activity (admin)" hint="Show the latest audit event and VAT / setup notices." %}
     {% endif %}
-    <hr class="psp-settings-divider">
-    {% include "users/_setting_switch.html" with field=form.email_notifications_enabled title="Email notifications" hint="Receive summary emails for key events (coming soon)." %}
   </div>
 </div>
 
-<!-- ── Accessibility ── -->
-<div class="card psp-settings-card mb-4" id="sec-accessibility">
+{# ------------------ Future Features (read-only) ------------------ #}
+<div class="card psp-settings-card mb-3" id="sec-future">
   <div class="card-header psp-settings-card-header">
-    <span><i class="bi bi-universal-access me-2" style="color:var(--psp-purple);"></i>{% trans "Accessibility" %}</span>
-    <span class="psp-settings-card-hint">{% trans "Make the app easier to read" %}</span>
+    <span><i class="bi bi-clock-history me-2" style="color:var(--psp-purple);"></i>{% trans "Future Features" %}</span>
+    <span class="psp-settings-card-hint">{% trans "Planned UI improvements — coming soon" %}</span>
   </div>
-  <div class="card-body p-4">
-    {% include "users/_setting_switch.html" with field=form.larger_text title="Larger text" hint="Slightly increase base font and form controls." %}
-    {% include "users/_setting_switch.html" with field=form.high_contrast_mode title="High-contrast mode" hint="Stronger borders, focus rings and button outlines." %}
-    {% include "users/_setting_switch.html" with field=form.reduce_animations title="Reduce animations" hint="Minimise transitions and motion throughout the app." %}
+  <div class="card-body p-3">
+
+    <div class="psp-coming-soon mb-3">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <div class="fw-semibold">{% trans "Theme" %}</div>
+          <div class="text-muted small">{% trans "Theme switching (Light / Dark / System) will be available in a future update." %}</div>
+        </div>
+        <div><span class="badge-coming">COMING SOON</span></div>
+      </div>
+    </div>
+
+    <div class="psp-coming-soon mb-3">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <div class="fw-semibold">{% trans "Accessibility" %}</div>
+          <div class="text-muted small">{% trans "Larger text, high contrast, and reduced motion controls are planned for a future release." %}</div>
+        </div>
+        <div><span class="badge-coming">COMING SOON</span></div>
+      </div>
+    </div>
+
+    <div class="psp-coming-soon">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <div class="fw-semibold">{% trans "Email notifications" %}</div>
+          <div class="text-muted small">{% trans "Account email digests and notification emails will be delivered in a later update." %}</div>
+        </div>
+        <div><span class="badge-coming">COMING SOON</span></div>
+      </div>
+    </div>
+
+    {# Preserve stored values for the disabled/coming-soon controls so this is presentation-only. #}
+    <input type="hidden" name="{{ form.appearance.html_name }}" value="{{ form.appearance.value|stringformat:'s' }}">
+    <input type="hidden" name="{{ form.accent_style.html_name }}" value="{{ form.accent_style.value|stringformat:'s' }}">
+    {% if form.larger_text.value %}<input type="hidden" name="{{ form.larger_text.html_name }}" value="on">{% endif %}
+    {% if form.high_contrast_mode.value %}<input type="hidden" name="{{ form.high_contrast_mode.html_name }}" value="on">{% endif %}
+    {% if form.reduce_animations.value %}<input type="hidden" name="{{ form.reduce_animations.html_name }}" value="on">{% endif %}
+    {% if form.email_notifications_enabled.value %}<input type="hidden" name="{{ form.email_notifications_enabled.html_name }}" value="on">{% endif %}
+
   </div>
 </div>
 
@@ -248,7 +234,7 @@
 
 {% block extra_js %}
 <script>
-/* Radio-card click toggle (theme / accent). */
+/* Radio-card click toggle (theme / accent). Keep for backwards compatibility — visual controls are now read-only. */
 (function () {
   document.querySelectorAll(".psp-setting-card").forEach(function (label) {
     function mark() {

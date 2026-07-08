@@ -1,11 +1,15 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n static %}
 
 {% block title %}{% trans "Quotations Workspace" %} — ProStar Paints{% endblock %}
 
 {% block breadcrumbs %}
   {% trans "Quotations" as bc_current %}
   {% include "widgets/breadcrumbs.html" with current=bc_current %}
+{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/quotation_workspace.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -15,7 +19,7 @@
 {% include "widgets/page_help.html" with title=ph_title text=ph_text icon="bi-file-earmark-text" tone="purple" %}
 
 {# ── Header ───────────────────────────────────────────────────── #}
-<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 psp-ws-header">
   <div>
     <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">
       <i class="bi bi-file-earmark-text me-2" style="color:var(--psp-purple);"></i>{% trans "Quotations" %}
@@ -24,7 +28,16 @@
       {% if is_admin %}{% trans "All quotations across the team." %}{% else %}{% trans "Your quotations." %}{% endif %}
     </p>
   </div>
-  <div class="d-flex align-items-center gap-2">
+
+  <div class="d-flex flex-wrap align-items-center gap-2">
+    <form method="get" class="d-flex header-search" role="search">
+      <input type="hidden" name="view" value="{{ view_mode }}">
+      <div class="input-group input-group-sm">
+        <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="{% trans 'Search reference, customer, project…' %}">
+        <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
+      </div>
+    </form>
+
     <div class="btn-group btn-group-sm" role="group" aria-label="{% trans 'View mode' %}">
       <a href="?{% if filter_qs %}{{ filter_qs }}&{% endif %}view=table"
          class="btn btn-outline-secondary {% if view_mode == 'table' %}active{% endif %}"
@@ -33,168 +46,145 @@
          class="btn btn-outline-secondary {% if view_mode == 'cards' %}active{% endif %}"
          title="{% trans 'Card view' %}"><i class="bi bi-grid-3x3-gap"></i></a>
     </div>
-    <a href="{% url 'quotation:quotation_start' %}" class="btn btn-primary btn-sm">
-      <i class="bi bi-plus-lg me-1"></i>{% trans "New Quotation" %}
-    </a>
+
+    {% if not is_admin %}
+      <a href="{% url 'quotation:quotation_start' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg"></i>
+      </a>
+    {% endif %}
   </div>
 </div>
 
-{# ── Stats strip ──────────────────────────────────────────────── #}
-<div class="row g-2 mb-3 psp-ws-stats">
-  <div class="col-6 col-md">
-    <div class="psp-ws-stat">
-      <div class="psp-ws-stat-icon" style="background:var(--psp-grad-purple);"><i class="bi bi-files"></i></div>
-      <div><div class="psp-ws-stat-value">{{ stats.total }}</div><div class="psp-ws-stat-label">{% trans "Total" %}</div></div>
+{# ── Compact KPI cards (Section 2) ───────────────────────────────── #}
+<div class="d-flex flex-wrap gap-2 align-items-stretch mb-3 ws-kpis">
+  <div class="card kpi-mini p-2 d-flex align-items-center">
+    <div class="kpi-icon"><i class="bi bi-files"></i></div>
+    <div class="ms-2">
+      <div class="kpi-num">{{ stats.total }}</div>
+      <div class="kpi-label small text-muted">{% trans "Total" %}</div>
     </div>
   </div>
-  <div class="col-6 col-md">
-    <div class="psp-ws-stat">
-      <div class="psp-ws-stat-icon" style="background:var(--psp-grad-amber);"><i class="bi bi-pencil-square"></i></div>
-      <div><div class="psp-ws-stat-value">{{ stats.drafts }}</div><div class="psp-ws-stat-label">{% trans "Drafts" %}</div></div>
+  <div class="card kpi-mini p-2 d-flex align-items-center">
+    <div class="kpi-icon"><i class="bi bi-pencil-square"></i></div>
+    <div class="ms-2">
+      <div class="kpi-num">{{ stats.drafts }}</div>
+      <div class="kpi-label small text-muted">{% trans "Drafts" %}</div>
     </div>
   </div>
-  <div class="col-6 col-md">
-    <div class="psp-ws-stat">
-      <div class="psp-ws-stat-icon" style="background:var(--psp-grad-green);"><i class="bi bi-check-circle"></i></div>
-      <div><div class="psp-ws-stat-value">{{ stats.completed }}</div><div class="psp-ws-stat-label">{% trans "Completed" %}</div></div>
+  <div class="card kpi-mini p-2 d-flex align-items-center">
+    <div class="kpi-icon"><i class="bi bi-check-circle"></i></div>
+    <div class="ms-2">
+      <div class="kpi-num">{{ stats.ready|default:'—' }}</div>
+      <div class="kpi-label small text-muted">{% trans "Ready for review" %}</div>
     </div>
   </div>
-  <div class="col-6 col-md">
-    <div class="psp-ws-stat">
-      <div class="psp-ws-stat-icon" style="background:var(--psp-grad-blue);"><i class="bi bi-file-earmark-pdf"></i></div>
-      <div><div class="psp-ws-stat-value">{{ stats.pdfs }}</div><div class="psp-ws-stat-label">{% trans "PDFs" %}</div></div>
-    </div>
-  </div>
-  <div class="col-12 col-md">
-    <div class="psp-ws-stat">
-      <div class="psp-ws-stat-icon" style="background:#f59e0b;"><i class="bi bi-exclamation-triangle"></i></div>
-      <div><div class="psp-ws-stat-value">{{ stats.needs_config }}</div><div class="psp-ws-stat-label">{% trans "Needs config" %}</div></div>
+  <div class="card kpi-mini p-2 d-flex align-items-center">
+    <div class="kpi-icon"><i class="bi bi-check2-circle"></i></div>
+    <div class="ms-2">
+      <div class="kpi-num">{{ stats.completed }}</div>
+      <div class="kpi-label small text-muted">{% trans "Completed" %}</div>
     </div>
   </div>
 </div>
 
-{# ── Pinned & Recently viewed ────────────────────────────────── #}
-<div class="row g-3 mb-3">
-  <div class="col-12 col-lg-6">
-    <div class="card psp-settings-card h-100">
-      <div class="card-header psp-settings-card-header">
-        <span><i class="bi bi-pin-angle-fill me-2" style="color:var(--psp-purple);"></i>{% trans "Pinned" %}</span>
-        <span class="psp-settings-card-hint">{{ pinned_quotations|length }}</span>
-      </div>
-      {% if pinned_quotations %}
-        <ul class="list-group list-group-flush psp-ws-mini-list">
-          {% for row in pinned_quotations %}
-            {% include "quotation/_workspace_mini_row.html" with row=row show_unpin=True %}
-          {% endfor %}
-        </ul>
-      {% else %}
-        <div class="psp-empty psp-empty--mini">
-          <div class="psp-empty-icon"><i class="bi bi-pin-angle"></i></div>
-          <div class="psp-empty-text small">{% trans "Pin a quotation to keep it one click away." %}</div>
+{# ── Pinned (Section 3) — only show compactly when there are pins ───── #}
+{% if pinned_quotations %}
+  <div class="mb-3 ws-pinned">
+    <div class="d-flex flex-wrap gap-2 align-items-start">
+      {% for row in pinned_quotations|slice:":6" %}
+        {% if row.pk %}
+        <div class="card psp-ws-pin-mini">
+          <div class="card-body p-2 d-flex align-items-start gap-2">
+            <div class="flex-grow-1 min-w-0">
+              <a href="{% url 'quotation:quotation_detail' row.pk %}" class="fw-semibold text-truncate d-block">{{ row.reference }}</a>
+              <div class="small text-muted text-truncate">{{ row.customer_name|default:'—' }}</div>
+            </div>
+            <form method="post" action="{% url 'quotation:quotation_pin_toggle' row.pk %}">{% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button type="submit" class="btn btn-link btn-sm text-muted p-0" title="{% trans 'Unpin' %}">
+                <i class="bi {% if row.is_pinned %}bi-star-fill{% else %}bi-star{% endif %}"></i>
+              </button>
+            </form>
+          </div>
         </div>
-      {% endif %}
+        {% endif %}
+      {% endfor %}
     </div>
   </div>
-  <div class="col-12 col-lg-6">
-    <div class="card psp-settings-card h-100">
-      <div class="card-header psp-settings-card-header">
-        <span><i class="bi bi-clock-history me-2" style="color:var(--psp-purple);"></i>{% trans "Recently viewed" %}</span>
-        <span class="psp-settings-card-hint">{{ recent_quotations|length }}</span>
-      </div>
-      {% if recent_quotations %}
-        <ul class="list-group list-group-flush psp-ws-mini-list">
-          {% for row in recent_quotations %}
-            {% include "quotation/_workspace_mini_row.html" with row=row %}
-          {% endfor %}
-        </ul>
-      {% else %}
-        <div class="psp-empty psp-empty--mini">
-          <div class="psp-empty-icon"><i class="bi bi-clock-history"></i></div>
-          <div class="psp-empty-text small">{% trans "Quotations you open will appear here." %}</div>
-        </div>
-      {% endif %}
-    </div>
-  </div>
-</div>
+{% else %}
+  <div class="mb-3 ws-pinned-empty small text-muted">⭐ {% trans "No pinned quotations" %} — {% trans "Pin important quotations for quick access." %}</div>
+{% endif %}
 
 {# ── Filters ─────────────────────────────────────────────────── #}
-<div class="card mb-3">
-  <div class="card-body py-3">
-    <form method="get" class="row g-2 align-items-end">
-      <input type="hidden" name="view" value="{{ view_mode }}">
+{# ── Compact filter toolbar (Section 4) ───────────────────────── #}
+<div class="ws-filter-bar mb-3">
+  <form method="get" class="filter-toolbar d-flex flex-wrap gap-2 align-items-center" id="wsFilters">
+    <input type="hidden" name="view" value="{{ view_mode }}">
 
-      <div class="col-12 col-md-4">
-        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Search" %}</label>
-        <div class="input-group input-group-sm">
-          <input type="text" name="q" value="{{ q }}" class="form-control"
-                 placeholder="{% trans 'Reference, customer, project, location…' %}">
-          <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
-        </div>
-      </div>
+    <div>
+      <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="{% trans 'Search reference, customer, project…' %}" style="min-width:220px;">
+    </div>
 
-      <div class="col-6 col-md-2">
-        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Status" %}</label>
-        <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
-          <option value="">{% trans "All" %}</option>
-          {% for val, label in status_choices %}
-            <option value="{{ val }}" {% if current_status == val %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-      </div>
+    <div>
+      <select name="status" class="form-select form-select-sm">
+        <option value="">{% trans "All status" %}</option>
+        {% for val, label in status_choices %}
+          <option value="{{ val }}" {% if current_status == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
 
-      <div class="col-6 col-md-2">
-        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Readiness" %}</label>
-        <select name="readiness" class="form-select form-select-sm" onchange="this.form.submit()">
-          <option value="">{% trans "Any" %}</option>
-          {% for val, label in readiness_choices %}
-            <option value="{{ val }}" {% if current_readiness == val %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-      </div>
+    <div>
+      <input type="date" name="date_from" value="{{ current_date_from }}" class="form-control form-control-sm" title="{% trans 'From' %}">
+    </div>
 
-      <div class="col-6 col-md-2">
-        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Has PDF" %}</label>
-        <select name="has_pdf" class="form-select form-select-sm" onchange="this.form.submit()">
-          <option value="">{% trans "Any" %}</option>
-          {% for val, label in has_pdf_choices %}
-            <option value="{{ val }}" {% if current_has_pdf == val %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-      </div>
+    <div>
+      <input type="date" name="date_to" value="{{ current_date_to }}" class="form-control form-control-sm" title="{% trans 'To' %}">
+    </div>
 
-      {% if is_admin %}
-      <div class="col-6 col-md-2">
-        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Rep" %}</label>
-        <select name="rep" class="form-select form-select-sm" onchange="this.form.submit()">
-          <option value="">{% trans "All reps" %}</option>
-          {% for rep in rep_choices %}
-            <option value="{{ rep.pk }}" {% if current_rep == rep.pk|stringformat:'s' %}selected{% endif %}>
-              {{ rep.get_full_name|default:rep.username }}
-            </option>
-          {% endfor %}
-        </select>
-      </div>
+    <div class="d-flex align-items-center gap-1">
+      <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel"></i></button>
+      {% if has_filters %}
+        <a href="{% url 'quotation:quotation_list' %}?view={{ view_mode }}" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-lg"></i></a>
       {% endif %}
+    </div>
 
-      <div class="col-6 col-md-2">
-        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "From" %}</label>
-        <input type="date" name="date_from" value="{{ current_date_from }}" class="form-control form-control-sm">
-      </div>
-      <div class="col-6 col-md-2">
-        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "To" %}</label>
-        <input type="date" name="date_to" value="{{ current_date_to }}" class="form-control form-control-sm">
-      </div>
+    <div class="ms-auto d-none d-md-flex align-items-center small text-muted">
+      <a class="link-secondary" data-bs-toggle="collapse" href="#wsMoreFilters" role="button" aria-expanded="false" aria-controls="wsMoreFilters">{% trans "More filters" %}</a>
+    </div>
 
-      <div class="col-12 col-md-auto d-flex gap-2">
-        <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel me-1"></i>{% trans "Apply" %}</button>
-        {% if has_filters %}
-          <a href="{% url 'quotation:quotation_list' %}?view={{ view_mode }}" class="btn btn-sm btn-outline-danger">
-            <i class="bi bi-x-lg me-1"></i>{% trans "Clear" %}
-          </a>
+    <div class="w-100 collapse mt-2" id="wsMoreFilters">
+      <div class="d-flex flex-wrap gap-2">
+        <div>
+          <select name="readiness" class="form-select form-select-sm">
+            <option value="">{% trans "Readiness" %}</option>
+            {% for val, label in readiness_choices %}
+              <option value="{{ val }}" {% if current_readiness == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <select name="has_pdf" class="form-select form-select-sm">
+            <option value="">{% trans "Has PDF" %}</option>
+            {% for val, label in has_pdf_choices %}
+              <option value="{{ val }}" {% if current_has_pdf == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% if is_admin %}
+        <div>
+          <select name="rep" class="form-select form-select-sm">
+            <option value="">{% trans "All reps" %}</option>
+            {% for rep in rep_choices %}
+              <option value="{{ rep.pk }}" {% if current_rep == rep.pk|stringformat:'s' %}selected{% endif %}>{{ rep.get_full_name|default:rep.username }}</option>
+            {% endfor %}
+          </select>
+        </div>
         {% endif %}
       </div>
-    </form>
-  </div>
+    </div>
+
+  </form>
 </div>
 
 {# ── Results ────────────────────────────────────────────────── #}
@@ -203,57 +193,49 @@
   {% if view_mode == "cards" %}
     <div class="row g-3 psp-ws-cards">
       {% for row in rows %}
+        {% if row.q and row.q.pk %}
       <div class="col-12 col-md-6 col-xl-4">
-        <div class="card psp-ws-card h-100">
-          <div class="psp-ws-card-head">
-            <a href="{% url 'quotation:quotation_detail' row.q.pk %}" class="psp-q-ref text-decoration-none fw-bold">
-              {{ row.q.reference }}
-            </a>
-            <form method="post" action="{% url 'quotation:quotation_pin_toggle' row.q.pk %}" class="d-inline">
-              {% csrf_token %}
+        <div class="card psp-ws-card h-100 shadow-sm">
+          <div class="psp-ws-card-head d-flex justify-content-between align-items-start">
+            <div>
+              <a href="{% url 'quotation:quotation_detail' row.q.pk %}" class="psp-q-ref text-decoration-none fw-bold d-block text-truncate">
+                {{ row.q.reference }}
+              </a>
+              <div class="small text-muted">{{ row.q.customer_name|default:'—' }}</div>
+            </div>
+            <form method="post" action="{% url 'quotation:quotation_pin_toggle' row.q.pk %}" class="ms-2">{% csrf_token %}
               <input type="hidden" name="next" value="{{ request.get_full_path }}">
-              <button type="submit" class="psp-ws-pin-btn {% if row.is_pinned %}is-pinned{% endif %}"
-                      title="{% if row.is_pinned %}{% trans 'Unpin' %}{% else %}{% trans 'Pin' %}{% endif %}">
-                <i class="bi {% if row.is_pinned %}bi-pin-angle-fill{% else %}bi-pin-angle{% endif %}"></i>
+              <button type="submit" class="btn btn-sm btn-link text-muted p-0" title="{% if row.is_pinned %}{% trans 'Unpin' %}{% else %}{% trans 'Pin' %}{% endif %}">
+                <i class="bi {% if row.is_pinned %}bi-star-fill{% else %}bi-star{% endif %}"></i>
               </button>
             </form>
           </div>
-          <div class="psp-ws-card-body">
-            <div class="fw-semibold">{{ row.q.customer_name|default:"—" }}</div>
-            {% if row.q.project_name %}<div class="small text-muted">{{ row.q.project_name }}</div>{% endif %}
-            <div class="d-flex flex-wrap gap-2 mt-2">
-              <span class="badge text-bg-{% if row.q.status == 'COMPLETED' %}success{% elif row.q.status == 'CANCELLED' %}secondary{% else %}warning text-dark{% endif %}">
-                {{ row.q.get_status_display }}
-              </span>
-              <span class="badge psp-ws-readiness psp-ws-readiness--{{ row.readiness.key }}">
-                <i class="bi {{ row.readiness.icon }} me-1"></i>{{ row.readiness.label }}
-              </span>
-              {% if row.readiness.has_pdf %}
-                <span class="badge text-bg-info"><i class="bi bi-file-earmark-pdf me-1"></i>{{ row.readiness.pdf_count }}</span>
-              {% endif %}
-            </div>
-            <div class="mt-2 small text-muted">
-              <i class="bi bi-bricks me-1"></i>{{ row.readiness.configured }}/{{ row.readiness.total }} {% trans "sections" %}
-              · <i class="bi bi-clock"></i> {{ row.q.updated_at|timesince }} {% trans "ago" %}
-              {% if is_admin %} · <i class="bi bi-person"></i> {{ row.q.created_by.get_full_name|default:row.q.created_by.username }}{% endif %}
+          <div class="card-body p-3">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                {% if row.q.project_name %}<div class="fw-semibold">{{ row.q.project_name }}</div>{% endif %}
+                <div class="mt-1 d-flex gap-2 align-items-center">
+                  <span class="badge psp-ws-readiness psp-ws-readiness--{{ row.readiness.key }}">{{ row.readiness.label }}</span>
+                  {% if row.readiness.has_pdf %}
+                    <span class="badge text-bg-info"><i class="bi bi-file-earmark-pdf"></i> {{ row.readiness.pdf_count }}</span>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="text-muted small text-end">
+                <div>{{ row.q.updated_at|timesince }} {% trans 'ago' %}</div>
+                {% if is_admin %}<div class="mt-1">{{ row.q.created_by.get_full_name|default:row.q.created_by.username }}</div>{% endif %}
+              </div>
             </div>
           </div>
-          <div class="psp-ws-card-actions">
-            <a href="{% url 'quotation:quotation_builder' row.q.pk %}" class="btn btn-sm btn-outline-primary" title="{% trans 'Continue builder' %}">
-              <i class="bi bi-pencil-square"></i><span class="d-none d-md-inline ms-1">{% trans "Builder" %}</span>
-            </a>
-            <a href="{% url 'quotation:quotation_review' row.q.pk %}" class="btn btn-sm btn-outline-secondary" title="{% trans 'Review' %}">
-              <i class="bi bi-eye"></i><span class="d-none d-md-inline ms-1">{% trans "Review" %}</span>
-            </a>
-            <a href="{% url 'quotation:pdf_select' row.q.pk %}" class="btn btn-sm btn-outline-secondary" title="{% trans 'Generate PDF' %}">
-              <i class="bi bi-file-earmark-pdf"></i><span class="d-none d-md-inline ms-1">{% trans "PDF" %}</span>
-            </a>
-            <a href="{% url 'quotation:quotation_detail' row.q.pk %}" class="btn btn-sm btn-outline-secondary" title="{% trans 'Detail' %}">
-              <i class="bi bi-info-circle"></i>
-            </a>
+          <div class="card-footer bg-transparent border-0 d-flex gap-2">
+            <a href="{% url 'quotation:quotation_builder' row.q.pk %}" class="btn btn-sm btn-outline-primary" title="{% trans 'Edit' %}"><i class="bi bi-pencil-square"></i></a>
+            <a href="{% url 'quotation:quotation_review' row.q.pk %}" class="btn btn-sm btn-outline-secondary" title="{% trans 'Preview' %}"><i class="bi bi-eye"></i></a>
+            <a href="{% url 'quotation:pdf_select' row.q.pk %}" class="btn btn-sm btn-outline-secondary" title="{% trans 'PDF' %}"><i class="bi bi-file-earmark-pdf"></i></a>
+            <a href="{% url 'quotation:quotation_detail' row.q.pk %}" class="btn btn-sm btn-outline-secondary ms-auto" title="{% trans 'Detail' %}"><i class="bi bi-info-circle"></i></a>
           </div>
         </div>
       </div>
+        {% endif %}
       {% endfor %}
     </div>
 
@@ -261,55 +243,39 @@
     <div class="card">
       <div class="card-body p-0">
         <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0 small">
+          <table class="table table-hover align-middle mb-0 ws-table">
             <thead class="table-light">
               <tr>
-                <th class="ps-3" style="width:24px;"></th>
+                <th class="ps-3" style="width:36px;"></th>
                 <th>{% trans "Reference" %}</th>
                 <th>{% trans "Customer" %}</th>
-                {% if is_admin %}<th>{% trans "Rep" %}</th>{% endif %}
                 <th>{% trans "Project" %}</th>
-                <th>{% trans "Readiness" %}</th>
                 <th>{% trans "Status" %}</th>
+                <th style="width:160px;">{% trans "Progress" %}</th>
                 <th>{% trans "Updated" %}</th>
-                <th></th>
+                <th class="text-end">{% trans "Actions" %}</th>
               </tr>
             </thead>
             <tbody>
             {% for row in rows %}
-              <tr>
+              {% if row.q and row.q.pk %}
+              <tr class="ws-row">
                 <td class="ps-3">
-                  <form method="post" action="{% url 'quotation:quotation_pin_toggle' row.q.pk %}" class="d-inline">
-                    {% csrf_token %}
+                  <form method="post" action="{% url 'quotation:quotation_pin_toggle' row.q.pk %}" class="d-inline">{% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                    <button type="submit" class="psp-ws-pin-btn {% if row.is_pinned %}is-pinned{% endif %}"
-                            title="{% if row.is_pinned %}{% trans 'Unpin' %}{% else %}{% trans 'Pin' %}{% endif %}">
-                      <i class="bi {% if row.is_pinned %}bi-pin-angle-fill{% else %}bi-pin-angle{% endif %}"></i>
+                    <button type="submit" class="btn btn-link btn-sm p-0 text-muted" title="{% if row.is_pinned %}{% trans 'Unpin' %}{% else %}{% trans 'Pin' %}{% endif %}">
+                      <i class="bi {% if row.is_pinned %}bi-star-fill{% else %}bi-star{% endif %}"></i>
                     </button>
                   </form>
                 </td>
                 <td class="text-nowrap">
-                  <a href="{% url 'quotation:quotation_detail' row.q.pk %}" class="psp-q-ref text-decoration-none">
-                    {{ row.q.reference }}
-                  </a>
+                  <a href="{% url 'quotation:quotation_detail' row.q.pk %}" class="psp-q-ref text-decoration-none fw-semibold">{{ row.q.reference }}</a>
                 </td>
                 <td>
-                  <div class="fw-semibold">{{ row.q.customer_name|default:"—" }}</div>
-                  <div class="text-muted" style="font-size:.72rem;">{{ row.q.created_at|date:"d M Y" }}</div>
+                  <div class="fw-semibold">{{ row.q.customer_name|default:'—' }}</div>
+                  <div class="text-muted small">{{ row.q.created_at|date:'d M Y' }}</div>
                 </td>
-                {% if is_admin %}
-                  <td class="text-muted">{{ row.q.created_by.get_full_name|default:row.q.created_by.username }}</td>
-                {% endif %}
-                <td class="text-muted">{{ row.q.project_name|default:"—" }}</td>
-                <td>
-                  <span class="badge psp-ws-readiness psp-ws-readiness--{{ row.readiness.key }}">
-                    <i class="bi {{ row.readiness.icon }} me-1"></i>{{ row.readiness.label }}
-                  </span>
-                  <div class="text-muted" style="font-size:.7rem;margin-top:.15rem;">
-                    {{ row.readiness.configured }}/{{ row.readiness.total }} {% trans "sections" %}
-                    {% if row.readiness.has_pdf %} · {{ row.readiness.pdf_count }} PDF{{ row.readiness.pdf_count|pluralize }}{% endif %}
-                  </div>
-                </td>
+                <td class="text-muted">{{ row.q.project_name|default:'—' }}</td>
                 <td>
                   {% if row.q.status == "COMPLETED" %}
                     <span class="badge text-bg-success">{{ row.q.get_status_display }}</span>
@@ -319,24 +285,25 @@
                     <span class="badge text-bg-warning text-dark">{{ row.q.get_status_display }}</span>
                   {% endif %}
                 </td>
-                <td class="text-muted text-nowrap" title="{{ row.q.updated_at|date:'d M Y H:i' }}">
-                  {{ row.q.updated_at|timesince }} {% trans "ago" %}
+                <td>
+                  {% if row.readiness.key == 'not_started' %}
+                    <div class="progress" style="height:6px;"><div class="progress-bar bg-danger" role="progressbar" style="width:10%"></div></div>
+                  {% elif row.readiness.key == 'in_progress' %}
+                    <div class="progress" style="height:6px;"><div class="progress-bar bg-warning" role="progressbar" style="width:55%"></div></div>
+                  {% elif row.readiness.key == 'ready' %}
+                    <div class="progress" style="height:6px;"><div class="progress-bar bg-info" role="progressbar" style="width:90%"></div></div>
+                  {% else %}
+                    <div class="progress" style="height:6px;"><div class="progress-bar bg-success" role="progressbar" style="width:100%"></div></div>
+                  {% endif %}
                 </td>
-                <td class="text-end pe-3 text-nowrap">
-                  <a href="{% url 'quotation:quotation_builder' row.q.pk %}"
-                     class="btn btn-sm btn-outline-primary me-1" title="{% trans 'Builder' %}">
-                    <i class="bi bi-pencil-square"></i>
-                  </a>
-                  <a href="{% url 'quotation:quotation_review' row.q.pk %}"
-                     class="btn btn-sm btn-outline-secondary me-1" title="{% trans 'Review' %}">
-                    <i class="bi bi-eye"></i>
-                  </a>
-                  <a href="{% url 'quotation:pdf_select' row.q.pk %}"
-                     class="btn btn-sm btn-outline-secondary" title="{% trans 'PDF' %}">
-                    <i class="bi bi-file-earmark-pdf"></i>
-                  </a>
+                <td class="text-muted small">{{ row.q.updated_at|timesince }} {% trans "ago" %}</td>
+                <td class="text-end">
+                  <a href="{% url 'quotation:quotation_builder' row.q.pk %}" class="btn btn-sm btn-outline-primary mx-1" title="{% trans 'Edit' %}"><i class="bi bi-pencil-square"></i></a>
+                  <a href="{% url 'quotation:quotation_review' row.q.pk %}" class="btn btn-sm btn-outline-secondary mx-1" title="{% trans 'Preview' %}"><i class="bi bi-eye"></i></a>
+                  <a href="{% url 'quotation:pdf_select' row.q.pk %}" class="btn btn-sm btn-outline-secondary mx-1" title="{% trans 'PDF' %}"><i class="bi bi-file-earmark-pdf"></i></a>
                 </td>
               </tr>
+              {% endif %}
             {% endfor %}
             </tbody>
           </table>

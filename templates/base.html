@@ -22,6 +22,12 @@
   <!-- ProStar Paints App Styles -->
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   <link rel="stylesheet" href="{% static 'css/toast.css' %}">
+  <link rel="stylesheet" href="{% static 'css/ui_polish.css' %}">
+  {% if user.is_authenticated %}
+    {% if user.is_superuser or user.role == 'ADMIN' %}
+      <link rel="stylesheet" href="{% static 'css/admin_redesign.css' %}">
+    {% endif %}
+  {% endif %}
 
   {% block extra_css %}{% endblock %}
 </head>

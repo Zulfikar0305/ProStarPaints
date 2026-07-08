@@ -109,7 +109,6 @@
             <th>{% trans "Module" %}</th>
             <th>{% trans "Action" %}</th>
             <th>{% trans "Description" %}</th>
-            <th>{% trans "IP Address" %}</th>
           </tr>
         </thead>
         <tbody>
@@ -140,11 +139,11 @@
                 <code class="text-dark">{{ log.action }}</code>
               </td>
               <td>{{ log.description|default:"—" }}</td>
-              <td class="text-muted">{{ log.ip_address|default:"—" }}</td>
+              {# IP address removed from default table view to reduce noise; available in detail if required #}
             </tr>
           {% empty %}
             <tr>
-              <td colspan="6" class="p-0">
+              <td colspan="5" class="p-0">
                 {% if has_active_filters %}
                   {% trans "No audit log entries match your filters" as es_title %}
                   {% trans "Try clearing the search or widening the date range." as es_text %}

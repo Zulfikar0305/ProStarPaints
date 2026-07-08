@@ -6,12 +6,12 @@ Expects `data_quality` in context = list of:
 {% endcomment %}
 {% load i18n %}
 {% if data_quality %}
-<div class="card psp-dq mb-4">
+  <div class="card psp-dq mb-4">
   <div class="card-header d-flex align-items-center justify-content-between">
     <span class="fw-semibold" style="font-size:.9rem;">
-      <i class="bi bi-shield-check me-2 text-success"></i>{% trans "Data quality" %}
+      <i class="bi bi-shield-check me-2 text-success"></i>{% trans "Platform Health" %}
     </span>
-    <span class="small text-muted">{% trans "Read-only health checks" %}</span>
+    <span class="small text-muted">{% trans "System health overview" %}</span>
   </div>
   <div class="card-body">
     <div class="row g-3">

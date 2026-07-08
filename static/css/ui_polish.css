@@ -1,0 +1,81 @@
+/* UI Polish — Final presentation-only stylesheet
+   Applies global color palette, typography refinements and subtle layout tweaks.
+   Keep changes purely visual and non-functional.
+*/
+
+.psp-body {
+  --psp-bg: #0F172A;
+  --psp-card-bg: #182234;
+  --psp-hover: #22304A;
+  --psp-text: #F8FAFC;
+  --psp-text-soft: #94A3B8;
+  --psp-muted: #64748B;
+  --psp-border: rgba(255,255,255,.06);
+  background-color: var(--psp-bg) !important;
+  color: var(--psp-text) !important;
+  font-size: 14px !important;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Typography */
+.psp-main h4, .psp-hero h3 { font-size: 22px; font-weight:700; color:var(--psp-text); }
+.psp-main h5, .section-title, .psp-main h6 { font-size: 16px; font-weight:600; color:var(--psp-text); }
+.psp-main p, .psp-main .small, .small, .helper-text { font-size:14px; color:var(--psp-text-soft); }
+.small, .helper-text { font-size:12px; color:var(--psp-text-soft); }
+
+/* Cards — flatter, softer shadows */
+.psp-body .card {
+  background: var(--psp-card-bg) !important;
+  border: 1px solid var(--psp-border) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(2,6,23,0.22) !important;
+}
+.psp-body .card-header { background: transparent !important; border-bottom: 0 !important; }
+.psp-body .card-body { padding: 1rem !important; }
+
+/* KPI / quick-action flattening */
+.kpi-card, .kpi-mini, .kpi-small, .psp-qa-card, .psp-qa-icon, .psp-qa-card .psp-qa-icon {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.psp-qa-icon, .kpi-icon { background: transparent !important; color:var(--psp-text) !important; }
+.kpi-small .kpi-label, .section-label { color:var(--psp-text-soft); font-size:12px; }
+
+/* Dashboard charts: reduce heights ~40% (dashboard pages only) */
+[data-psp-page*="dashboard"] .chart-wrap,
+[data-psp-page*="dashboard:dashboard"] .chart-wrap {
+  max-height: 160px !important;
+  height: 160px !important;
+}
+
+/* Tables: subtle separation and breathing room */
+.table {
+  border-collapse: separate !important;
+  border-spacing: 0 8px !important;
+}
+.table thead th { background: transparent !important; color:var(--psp-text-soft) !important; border-bottom:0 !important; padding:.8rem .9rem; }
+.table tbody tr { background: var(--psp-card-bg) !important; border-radius:10px; box-shadow:none; transition:transform .08s ease,box-shadow .1s ease; }
+.table tbody tr:hover { transform:translateY(-2px); box-shadow:0 10px 20px rgba(2,6,23,0.16); }
+.table td, .table th { vertical-align: middle !important; }
+
+/* Empty states */
+.psp-empty { padding:1.6rem !important; background:transparent; }
+
+/* Platform Health (data-quality) — remove heavy gradients on bars */
+.psp-dq-item--success .psp-dq-bar-fill { background: #10b981 !important; }
+.psp-dq-item--info    .psp-dq-bar-fill { background: #6366f1 !important; }
+.psp-dq-item--warning .psp-dq-bar-fill { background: #f59e0b !important; }
+.psp-dq .psp-dq-icon { background: transparent !important; color:var(--psp-text) !important; }
+
+/* Badges and labels: muted */
+.badge { background: rgba(255,255,255,0.03) !important; color:var(--psp-text-soft) !important; border:1px solid rgba(255,255,255,0.02) !important; }
+
+/* Floating action button: keep positioning but smaller on mobile */
+.psp-fab { box-shadow: 0 10px 30px rgba(2,6,23,0.18); }
+
+@media (max-width:767px) {
+  .psp-main h4 { font-size:18px; }
+  [data-psp-page*="dashboard"] .chart-wrap { height:140px !important; max-height:140px !important; }
+}
+
+/* Presentation-only: avoid critical layout rewrites */

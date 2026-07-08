@@ -92,10 +92,7 @@
             <th style="width:56px;"></th>
             <th>{% trans "Product" %}</th>
             <th class="d-none d-md-table-cell">{% trans "Category" %}</th>
-            <th class="d-none d-lg-table-cell">{% trans "Pricing Method" %}</th>
-            <th>{% trans "Pricing Details" %}</th>
-            <th class="text-end">{% trans "Excl. VAT" %}</th>
-            <th class="text-end">{% trans "Incl. VAT" %}</th>
+            <th class="text-end">{% trans "Price" %}</th>
             <th class="text-center">{% trans "Status" %}</th>
             <th class="text-end d-none d-md-table-cell">{% trans "Updated" %}</th>
             <th class="text-end">{% trans "Actions" %}</th>
@@ -120,26 +117,6 @@
               <td class="d-none d-md-table-cell">
                 <span class="badge text-bg-secondary">{{ paint.get_category_display }}</span>
               </td>
-
-              <td class="d-none d-lg-table-cell small text-muted">{{ paint.get_pricing_method_display }}</td>
-              <td class="small text-muted">
-                {% if paint.category == 'INTERIOR' or paint.category == 'EXTERIOR' %}
-                  {{ paint.get_finish_display }} &middot; {{ paint.get_base_type_display }} &middot; {{ paint.spread_rate_per_litre }} m²/L
-                {% elif paint.category == 'PRIMER' or paint.category == 'WATERPROOFING' %}
-                  {{ paint.spread_rate_per_litre }} m²/L &middot; 1 coat
-                {% elif paint.category == 'CRACKS' %}
-                  {{ paint.package_size }} kg
-                {% elif paint.category == 'MOULD' or paint.category == 'CLEANING' %}
-                  {{ paint.package_size }} L
-                {% elif paint.category == 'SANDING' %}
-                  {{ paint.variant_label }} &middot; per metre
-                {% elif paint.category == 'EFFLORESCENCE' or paint.category == 'OLD_PAINT_REMOVAL' %}
-                  Note-only{% if paint.predetermined_note %}: {{ paint.predetermined_note|truncatechars:40 }}{% endif %}
-                {% else %}
-                  —
-                {% endif %}
-              </td>
-              <td class="text-end">R {{ paint.price_excl_vat }}</td>
               <td class="text-end fw-semibold">R {{ paint.price_incl_vat }}</td>
               <td>
                 {% if paint.is_active %}
@@ -163,7 +140,7 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="9" class="p-0">
+              <td colspan="7" class="p-0">
                 {% if q or current_category %}
                   {% trans "No products match your filters" as es_title %}
                   {% trans "Try clearing the search or pick a different category." as es_text %}

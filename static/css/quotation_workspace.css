@@ -1,0 +1,69 @@
+/* Quotations Workspace — Presentation-only styles
+   Lightweight, responsive, premium spacing. Uses app.css tokens. */
+
+/* Header */
+.psp-ws-header { gap:.75rem; padding-bottom:.25rem; }
+.psp-ws-header h4 { margin-bottom: 0; }
+.psp-ws-header p { margin-top:.18rem; }
+.psp-ws-header .header-search .form-control { min-width: 220px; }
+
+/* Compact KPI */
+.ws-kpis { --kpi-w: 140px; }
+.kpi-mini { width: var(--kpi-w); border-radius: 12px; display:flex; align-items:center; gap:.75rem; padding:.6rem .9rem; background:var(--psp-card-bg); box-shadow:var(--psp-shadow-sm); border:1px solid rgba(15,23,42,0.03); }
+.kpi-mini .kpi-icon { width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(var(--psp-purple-rgb),0.08);color:var(--psp-purple);font-size:1.05rem;flex-shrink:0; }
+.kpi-mini .kpi-num { font-weight:700; font-size:1.5rem; line-height:1; }
+.kpi-mini .kpi-label { font-size:.68rem; color:var(--psp-text-soft); margin-top:2px; }
+
+/* Pinned minis */
+.ws-pinned .psp-ws-pin-mini { min-width:180px; border-radius:10px; background:var(--psp-card-bg); box-shadow:var(--psp-shadow-sm); border:1px solid rgba(15,23,42,0.04); padding:0; }
+.ws-pinned-empty { color:var(--psp-text-soft); }
+
+/* Filter toolbar */
+.filter-toolbar { display:flex; align-items:center; gap:.5rem; padding:.45rem; border-radius:12px; background:var(--psp-card-bg); border:1px solid rgba(15,23,42,0.03); }
+.filter-toolbar > div { display:flex; align-items:center; }
+.filter-toolbar .form-control-sm, .filter-toolbar .form-select-sm { height:36px; }
+.filter-toolbar .input-group-sm > .form-control, .filter-toolbar .input-group-sm > .form-select { height:36px; }
+.filter-toolbar .ms-auto { margin-left:auto; }
+
+/* Cards */
+.psp-ws-card { border-radius:12px; background:var(--psp-card-bg); border:1px solid rgba(15,23,42,0.04); }
+.psp-ws-card .psp-ws-card-head { padding: .6rem .9rem; }
+.psp-ws-card .card-body { padding: .9rem; }
+
+.ws-table thead th { border:0; font-size:.88rem; color:var(--psp-text); }
+.ws-table tbody tr.ws-row { transition: background .12s ease, transform .06s ease; }
+.ws-table tbody tr.ws-row:hover { background: rgba(15,23,42,0.02); transform: translateY(-2px); }
+.ws-table tbody tr.ws-row td { border-top:0; vertical-align:middle; padding:.85rem 1rem; }
+.ws-table { border-collapse:separate; border-spacing:0 10px; }
+.ws-table tbody tr.ws-row td:first-child { padding-left:1rem; }
+.ws-table tbody tr.ws-row td:last-child { padding-right:1rem; }
+.ws-table tbody tr.ws-row td { background: white; border-radius:10px; box-shadow: 0 1px 0 rgba(15,23,42,0.02); }
+
+.ws-table .progress { background: rgba(15,23,42,0.03); border-radius:8px; height:8px; }
+.ws-table .progress .progress-bar { border-radius:8px; }
+
+/* Icon-only action buttons */
+.ws-table .btn { min-width:36px; width:36px; height:36px; padding:0; display:inline-flex; align-items:center; justify-content:center; }
+.psp-ws-card .btn { min-width:36px; }
+
+.psp-ws-pin-mini button { color:var(--psp-text-soft); }
+.btn .bi-star-fill { color: var(--psp-purple); }
+.btn .bi-star { color: var(--psp-text-soft); }
+.psp-ws-pin-mini .bi-star-fill { color:var(--psp-purple); }
+
+.psp-q-ref { font-weight:700; }
+
+
+@media (max-width: 991.98px) {
+  .psp-ws-header .header-search .form-control { min-width: 160px; }
+  .kpi-mini { --kpi-w: 100px; }
+}
+
+@media (max-width: 575.98px) {
+  .ws-kpis { gap:.5rem; }
+  .kpi-mini { --kpi-w: 100%; width:100%; }
+  .ws-table thead { display:none; }
+  .ws-table tbody tr.ws-row { display:block; margin-bottom:12px; }
+  .ws-table tbody tr.ws-row td { display:flex; justify-content:space-between; padding:.75rem; }
+  .ws-table tbody tr.ws-row td:first-child { display:none; }
+}
