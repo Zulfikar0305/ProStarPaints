@@ -1,0 +1,135 @@
+/* Sales Rep builder readability overrides
+  These styles are carefully scoped to reps only to avoid affecting admin pages.
+  They restyle builder cards, substrate cards, form-controls, tabs and action
+  buttons so the builder reads as intentionally designed for the shell. */
+
+/* Section headings and spacing */
+.psp-body[data-user-role="rep"] #pspBuilderContainer h6.fw-bold {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 0.9rem;
+}
+
+.psp-body[data-user-role="rep"] #pspBuilderContainer .psp-step-badge { margin-right: .5rem; }
+
+/* Labels and helper text tuned for dark background */
+.psp-body[data-user-role="rep"] #pspBuilderContainer .form-label,
+.psp-body[data-user-role="rep"] #pspBuilderContainer label.form-label {
+  font-weight: 600 !important;
+  font-size: 0.9rem;
+}
+
+.psp-body[data-user-role="rep"] #pspBuilderContainer .small,
+.psp-body[data-user-role="rep"] #pspBuilderContainer .text-muted,
+.psp-body[data-user-role="rep"] #pspBuilderContainer .helper-text {
+  font-size: 0.85rem;
+}
+
+/* Substrate checkbox cards (interaction targets) */
+.psp-body[data-user-role="rep"] #pspBuilderContainer .psp-substrate-check {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .7rem .9rem !important;
+  border-radius: var(--psp-radius-sm,8px) !important;
+  cursor: pointer;
+  font-size: .96rem;
+  font-weight: 600;
+  transition: transform .08s ease;
+}
+
+.psp-body[data-user-role="rep"] #pspBuilderContainer .psp-substrate-check:hover {
+  transform: translateY(-1px);
+}
+
+/* Tick box */
+.psp-body[data-user-role="rep"] #pspBuilderContainer .psp-substrate-tick {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .78rem;
+}
+
+/* Checked state */
+.psp-body[data-user-role="rep"] #pspBuilderContainer .psp-substrate-check.checked,
+.psp-body[data-user-role="rep"] #pspBuilderContainer .psp-substrate-check:has(input:checked) {
+}
+.psp-body[data-user-role="rep"] #pspBuilderContainer .psp-substrate-check.checked .psp-substrate-tick,
+.psp-body[data-user-role="rep"] #pspBuilderContainer .psp-substrate-check:has(input:checked) .psp-substrate-tick {
+}
+
+/* Form controls light-on-dark */
+.psp-body[data-user-role="rep"] #pspBuilderContainer .form-control,
+.psp-body[data-user-role="rep"] #pspBuilderContainer .form-control-sm,
+.psp-body[data-user-role="rep"] #pspBuilderContainer .form-select,
+.psp-body[data-user-role="rep"] #pspBuilderContainer .form-select-sm {
+  box-shadow: none !important;
+}
+.psp-body[data-user-role="rep"] #pspBuilderContainer .form-control::placeholder { }
+
+/* Paint-row calc column contrast adjustments */
+.psp-body[data-user-role="rep"] #pspBuilderContainer .paint-row-calc-col { background: transparent; }
+
+/* Nav tabs (leaflet groups) tuned for dark shell */
+.psp-body[data-user-role="rep"] #pspBuilderMain nav[aria-label="Leaflet groups"] { margin-bottom: .9rem; }
+.psp-body[data-user-role="rep"] #pspBuilderMain .nav-tabs .nav-link {
+  background: transparent !important;
+  border: none !important;
+}
+.psp-body[data-user-role="rep"] #pspBuilderMain .nav-tabs .nav-link.active {
+  background: transparent !important;
+}
+
+/* Save bar and flow CTA styling */
+.psp-body[data-user-role="rep"] #pspBuilderContainer .psp-save-bar {
+  border-top: 1px solid;
+}
+.psp-body[data-user-role="rep"] #pspBuilderContainer .psp-save-bar .btn {
+  min-height: 40px; font-weight: 600;
+}
+.psp-body[data-user-role="rep"] #pspBuilderContainer .psp-builder-flow-bar { padding-top: .9rem; }
+
+/* Primary action appearance within builder only */
+.psp-body[data-user-role="rep"] #pspBuilderContainer .btn-primary {
+}
+.psp-body[data-user-role="rep"] #pspBuilderContainer .btn-outline-secondary {
+}
+
+/* Tabbed content cards: soften borders and increase breathing room */
+.psp-body[data-user-role="rep"] #pspBuilderContainer .card { border-radius: 12px; }
+
+/* Ensure badges readable on dark background */
+.psp-body[data-user-role="rep"] #pspBuilderContainer .badge { }
+
+/* Small layout fixes for mobile */
+@media (max-width: 991.98px) {
+  .psp-body[data-user-role="rep"] #pspBuilderContainer .psp-substrate-check { padding: .6rem .7rem !important; }
+}
+
+/* Nav group headings for builder tabs (Interior / Exterior) */
+.psp-body[data-user-role="rep"] #pspBuilderContainer .nav-group-heading {
+  padding: .25rem .5rem;
+  margin-right: .35rem;
+  user-select: none;
+  pointer-events: none;
+}
+.psp-body[data-user-role="rep"] #pspBuilderContainer .nav-group-divider {
+  width: 1px;
+  height: 26px;
+  background: rgba(0,0,0,0.06);
+  margin: 0 .6rem;
+}
+
+/* Summary panel subgroup headings */
+.psp-summary-subheading {
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--psp-text-soft);
+}
+
+

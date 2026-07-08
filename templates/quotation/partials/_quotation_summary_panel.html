@@ -1,3 +1,4 @@
+
 {% load i18n %}
 
 <div class="psp-summary-panel">
@@ -70,36 +71,69 @@
     </div>
   {% endif %}
 
-  {# ── Section list ── #}
+  {# ── Section list (grouped by Interior / Exterior) ── #}
   {% if quotation_summary.section_summaries %}
     <div class="psp-summary-section">
       <div class="psp-summary-label mb-2">{% trans "Sections" %}</div>
-      {% for sec in quotation_summary.section_summaries %}
-        <div class="psp-summary-section-row">
-          <div class="d-flex align-items-center gap-1 overflow-hidden">
-            {% if sec.substrate_type == "EXTERIOR" %}
-              <i class="bi bi-sun-fill psp-summary-icon psp-summary-icon--ext flex-shrink-0"></i>
-            {% else %}
-              <i class="bi bi-house-fill psp-summary-icon psp-summary-icon--int flex-shrink-0"></i>
-            {% endif %}
-            <span class="psp-summary-section-name text-truncate">{{ sec.section_name }}</span>
-            {% if sec.has_moisture_warning %}
-              <i class="bi bi-exclamation-triangle-fill text-warning flex-shrink-0"
-                 style="font-size:.68rem;"
-                 title="High moisture: {{ sec.moisture_level }}%"></i>
-            {% endif %}
-          </div>
-          <div class="flex-shrink-0">
-            {% if sec.configured %}
-              <span class="badge text-bg-success psp-summary-badge">
-                <i class="bi bi-check-lg"></i> {{ sec.line_item_count }}
-              </span>
-            {% else %}
-              <span class="badge text-bg-secondary psp-summary-badge">{% trans "Pending" %}</span>
-            {% endif %}
-          </div>
-        </div>
-      {% endfor %}
+
+      {# Interior group #}
+      <div class="psp-summary-subgroup">
+        <div class="psp-summary-subheading mb-2">{% trans "Interior" %}</div>
+        {% for sec in quotation_summary.section_summaries %}
+          {% if sec.substrate_type != "EXTERIOR" %}
+            <div class="psp-summary-section-row">
+              <div class="d-flex align-items-center gap-1 overflow-hidden">
+                <i class="bi bi-house-fill psp-summary-icon psp-summary-icon--int flex-shrink-0"></i>
+                <span class="psp-summary-section-name text-truncate">{{ sec.section_name }}</span>
+                {% if sec.has_moisture_warning %}
+                  <i class="bi bi-exclamation-triangle-fill text-warning flex-shrink-0"
+                     style="font-size:.68rem;" role="img" aria-label="High moisture: {{ sec.moisture_level }}%"></i>
+                {% endif %}
+              </div>
+              <div class="flex-shrink-0">
+                {% if sec.configured %}
+                  <span class="badge text-bg-success psp-summary-badge">
+                    <i class="bi bi-check-lg"></i> {{ sec.line_item_count }}
+                  </span>
+                {% else %}
+                  <span class="badge text-bg-secondary psp-summary-badge">{% trans "Pending" %}</span>
+                {% endif %}
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      <hr class="my-2">
+
+      {# Exterior group #}
+      <div class="psp-summary-subgroup">
+        <div class="psp-summary-subheading mb-2">{% trans "Exterior" %}</div>
+        {% for sec in quotation_summary.section_summaries %}
+          {% if sec.substrate_type == "EXTERIOR" %}
+            <div class="psp-summary-section-row">
+              <div class="d-flex align-items-center gap-1 overflow-hidden">
+                <i class="bi bi-sun-fill psp-summary-icon psp-summary-icon--ext flex-shrink-0"></i>
+                <span class="psp-summary-section-name text-truncate">{{ sec.section_name }}</span>
+                {% if sec.has_moisture_warning %}
+                  <i class="bi bi-exclamation-triangle-fill text-warning flex-shrink-0"
+                     style="font-size:.68rem;" role="img" aria-label="High moisture: {{ sec.moisture_level }}%"></i>
+                {% endif %}
+              </div>
+              <div class="flex-shrink-0">
+                {% if sec.configured %}
+                  <span class="badge text-bg-success psp-summary-badge">
+                    <i class="bi bi-check-lg"></i> {{ sec.line_item_count }}
+                  </span>
+                {% else %}
+                  <span class="badge text-bg-secondary psp-summary-badge">{% trans "Pending" %}</span>
+                {% endif %}
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+
     </div>
   {% endif %}
 

@@ -1,6 +1,6 @@
-/* Admin redesign (presentation-only)
-   Applies only when .psp-body[data-user-admin] is present (admin users).
-   Lightweight, non-invasive overrides to give a premium admin look.
+/* Admin redesign
+  Applies only when .psp-body[data-user-admin] is present (admin users).
+  Lightweight, non-invasive overrides to give a premium admin look.
 */
 
 .psp-body[data-user-admin] {
@@ -93,4 +93,4 @@
   .psp-body[data-user-admin] .table { border-spacing:0 8px; }
 }
 
-/* Keep changes presentation-only — do not override functional classes or JS hooks. */
+/* Do not override functional classes or JS hooks. */

@@ -1485,7 +1485,10 @@ body {
 }
 
 /* ── Dark mode ── */
-.psp-body[data-theme="dark"] {
+/* Exclude admin pages from the global dark theme so admin content stays in the
+   application's default (light) appearance while preserving a dark shell.
+   This prevents the dark redesign from recolouring admin content areas. */
+.psp-body[data-theme="dark"]:not([data-user-admin]) {
   --psp-bg:          #0f172a;
   --psp-card-bg:     #1e293b;
   --psp-text:        #f1f5f9;
@@ -1496,43 +1499,43 @@ body {
   --psp-shadow-md:   0 4px 16px rgba(0,0,0,.45);
 }
 
-.psp-body[data-theme="dark"] .psp-sidebar {
+.psp-body[data-theme="dark"]:not([data-user-admin]) .psp-sidebar {
   background: #0f172a;
   border-right-color: #1e293b;
 }
 
-.psp-body[data-theme="dark"] .psp-topbar {
+.psp-body[data-theme="dark"]:not([data-user-admin]) .psp-topbar {
   background: #1e293b;
   border-bottom-color: #334155;
 }
 
-.psp-body[data-theme="dark"] .card {
+.psp-body[data-theme="dark"]:not([data-user-admin]) .card {
   background: var(--psp-card-bg);
   border-color: var(--psp-border);
 }
 
-.psp-body[data-theme="dark"] .table {
+.psp-body[data-theme="dark"]:not([data-user-admin]) .table {
   --bs-table-bg: var(--psp-card-bg);
   --bs-table-striped-bg: #253048;
   --bs-table-hover-bg:   #2a3650;
   color: var(--psp-text);
 }
 
-.psp-body[data-theme="dark"] .form-control,
-.psp-body[data-theme="dark"] .form-select {
+.psp-body[data-theme="dark"]:not([data-user-admin]) .form-control,
+.psp-body[data-theme="dark"]:not([data-user-admin]) .form-select {
   background-color: #253048;
   border-color: #334155;
   color: var(--psp-text);
 }
 
-.psp-body[data-theme="dark"] .modal-content {
+.psp-body[data-theme="dark"]:not([data-user-admin]) .modal-content {
   background: var(--psp-card-bg);
   border-color: var(--psp-border);
 }
 
 /* System default: honour OS preference when data-theme="system" */
 @media (prefers-color-scheme: dark) {
-  .psp-body[data-theme="system"] {
+  .psp-body[data-theme="system"]:not([data-user-admin]) {
     --psp-bg:         #0f172a;
     --psp-card-bg:    #1e293b;
     --psp-text:       #f1f5f9;
@@ -1542,11 +1545,11 @@ body {
     --psp-shadow:     0 2px 8px rgba(0,0,0,.35);
   }
 
-  .psp-body[data-theme="system"] .psp-sidebar  { background: #0f172a; }
-  .psp-body[data-theme="system"] .psp-topbar   { background: #1e293b; border-bottom-color: #334155; }
-  .psp-body[data-theme="system"] .card         { background: var(--psp-card-bg); }
-  .psp-body[data-theme="system"] .form-control,
-  .psp-body[data-theme="system"] .form-select  { background: #253048; border-color: #334155; color: #f1f5f9; }
+  .psp-body[data-theme="system"]:not([data-user-admin]) .psp-sidebar  { background: #0f172a; }
+  .psp-body[data-theme="system"]:not([data-user-admin]) .psp-topbar   { background: #1e293b; border-bottom-color: #334155; }
+  .psp-body[data-theme="system"]:not([data-user-admin]) .card         { background: var(--psp-card-bg); }
+  .psp-body[data-theme="system"]:not([data-user-admin]) .form-control,
+  .psp-body[data-theme="system"]:not([data-user-admin]) .form-select  { background: #253048; border-color: #334155; color: #f1f5f9; }
 }
 
 

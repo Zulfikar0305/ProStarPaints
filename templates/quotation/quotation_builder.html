@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% load static i18n %}
 
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/builder_readability.css' %}">
+{% endblock %}
+
 {% block title %}Builder — {{ quotation.reference }} — ProStar Paints{% endblock %}
 
 {% block content %}
@@ -75,15 +79,38 @@
 
       {# ── Tabs for selected leaflet groups (server-rendered) ── #}
       <nav aria-label="Leaflet groups" class="mb-3">
-        <ul class="nav nav-tabs" role="tablist">
+        <ul class="nav nav-tabs align-items-center flex-wrap" role="tablist">
+          {# Interior group heading + tabs #}
+          <li class="nav-item nav-group-heading d-flex align-items-center pe-2" aria-hidden="true">
+            <span class="small text-uppercase text-muted">{% trans "Interior" %}</span>
+          </li>
           {% for group in leaflet_groups %}
-            <li class="nav-item" role="presentation">
-              <a class="nav-link {% if group.key == active_leaflet_key %}active{% endif %}"
-                 href="?leaflet={{ group.key }}"
-                 aria-current="{% if group.key == active_leaflet_key %}page{% endif %}">
-                {{ group.display_name }}
-              </a>
-            </li>
+            {% if group.substrate_type != 'EXTERIOR' %}
+              <li class="nav-item" role="presentation">
+                <a class="nav-link {% if group.key == active_leaflet_key %}active{% endif %}"
+                   href="?leaflet={{ group.key }}"
+                   aria-current="{% if group.key == active_leaflet_key %}page{% endif %}">
+                  {{ group.display_name }}
+                </a>
+              </li>
+            {% endif %}
+          {% endfor %}
+
+          {# Visual divider then Exterior heading + tabs #}
+          <li class="nav-item nav-group-divider ms-3 me-2 d-none d-md-flex" aria-hidden="true"></li>
+          <li class="nav-item nav-group-heading d-flex align-items-center ps-2" aria-hidden="true">
+            <span class="small text-uppercase text-muted">{% trans "Exterior" %}</span>
+          </li>
+          {% for group in leaflet_groups %}
+            {% if group.substrate_type == 'EXTERIOR' %}
+              <li class="nav-item" role="presentation">
+                <a class="nav-link {% if group.key == active_leaflet_key %}active{% endif %}"
+                   href="?leaflet={{ group.key }}"
+                   aria-current="{% if group.key == active_leaflet_key %}page{% endif %}">
+                  {{ group.display_name }}
+                </a>
+              </li>
+            {% endif %}
           {% endfor %}
         </ul>
       </nav>

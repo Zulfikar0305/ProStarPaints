@@ -151,7 +151,7 @@
           Finish Selection <span class="text-danger">*</span>
           <span class="text-muted fw-normal">(one or more)</span>
         </h6>
-        {% if user_app_settings.show_builder_help_tips %}
+        {% if user_app_settings.show_builder_help_tips and section_config.substrate_type != 'EXTERIOR' %}
         <p class="psp-help-tip"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>{% trans "Choosing a finish reveals matching paint options below." %}</p>
         {% endif %}
         <div class="row g-2 mb-4">
@@ -303,7 +303,7 @@
         <h6 class="fw-bold text-uppercase text-muted small mb-3">
           <span class="psp-step-badge">5</span> Measurements
         </h6>
-        {% if user_app_settings.show_builder_help_tips %}
+        {% if user_app_settings.show_builder_help_tips and section_config.substrate_type != 'EXTERIOR' %}
         <p class="psp-help-tip"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>{% trans "Area in square metres helps reps quote accurately. Moisture above" %} {{ moisture_threshold }}% {% trans "triggers a waterproofing reminder." %}</p>
         {% endif %}
         <div class="row g-3 mb-4">
@@ -316,8 +316,9 @@
           <div class="col-12 col-sm-6 col-md-4">
             <label class="form-label fw-semibold small">
               Moisture Level (%)
-              <i class="bi bi-info-circle text-muted" style="font-size:.8rem;"
-                 title="Warning shown above {{ moisture_threshold }}%"></i>
+              {% if section_config.substrate_type != 'EXTERIOR' %}
+                <i class="bi bi-info-circle text-muted psp-help-tip" style="font-size:.8rem;" role="img" aria-label="Warning shown above {{ moisture_threshold }}%"></i>
+              {% endif %}
             </label>
             <input type="number" name="moisture_level"
                    class="form-control form-control-sm"
@@ -536,7 +537,7 @@
           <span class="psp-step-badge psp-step-badge--blue">8</span>
           Other Prep Work <span class="text-muted fw-normal">(optional)</span>
         </h6>
-        {% if user_app_settings.show_builder_help_tips %}
+        {% if user_app_settings.show_builder_help_tips and section_config.substrate_type != 'EXTERIOR' %}
         <p class="psp-help-tip"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>{% trans "Prep work is added as separate line items so the customer sees scope clearly." %}</p>
         {% endif %}
         <div class="row g-2 mb-4">

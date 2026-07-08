@@ -211,7 +211,7 @@
       </div>
     </div>
 
-    {# Preserve stored values for the disabled/coming-soon controls so this is presentation-only. #}
+    {# Preserve stored values for the disabled/coming-soon controls. #}
     <input type="hidden" name="{{ form.appearance.html_name }}" value="{{ form.appearance.value|stringformat:'s' }}">
     <input type="hidden" name="{{ form.accent_style.html_name }}" value="{{ form.accent_style.value|stringformat:'s' }}">
     {% if form.larger_text.value %}<input type="hidden" name="{{ form.larger_text.html_name }}" value="on">{% endif %}

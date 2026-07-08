@@ -14,7 +14,7 @@
 {% block content %}
 
 <!-- ── Page header ──────────────────────────────────────────── -->
-<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 psp-ws-header">
   <div>
     <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">
       {% if is_admin %}{% trans "Platform Dashboard" %}{% else %}{% trans "My Dashboard" %}{% endif %}
@@ -448,11 +448,7 @@
 
 {% else %}
 
-{# -----------------------------
-   Redesigned Sales Rep Dashboard
-   Presentation-only: hero, quick actions,
-   needs attention, compact KPIs, activity, quotations
-   ------------------------------#}
+{# Sales Rep Dashboard layout and components #}
 
 <!-- Hero -->
 <div class="psp-hero card mb-4">

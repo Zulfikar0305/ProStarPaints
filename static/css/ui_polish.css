@@ -1,20 +1,40 @@
-/* UI Polish — Final presentation-only stylesheet
-   Applies global color palette, typography refinements and subtle layout tweaks.
+/* UI Polish — Final stylesheet
+   Applies selective visual polish using existing tokens.
    Keep changes purely visual and non-functional.
 */
 
 .psp-body {
-  --psp-bg: #0F172A;
-  --psp-card-bg: #182234;
-  --psp-hover: #22304A;
-  --psp-text: #F8FAFC;
-  --psp-text-soft: #94A3B8;
-  --psp-muted: #64748B;
-  --psp-border: rgba(255,255,255,.06);
-  background-color: var(--psp-bg) !important;
-  color: var(--psp-text) !important;
+  /* Align shell tokens with the app defaults to preserve the original light theme */
+  --psp-bg: #eef0f8;
+  --psp-card-bg: #ffffff;
+  --psp-hover: rgba(15,23,42,0.04);
+  --psp-text: #1e293b;
+  --psp-text-soft: #94a3b8;
+  --psp-muted: #64748b;
+  --psp-border: rgba(226,232,240,.8);
+  background-color: var(--psp-bg);
   font-size: 14px !important;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Shell: keep a dark shell (sidebar + topbar) while preserving a light content area */
+.psp-body .psp-sidebar,
+.psp-body .psp-topbar {
+  background: var(--psp-navy) !important;
+}
+
+/* Sidebar text: force white for readability across roles (Admin & Sales Rep) */
+.psp-body .psp-sidebar,
+.psp-body .psp-sidebar * {
+  color: #ffffff !important;
+}
+
+/* Topbar heading/greeting: white on the dark topbar. Avoid overriding controls (search/input) */
+.psp-body .psp-topbar .psp-topbar-title,
+.psp-body .psp-topbar .psp-topbar-greeting,
+.psp-body .psp-topbar .psp-topbar-title *,
+.psp-body .psp-topbar .psp-topbar-greeting * {
+  color: #ffffff !important;
 }
 
 /* Typography */
@@ -23,23 +43,30 @@
 .psp-main p, .psp-main .small, .small, .helper-text { font-size:14px; color:var(--psp-text-soft); }
 .small, .helper-text { font-size:12px; color:var(--psp-text-soft); }
 
-/* Cards — flatter, softer shadows */
-.psp-body .card {
+/* Cards — flatter, softer shadows (admin-only polish) */
+.psp-body[data-user-admin] .card {
   background: var(--psp-card-bg) !important;
   border: 1px solid var(--psp-border) !important;
   border-radius: 12px !important;
   box-shadow: 0 8px 24px rgba(2,6,23,0.22) !important;
 }
-.psp-body .card-header { background: transparent !important; border-bottom: 0 !important; }
-.psp-body .card-body { padding: 1rem !important; }
+.psp-body[data-user-admin] .card-header { background: transparent !important; border-bottom: 0 !important; }
+.psp-body[data-user-admin] .card-body { padding: 1rem !important; }
 
-/* KPI / quick-action flattening */
-.kpi-card, .kpi-mini, .kpi-small, .psp-qa-card, .psp-qa-icon, .psp-qa-card .psp-qa-icon {
+/* KPI / quick-action flattening (admin-only polish) */
+.psp-body[data-user-admin] .kpi-card,
+.psp-body[data-user-admin] .kpi-mini,
+.psp-body[data-user-admin] .kpi-small,
+.psp-body[data-user-admin] .psp-qa-card,
+.psp-body[data-user-admin] .psp-qa-icon,
+.psp-body[data-user-admin] .psp-qa-card .psp-qa-icon {
   background: transparent !important;
   box-shadow: none !important;
 }
-.psp-qa-icon, .kpi-icon { background: transparent !important; color:var(--psp-text) !important; }
-.kpi-small .kpi-label, .section-label { color:var(--psp-text-soft); font-size:12px; }
+.psp-body[data-user-admin] .psp-qa-icon,
+.psp-body[data-user-admin] .kpi-icon { background: transparent !important; color:var(--psp-text) !important; }
+.psp-body[data-user-admin] .kpi-small .kpi-label,
+.psp-body[data-user-admin] .section-label { color:var(--psp-text-soft); font-size:12px; }
 
 /* Dashboard charts: reduce heights ~40% (dashboard pages only) */
 [data-psp-page*="dashboard"] .chart-wrap,
@@ -48,27 +75,27 @@
   height: 160px !important;
 }
 
-/* Tables: subtle separation and breathing room */
-.table {
+/* Tables: subtle separation and breathing room (admin-only polish) */
+.psp-body[data-user-admin] .table {
   border-collapse: separate !important;
   border-spacing: 0 8px !important;
 }
-.table thead th { background: transparent !important; color:var(--psp-text-soft) !important; border-bottom:0 !important; padding:.8rem .9rem; }
-.table tbody tr { background: var(--psp-card-bg) !important; border-radius:10px; box-shadow:none; transition:transform .08s ease,box-shadow .1s ease; }
-.table tbody tr:hover { transform:translateY(-2px); box-shadow:0 10px 20px rgba(2,6,23,0.16); }
-.table td, .table th { vertical-align: middle !important; }
+.psp-body[data-user-admin] .table thead th { background: transparent !important; color:var(--psp-text-soft) !important; border-bottom:0 !important; padding:.8rem .9rem; }
+.psp-body[data-user-admin] .table tbody tr { background: var(--psp-card-bg) !important; border-radius:10px; box-shadow:none; transition:transform .08s ease,box-shadow .1s ease; }
+.psp-body[data-user-admin] .table tbody tr:hover { transform:translateY(-2px); box-shadow:0 10px 20px rgba(2,6,23,0.16); }
+.psp-body[data-user-admin] .table td, .psp-body[data-user-admin] .table th { vertical-align: middle !important; }
 
 /* Empty states */
 .psp-empty { padding:1.6rem !important; background:transparent; }
 
-/* Platform Health (data-quality) — remove heavy gradients on bars */
-.psp-dq-item--success .psp-dq-bar-fill { background: #10b981 !important; }
-.psp-dq-item--info    .psp-dq-bar-fill { background: #6366f1 !important; }
-.psp-dq-item--warning .psp-dq-bar-fill { background: #f59e0b !important; }
-.psp-dq .psp-dq-icon { background: transparent !important; color:var(--psp-text) !important; }
+/* Platform Health (data-quality) — admin-only colour polish */
+.psp-body[data-user-admin] .psp-dq-item--success .psp-dq-bar-fill { background: #10b981 !important; }
+.psp-body[data-user-admin] .psp-dq-item--info    .psp-dq-bar-fill { background: #6366f1 !important; }
+.psp-body[data-user-admin] .psp-dq-item--warning .psp-dq-bar-fill { background: #f59e0b !important; }
+.psp-body[data-user-admin] .psp-dq .psp-dq-icon { background: transparent !important; color:var(--psp-text) !important; }
 
-/* Badges and labels: muted */
-.badge { background: rgba(255,255,255,0.03) !important; color:var(--psp-text-soft) !important; border:1px solid rgba(255,255,255,0.02) !important; }
+/* Badges and labels: preserve default badge styling for admin (do not force muted backgrounds) */
+/* Admin badges will use existing Bootstrap/text-bg utilities and theme tokens. */
 
 /* Floating action button: keep positioning but smaller on mobile */
 .psp-fab { box-shadow: 0 10px 30px rgba(2,6,23,0.18); }
@@ -78,4 +105,4 @@
   [data-psp-page*="dashboard"] .chart-wrap { height:140px !important; max-height:140px !important; }
 }
 
-/* Presentation-only: avoid critical layout rewrites */
+/* Avoid critical layout rewrites */
