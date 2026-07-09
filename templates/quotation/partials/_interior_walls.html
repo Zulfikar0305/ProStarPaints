@@ -189,7 +189,7 @@
                 <label class="form-label small text-muted mb-1">Paint</label>
                 <select name="paint_row_paint_pk" class="form-select form-select-sm paint-row-paint-select">
                   <option value="">-- Select paint --</option>
-                  {% for p in all_paints %}
+                  {% for p in paints|default:all_paints %}
                     <option value="{{ p.pk }}" data-base="{{ p.base_type }}" data-name="{{ p.name }}" {% if p.pk == row.paint_pk %}selected{% endif %}>{{ p.name }}</option>
                   {% endfor %}
                 </select>
@@ -201,20 +201,6 @@
                     <option value="{{ row.metadata.base }}" selected>{{ row.metadata.base_label|default:row.metadata.base }}</option>
                   {% endif %}
                 </select>
-              </div>
-              <div class="col-auto paint-row-calc-col" style="display:{% if row.metadata.required_litres %}block{% else %}none{% endif %};min-width:220px;">
-                <div class="small text-muted">Spread</div>
-                <div class="fw-semibold paint-row-spread">{{ row.metadata.spread_rate_per_litre|default:'—' }}</div>
-                <div class="small text-muted">Litres</div>
-                <div class="fw-semibold paint-row-litres">{{ row.metadata.required_litres|default:'—' }}</div>
-                <div class="small text-muted">Recommended</div>
-                <div class="fw-semibold paint-row-recommended">
-                  {% if row.metadata.recommended_containers %}
-                    {{ row.metadata.recommended_containers }}{% if row.metadata.package_size %} x {{ row.metadata.package_size }}{{ row.metadata.package_unit|default:'' }}{% endif %}
-                  {% else %}
-                    &mdash;
-                  {% endif %}
-                </div>
               </div>
               <div class="col-auto">
                 <label class="form-label small text-muted mb-1">Area (m&sup2;)</label>
@@ -228,11 +214,11 @@
                 </select>
               </div>
               <div class="col-auto paint-row-calc-col" style="display:{% if row.metadata.required_litres %}block{% else %}none{% endif %};min-width:220px;">
-                <div class="small text-muted">Spread</div>
+                <div class="small text-muted">Spread Rate (m&sup2;/L)</div>
                 <div class="fw-semibold paint-row-spread">{{ row.metadata.spread_rate_per_litre|default:'—' }}</div>
-                <div class="small text-muted">Litres</div>
+                <div class="small text-muted">Required Paint (L)</div>
                 <div class="fw-semibold paint-row-litres">{{ row.metadata.required_litres|default:'—' }}</div>
-                <div class="small text-muted">Recommended</div>
+                <div class="small text-muted">Recommended Supply</div>
                 <div class="fw-semibold paint-row-recommended">
                   {% if row.metadata.recommended_containers %}
                     {{ row.metadata.recommended_containers }}{% if row.metadata.package_size %} x {{ row.metadata.package_size }}{{ row.metadata.package_unit|default:'' }}{% endif %}
@@ -242,6 +228,9 @@
                 </div>
                 <div class="small text-muted mt-2">Estimated Material Cost</div>
                 <div class="fw-semibold paint-row-cost">{{ row.price_excl_vat|default:'—' }}</div>
+                {% if row.metadata.pricing_status and row.metadata.pricing_status != 'priced' %}
+                  <div class="alert alert-warning small mt-2 mb-0">Pricing incomplete: {{ row.metadata.pricing_pending_reason|default:"Incomplete inputs" }}</div>
+                {% endif %}
               </div>
               <div class="col-auto">
                 <button type="button" class="btn btn-outline-danger btn-sm remove-paint-row">Remove</button>
@@ -264,7 +253,7 @@
                 <label class="form-label small text-muted mb-1">Paint</label>
                 <select name="paint_row_paint_pk" class="form-select form-select-sm paint-row-paint-select">
                   <option value="">-- Select paint --</option>
-                  {% for p in all_paints %}
+                  {% for p in paints|default:all_paints %}
                     <option value="{{ p.pk }}">{{ p.name }}</option>
                   {% endfor %}
                 </select>
@@ -275,12 +264,14 @@
                 </select>
               </div>
               <div class="col-auto paint-row-calc-col" style="display:none;min-width:220px;">
-                <div class="small text-muted">Spread</div>
+                <div class="small text-muted">Spread Rate (m&sup2;/L)</div>
                 <div class="fw-semibold paint-row-spread">&mdash;</div>
-                <div class="small text-muted">Litres</div>
+                <div class="small text-muted">Required Paint (L)</div>
                 <div class="fw-semibold paint-row-litres">&mdash;</div>
-                <div class="small text-muted">Recommended</div>
+                <div class="small text-muted">Recommended Supply</div>
                 <div class="fw-semibold paint-row-recommended">&mdash;</div>
+                <div class="small text-muted mt-2">Estimated Material Cost</div>
+                <div class="fw-semibold paint-row-cost">&mdash;</div>
               </div>
               <div class="col-auto">
                 <label class="form-label small text-muted mb-1">Area (m&sup2;)</label>
@@ -323,8 +314,10 @@
                 <label class="form-label small text-muted mb-1">Product</label>
                 <select name="waterproof_row_key" class="form-select form-select-sm">
                   <option value="">-- Select --</option>
-                  {% for val, label in waterproofing_options %}
-                    <option value="{{ val }}" {% if row.key == val %}selected{% endif %}>{{ label }}</option>
+                  {% for p in all_paints %}
+                    {% if p.category == 'WATERPROOFING' %}
+                      <option value="{{ p.pk }}" data-name="{{ p.name }}" {% if row.metadata.paint_pk and row.metadata.paint_pk == p.pk %}selected{% endif %}>{{ p.name }}</option>
+                    {% endif %}
                   {% endfor %}
                 </select>
               </div>
@@ -352,8 +345,10 @@
                 <label class="form-label small text-muted mb-1">Product</label>
                 <select name="waterproof_row_key" class="form-select form-select-sm">
                   <option value="">-- Select --</option>
-                  {% for val, label in waterproofing_options %}
-                    <option value="{{ val }}">{{ label }}</option>
+                  {% for p in all_paints %}
+                    {% if p.category == 'WATERPROOFING' %}
+                      <option value="{{ p.pk }}" data-name="{{ p.name }}">{{ p.name }}</option>
+                    {% endif %}
                   {% endfor %}
                 </select>
               </div>
@@ -396,8 +391,10 @@
                 <label class="form-label small text-muted mb-1">Product</label>
                 <select name="primer_row_key" class="form-select form-select-sm">
                   <option value="">-- Select --</option>
-                  {% for val, label in primer_options %}
-                    <option value="{{ val }}" {% if row.key == val %}selected{% endif %}>{{ label }}</option>
+                  {% for p in all_paints %}
+                    {% if p.category == 'PRIMER' %}
+                      <option value="{{ p.pk }}" data-name="{{ p.name }}" {% if row.metadata.paint_pk and row.metadata.paint_pk == p.pk %}selected{% endif %}>{{ p.name }}</option>
+                    {% endif %}
                   {% endfor %}
                 </select>
               </div>
@@ -472,51 +469,60 @@
         {# Prep option specific controls (shown when checkbox selected) #}
         <div class="row g-2 mb-3" id="prepControls_{{ section.pk }}">
           <div class="col-12 col-sm-6 col-md-4 col-lg-3 prep-control prep-filling" id="prep_filling_ctrl_{{ section.pk }}" style="display:{% if 'filling' in iw_summary.saved_prep_work %}block{% else %}none{% endif %};">
-            <label class="form-label small fw-semibold">Crack repair — pack & quantity</label>
+            <label class="form-label small fw-semibold">Crack repair — product & quantity</label>
             <div class="d-flex gap-2">
-              <select name="prep_filling_pack_size" class="form-select form-select-sm" style="max-width:140px;">
-                <option value="">Pack</option>
-                <option value="2">2 kg</option>
-                <option value="5">5 kg</option>
-                <option value="10">10 kg</option>
+              <select name="prep_filling_pack_size" class="form-select form-select-sm" style="max-width:240px;">
+                <option value="">Select product</option>
+                {% for p in all_paints %}
+                  {% if p.category == 'CRACKS' %}
+                    <option value="{{ p.pk }}" data-package-size="{{ p.package_size|default:'' }}" data-package-unit="{{ p.package_unit|default:'' }}">{{ p.name }}{% if p.package_size %} {{ p.package_size|floatformat:0 }}{{ p.get_package_unit_display }}{% endif %}</option>
+                  {% endif %}
+                {% endfor %}
               </select>
               <input type="number" name="prep_filling_quantity" min="1" value="1" class="form-control form-control-sm" style="width:80px;">
             </div>
           </div>
 
           <div class="col-12 col-sm-6 col-md-4 col-lg-3 prep-control prep-mould_treatment" id="prep_mould_treatment_ctrl_{{ section.pk }}" style="display:{% if 'mould_treatment' in iw_summary.saved_prep_work %}block{% else %}none{% endif %};">
-            <label class="form-label small fw-semibold">Mould treatment — pack & quantity</label>
+            <label class="form-label small fw-semibold">Mould treatment — product & quantity</label>
             <div class="d-flex gap-2">
-              <select name="prep_mould_treatment_pack_size" class="form-select form-select-sm" style="max-width:140px;">
-                <option value="">Pack</option>
-                <option value="1">1 L</option>
-                <option value="5">5 L</option>
+              <select name="prep_mould_treatment_pack_size" class="form-select form-select-sm" style="max-width:240px;">
+                <option value="">Select product</option>
+                {% for p in all_paints %}
+                  {% if p.category == 'MOULD' %}
+                    <option value="{{ p.pk }}" data-package-size="{{ p.package_size|default:'' }}" data-package-unit="{{ p.package_unit|default:'' }}">{{ p.name }}{% if p.package_size %} {{ p.package_size|floatformat:0 }}{{ p.get_package_unit_display }}{% endif %}</option>
+                  {% endif %}
+                {% endfor %}
               </select>
               <input type="number" name="prep_mould_treatment_quantity" min="1" value="1" class="form-control form-control-sm" style="width:80px;">
             </div>
           </div>
 
           <div class="col-12 col-sm-6 col-md-4 col-lg-3 prep-control prep-cleaning" id="prep_cleaning_ctrl_{{ section.pk }}" style="display:{% if 'cleaning' in iw_summary.saved_prep_work %}block{% else %}none{% endif %};">
-            <label class="form-label small fw-semibold">Cleaning — pack & quantity</label>
+            <label class="form-label small fw-semibold">Cleaning — product & quantity</label>
             <div class="d-flex gap-2">
-              <select name="prep_cleaning_pack_size" class="form-select form-select-sm" style="max-width:140px;">
-                <option value="">Pack</option>
-                <option value="1">1 L</option>
-                <option value="5">5 L</option>
+              <select name="prep_cleaning_pack_size" class="form-select form-select-sm" style="max-width:240px;">
+                <option value="">Select product</option>
+                {% for p in all_paints %}
+                  {% if p.category == 'CLEANING' %}
+                    <option value="{{ p.pk }}" data-package-size="{{ p.package_size|default:'' }}" data-package-unit="{{ p.package_unit|default:'' }}">{{ p.name }}{% if p.package_size %} {{ p.package_size|floatformat:0 }}{{ p.get_package_unit_display }}{% endif %}</option>
+                  {% endif %}
+                {% endfor %}
               </select>
               <input type="number" name="prep_cleaning_quantity" min="1" value="1" class="form-control form-control-sm" style="width:80px;">
             </div>
           </div>
 
           <div class="col-12 col-sm-6 col-md-4 col-lg-3 prep-control prep-sanding" id="prep_sanding_ctrl_{{ section.pk }}" style="display:{% if 'sanding' in iw_summary.saved_prep_work %}block{% else %}none{% endif %};">
-            <label class="form-label small fw-semibold">Sanding — grit & rolls</label>
+            <label class="form-label small fw-semibold">Sanding — product & rolls</label>
             <div class="d-flex gap-2">
-              <select name="prep_sanding_grit" class="form-select form-select-sm" style="max-width:140px;">
-                <option value="">Grit</option>
-                <option value="40">40</option>
-                <option value="60">60</option>
-                <option value="80">80</option>
-                <option value="100">100</option>
+              <select name="prep_sanding_grit" class="form-select form-select-sm" style="max-width:240px;">
+                <option value="">Select product</option>
+                {% for p in all_paints %}
+                  {% if p.category == 'SANDING' %}
+                    <option value="{{ p.pk }}" data-variant-label="{{ p.variant_label|default:'' }}">{{ p.name }}{% if p.variant_label %} — {{ p.variant_label }}{% endif %}</option>
+                  {% endif %}
+                {% endfor %}
               </select>
               <input type="number" name="prep_sanding_rolls" min="1" value="1" class="form-control form-control-sm" style="width:80px;" title="Rolls (1 roll = 1 metre)">
             </div>
@@ -656,29 +662,67 @@
       // Filling (pack size + quantity)
       if (pmeta.filling) {
         var sel = iwContainer && iwContainer.querySelector('[name="prep_filling_pack_size"]');
-        if (sel && pmeta.filling.package_size) sel.value = _normNumStr(pmeta.filling.package_size);
+        if (sel) {
+          if (pmeta.filling.paint_pk) {
+            sel.value = String(pmeta.filling.paint_pk);
+          } else if (pmeta.filling.package_size) {
+            var target = String(pmeta.filling.package_size);
+            var found = Array.from(sel.options).find(function(o){ return (o.dataset && o.dataset.packageSize === target) || o.value === target; });
+            if (found) sel.value = found.value;
+          }
+        }
         var qty = iwContainer && iwContainer.querySelector('[name="prep_filling_quantity"]');
         if (qty && pmeta.filling.package_count) qty.value = String(pmeta.filling.package_count);
       }
       // Mould treatment
       if (pmeta.mould_treatment) {
         var sel2 = iwContainer && iwContainer.querySelector('[name="prep_mould_treatment_pack_size"]');
-        if (sel2 && pmeta.mould_treatment.package_size) sel2.value = _normNumStr(pmeta.mould_treatment.package_size);
+        if (sel2) {
+          if (pmeta.mould_treatment.paint_pk) {
+            sel2.value = String(pmeta.mould_treatment.paint_pk);
+          } else if (pmeta.mould_treatment.package_size) {
+            var target2 = String(pmeta.mould_treatment.package_size);
+            var found2 = Array.from(sel2.options).find(function(o){ return (o.dataset && o.dataset.packageSize === target2) || o.value === target2; });
+            if (found2) sel2.value = found2.value;
+          }
+        }
         var qty2 = iwContainer && iwContainer.querySelector('[name="prep_mould_treatment_quantity"]');
         if (qty2 && pmeta.mould_treatment.package_count) qty2.value = String(pmeta.mould_treatment.package_count);
       }
       // Cleaning
       if (pmeta.cleaning) {
         var sel3 = iwContainer && iwContainer.querySelector('[name="prep_cleaning_pack_size"]');
-        if (sel3 && pmeta.cleaning.package_size) sel3.value = _normNumStr(pmeta.cleaning.package_size);
+        if (sel3) {
+          if (pmeta.cleaning.paint_pk) {
+            sel3.value = String(pmeta.cleaning.paint_pk);
+          } else if (pmeta.cleaning.package_size) {
+            var target3 = String(pmeta.cleaning.package_size);
+            var found3 = Array.from(sel3.options).find(function(o){ return (o.dataset && o.dataset.packageSize === target3) || o.value === target3; });
+            if (found3) sel3.value = found3.value;
+          }
+        }
         var qty3 = iwContainer && iwContainer.querySelector('[name="prep_cleaning_quantity"]');
         if (qty3 && pmeta.cleaning.package_count) qty3.value = String(pmeta.cleaning.package_count);
       }
       // Sanding grit + rolls
       if (pmeta.sanding) {
-        var grit = (pmeta.sanding.variant_label || '').toString().match(/(\d+)/);
         var selG = iwContainer && iwContainer.querySelector('[name="prep_sanding_grit"]');
-        if (selG && grit && grit[1]) selG.value = grit[1];
+        if (selG) {
+          if (pmeta.sanding.paint_pk) {
+            selG.value = String(pmeta.sanding.paint_pk);
+          } else if (pmeta.sanding.variant_label) {
+            var v = pmeta.sanding.variant_label.toString();
+            var foundG = Array.from(selG.options).find(function(o){ return (o.dataset && o.dataset.variantLabel && o.dataset.variantLabel === v) || (o.textContent && o.textContent.indexOf(v) !== -1); });
+            if (foundG) selG.value = foundG.value;
+            else {
+              var grit = (v || '').toString().match(/(\d+)/);
+              if (grit && grit[1]) {
+                var numericOpt = Array.from(selG.options).find(function(o){ return o.value === grit[1]; });
+                if (numericOpt) selG.value = numericOpt.value;
+              }
+            }
+          }
+        }
         var rolls = iwContainer && iwContainer.querySelector('[name="prep_sanding_rolls"]');
         if (rolls && pmeta.sanding.roll_count) rolls.value = String(pmeta.sanding.roll_count);
       }

@@ -7,6 +7,14 @@ from django.utils.translation import gettext_lazy as _
 from django.core.files.storage import default_storage
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
+from django.db.models.signals import post_save
+from django.db import transaction
+
+try:
+    # Import here to avoid circular import at module import time
+    from .pricing import recalculate_quotation_totals
+except Exception:
+    recalculate_quotation_totals = None
 
 
 # ---------------------------------------------------------------------------
@@ -359,6 +367,40 @@ def _delete_section_image_file(sender, instance, **kwargs):
     except Exception:
         # Deletion must not raise — swallow exceptions
         pass
+
+
+# ---------------------------------------------------------------------------
+# Signal handlers: keep Quotation cached totals synchronized
+# ---------------------------------------------------------------------------
+
+
+@receiver(post_save, sender=QuotationLineItem)
+def _recalculate_totals_on_lineitem_save(sender, instance, created, **kwargs):
+    """Recalculate Quotation totals after a line item is saved."""
+    try:
+        if recalculate_quotation_totals:
+            # Ensure totals are recalculated after DB transaction commits
+            transaction.on_commit(lambda: recalculate_quotation_totals(instance.quotation))
+    except Exception:
+        try:
+            if recalculate_quotation_totals:
+                recalculate_quotation_totals(instance.quotation)
+        except Exception:
+            pass
+
+
+@receiver(post_delete, sender=QuotationLineItem)
+def _recalculate_totals_on_lineitem_delete(sender, instance, **kwargs):
+    """Recalculate Quotation totals after a line item is deleted."""
+    try:
+        if recalculate_quotation_totals:
+            transaction.on_commit(lambda: recalculate_quotation_totals(instance.quotation))
+    except Exception:
+        try:
+            if recalculate_quotation_totals:
+                recalculate_quotation_totals(instance.quotation)
+        except Exception:
+            pass
 
 
 # ---------------------------------------------------------------------------

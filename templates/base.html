@@ -116,6 +116,7 @@
 
       {% if user.is_superuser or user.role == "ADMIN" %}
         <li class="psp-sidebar-section-label">System</li>
+
         <li>
           <a href="{% url 'system_tools:control_center' %}"
              class="psp-sidebar-link {% if request.resolver_match.url_name == 'control_center' %}active{% endif %}">
@@ -123,20 +124,15 @@
             <span>Control Center</span>
           </a>
         </li>
+
         <li>
-          <a href="{% url 'audit:audit_log_list' %}"
-             class="psp-sidebar-link {% if request.resolver_match.app_name == 'audit' %}active{% endif %}">
-            <i class="bi bi-journal-text"></i>
-            <span>Audit Log</span>
+          <a href="{% url 'system_tools:branding_settings' %}"
+             class="psp-sidebar-link {% if request.resolver_match.url_name == 'branding_settings' %}active{% endif %}">
+            <i class="bi bi-palette"></i>
+            <span>Branding</span>
           </a>
         </li>
-        <li>
-          <a href="{% url 'system_tools:dashboard' %}"
-             class="psp-sidebar-link {% if request.resolver_match.app_name == 'system_tools' and request.resolver_match.url_name in 'dashboard run_tool tool_result' %}active{% endif %}">
-            <i class="bi bi-tools"></i>
-            <span>Tools</span>
-          </a>
-        </li>
+
         <li>
           <a href="{% url 'system_tools:system_settings' %}"
              class="psp-sidebar-link {% if request.resolver_match.url_name == 'system_settings' or request.resolver_match.url_name == 'vat_settings' %}active{% endif %}">
@@ -144,6 +140,23 @@
             <span>System Settings</span>
           </a>
         </li>
+
+        <li>
+          <a href="{% url 'audit:audit_log_list' %}"
+             class="psp-sidebar-link {% if request.resolver_match.app_name == 'audit' %}active{% endif %}">
+            <i class="bi bi-journal-text"></i>
+            <span>Audit Log</span>
+          </a>
+        </li>
+
+        <li>
+          <a href="{% url 'system_tools:dashboard' %}"
+             class="psp-sidebar-link {% if request.resolver_match.app_name == 'system_tools' and request.resolver_match.url_name in 'dashboard run_tool tool_result' %}active{% endif %}">
+            <i class="bi bi-tools"></i>
+            <span>Tools</span>
+          </a>
+        </li>
+
       {% endif %}
 
     </ul>

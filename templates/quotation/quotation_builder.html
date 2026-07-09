@@ -132,9 +132,9 @@
           {% with section=entry.section %}
             <div class="mb-2 small text-muted">{{ entry.selection_label }}</div>
             {% if entry.is_walls %}
-              {% include "quotation/partials/_interior_walls.html" with iw_summary=entry.summary %}
+              {% include "quotation/partials/_interior_walls.html" with iw_summary=entry.summary paints=entry.paints %}
             {% elif entry.is_generic %}
-              {% include "quotation/partials/_generic_surface_section.html" with gs_summary=entry.summary section_config=entry.config %}
+              {% include "quotation/partials/_generic_surface_section.html" with gs_summary=entry.summary section_config=entry.config paints=entry.paints %}
             {% else %}
               <div class="card border-0 shadow-sm mb-3">
                 <div class="card-body">

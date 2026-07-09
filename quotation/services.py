@@ -165,6 +165,9 @@ def get_quotation_summary(quotation) -> dict:
             prep_total += excl
     vat_amount = total_incl - subtotal
 
+    # Pricing status: consider totals available when subtotal > 0
+    pricing_status = "ready" if subtotal and subtotal > Decimal("0.00") else "pending"
+
     return {
         "customer_name":     quotation.customer_name,
         "project_name":      quotation.project_name or quotation.project_location,
@@ -181,7 +184,7 @@ def get_quotation_summary(quotation) -> dict:
             "total":          paint_count + primer_count + waterproofing_count + prep_count,
         },
         "moisture_warnings": moisture_warnings,
-        "pricing_status":    "pending",
+        "pricing_status":    pricing_status,
         "monetary": {
             "paint_total_excl_vat": str(paint_total),
             "primer_total_excl_vat": str(primer_total),

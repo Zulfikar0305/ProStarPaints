@@ -127,6 +127,14 @@ class Paint(models.Model):
         default="",
     )
 
+    group_key = models.CharField(
+        _("group key"),
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Machine key linking this product to a PAINT_GROUPS entry for UI grouping",
+    )
+
     predetermined_note = models.TextField(
         _("predetermined note"),
         blank=True,

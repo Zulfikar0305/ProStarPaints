@@ -411,6 +411,13 @@ class QuotationBuilderView(QuotationAccessMixin, View):
                 # Preserve per-paint line information so the UI can render repeatable rows
                 try:
                     paint_pk = li.paint.pk if li.paint else None
+                    # Fallback: if the FK is not present, try to use metadata.paint_pk
+                    if paint_pk is None:
+                        try:
+                            meta_ppk = (li.metadata or {}).get("paint_pk")
+                            paint_pk = int(meta_ppk) if meta_ppk is not None else None
+                        except Exception:
+                            paint_pk = paint_pk
                 except Exception:
                     paint_pk = None
                 saved_paint_rows.append({
@@ -513,6 +520,13 @@ class QuotationBuilderView(QuotationAccessMixin, View):
             elif li.item_type == QuotationLineItem.ItemType.PAINT:
                 try:
                     paint_pk = li.paint.pk if li.paint else None
+                    # Fallback: if FK not present, try metadata.paint_pk
+                    if paint_pk is None:
+                        try:
+                            meta_ppk = (li.metadata or {}).get("paint_pk")
+                            paint_pk = int(meta_ppk) if meta_ppk is not None else None
+                        except Exception:
+                            paint_pk = paint_pk
                 except Exception:
                     paint_pk = None
                 saved_paint_rows.append({
@@ -651,14 +665,43 @@ class QuotationBuilderView(QuotationAccessMixin, View):
         for sel in active_leaflet_selections:
             s = sel["section"]
             entry = section_entry_map.get(s.pk, {})
+            is_walls = entry.get("is_walls", s.subsection_key == "interior_walls")
+            is_generic = entry.get("is_generic", s.subsection_key in ALL_GENERIC_SECTION_CONFIGS)
+
+            # Determine substrate_type for this section so we can scope paints
+            if is_walls:
+                substrate_type = "INTERIOR"
+            elif is_generic and entry.get("config"):
+                substrate_type = entry.get("config").substrate_type
+            else:
+                substrate_type = getattr(s, "substrate_type", None) or "INTERIOR"
+
+            # Map substrate_type -> Paint.Category value where possible
+            # Default to INTERIOR/EXTERIOR names present in Paint.Category
+            desired_category = None
+            try:
+                if substrate_type == "EXTERIOR":
+                    desired_category = Paint.Category.EXTERIOR
+                else:
+                    desired_category = Paint.Category.INTERIOR
+            except Exception:
+                desired_category = substrate_type
+
+            # Query paints scoped to this section's category (server-side filtering)
+            try:
+                paints_qs = Paint.objects.filter(is_active=True, category=desired_category).order_by("name")
+            except Exception:
+                paints_qs = Paint.objects.filter(is_active=True).order_by("name")
+
             active_sections_data.append({
                 "section": s,
                 "summary": entry.get("summary", {}),
                 "config": entry.get("config"),
-                "is_walls": entry.get("is_walls", s.subsection_key == "interior_walls"),
-                "is_generic": entry.get("is_generic", s.subsection_key in ALL_GENERIC_SECTION_CONFIGS),
+                "is_walls": is_walls,
+                "is_generic": is_generic,
                 "selection_label": sel.get("selection_label"),
                 "selection_order": sel.get("selection_order"),
+                "paints": paints_qs,
             })
 
         return render(request, self.template_name, {
@@ -688,9 +731,11 @@ class QuotationBuilderView(QuotationAccessMixin, View):
                     "price_excl_vat": str(p.price_excl_vat),
                     "price_incl_vat": str(p.price_incl_vat),
                     "priced_volume_litres": str(p.priced_volume_litres) if p.priced_volume_litres is not None else None,
-                    "finish": p.finish,
+                    # Normalize finish to canonical FINISHES key (e.g. SMOOTH_MATTE -> smooth_matte)
+                    "finish": p.finish.lower() if p.finish else None,
                     "category": p.category,
-                    "group_key": next((k for k, g in PAINT_GROUPS.items() if g.paint_name.lower() in p.name.lower()), None),
+                    # Use explicit group_key from the product record (no substring matching)
+                    "group_key": p.group_key or None,
                     "base_type": p.base_type,
                 }
                 for p in Paint.objects.filter(is_active=True)
@@ -882,6 +927,9 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
                 "surface_cond_labels": cond_labels,
                 "moisture_level":    moisture,
                 "notes":             notes,
+                # Persist section-level finishes (labels kept for backwards compatibility)
+                "finishes":          finishes,
+                "finish_labels":     finish_labels,
             },
         )
 
@@ -966,7 +1014,8 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
                     area_sqm    = row_area,
                     price_excl_vat = price_excl,
                     price_incl_vat = price_incl,
-                    metadata    = {"key": key, "paint_matched": matched is not None},
+                    # Persist matched paint PK when available so frontend can restore by PK
+                    metadata    = (lambda m, k, mat: {**{"key": k, "paint_matched": bool(mat)}, **({"paint_pk": int(mat.pk)} if mat else {})})(None, key, matched),
                 )
 
                 try:
@@ -1063,7 +1112,7 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
                     area_sqm    = row_area,
                     price_excl_vat = price_excl,
                     price_incl_vat = price_incl,
-                    metadata    = {"key": key, "paint_matched": matched is not None},
+                    metadata    = (lambda m, k, mat: {**{"key": k, "paint_matched": bool(mat)}, **({"paint_pk": int(mat.pk)} if mat else {})})(None, key, matched),
                 )
 
                 try:
@@ -1108,6 +1157,8 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
 
                     # Build metadata with package_count from quantity input
                     meta = {"key": prep_key, "paint_matched": matched is not None}
+                    if matched:
+                        meta["paint_pk"] = int(matched.pk)
                     if pack_raw:
                         try:
                             meta['package_size'] = str(Decimal(pack_raw))
@@ -1136,6 +1187,8 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
                         matched = _find_catalogue_paint_by_label(prep_label, category) if category else None
 
                     meta = {"key": prep_key, "paint_matched": matched is not None}
+                    if matched:
+                        meta["paint_pk"] = int(matched.pk)
                     if pack_raw:
                         try:
                             meta['package_size'] = str(Decimal(pack_raw))
@@ -1163,6 +1216,8 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
                         matched = _find_catalogue_paint_by_label(prep_label, category) if category else None
 
                     meta = {"key": prep_key, "paint_matched": matched is not None}
+                    if matched:
+                        meta["paint_pk"] = int(matched.pk)
                     try:
                         rolls = int(rolls_raw) if rolls_raw else 1
                         rolls = max(1, rolls)
@@ -1178,6 +1233,8 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
                     # efflorescence, remove_paint, and others: simple match
                     matched = _find_catalogue_paint_by_label(prep_label, category) if category else None
                     meta = {"key": prep_key, "paint_matched": matched is not None}
+                    if matched:
+                        meta["paint_pk"] = int(matched.pk)
             except Exception:
                 matched = _find_catalogue_paint_by_label(prep_label, category) if category else None
                 meta = {"key": prep_key, "paint_matched": matched is not None}
@@ -1264,7 +1321,14 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
                 if matched_paint is None:
                     groups = get_paint_groups_for_finishes([finish])
                     for pg in groups:
-                        candidate = _try_match_paint(pg.paint_name, base_val) if base_val else None
+                        # Match by explicit product.group_key instead of substring name lookup
+                        try:
+                            if base_val:
+                                candidate = _Paint.objects.filter(group_key=pg.key, base_type=base_val, is_active=True).first()
+                            else:
+                                candidate = _Paint.objects.filter(group_key=pg.key, is_active=True).first()
+                        except Exception:
+                            candidate = None
                         if candidate:
                             matched_paint = candidate
                             paint_group_key = pg.key
@@ -1277,8 +1341,26 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
                     description = matched_paint.name
                     base_label = getattr(matched_paint, 'base_type', '') or ''
 
+                # Ensure paint_group_key reflects the matched product's explicit group_key
+                if matched_paint is not None and not paint_group_key:
+                    paint_group_key = getattr(matched_paint, 'group_key', None)
+
                 price_excl = matched_paint.price_excl_vat if matched_paint else Decimal("0")
                 price_incl = matched_paint.price_incl_vat if matched_paint else Decimal("0")
+
+                meta = {
+                    "finish":       finish,
+                    "paint_group":  paint_group_key,
+                    "paint_name":   matched_paint.name if matched_paint else None,
+                    "base":         base_val,
+                    "base_label":   base_label,
+                    "paint_matched": matched_paint is not None,
+                }
+                if matched_paint:
+                    try:
+                        meta["paint_pk"] = int(matched_paint.pk)
+                    except Exception:
+                        pass
 
                 li = QuotationLineItem.objects.create(
                     quotation      = quotation,
@@ -1290,14 +1372,7 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
                     area_sqm       = row_area,
                     price_excl_vat = price_excl,
                     price_incl_vat = price_incl,
-                    metadata       = {
-                        "finish":       finish,
-                        "paint_group":  paint_group_key,
-                        "paint_name":   matched_paint.name if matched_paint else None,
-                        "base":         base_val,
-                        "base_label":   base_label,
-                        "paint_matched": matched_paint is not None,
-                    },
+                    metadata       = meta,
                 )
 
                 try:
@@ -1489,6 +1564,9 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
                         "moisture_level":      moisture,
                         "area_sqm":            str(area_sqm) if area_sqm else None,
                         "notes":               notes,
+                        # Persist section-level finishes for template restoration/backwards-compat
+                        "finishes":            finishes,
+                        "finish_labels":       finish_labels,
                     },
                 )
 
@@ -1561,6 +1639,9 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
                         price_excl = matched.price_excl_vat if matched else Decimal("0")
                         price_incl = matched.price_incl_vat if matched else Decimal("0")
 
+                        meta_wp = {"key": key, "paint_matched": matched is not None}
+                        if matched:
+                            meta_wp["paint_pk"] = int(matched.pk)
                         li = QuotationLineItem.objects.create(
                             quotation   = quotation,
                             section     = section,
@@ -1571,7 +1652,7 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
                             paint       = matched,
                             price_excl_vat = price_excl,
                             price_incl_vat = price_incl,
-                            metadata    = {"key": key, "paint_matched": matched is not None},
+                            metadata    = meta_wp,
                         )
 
                         try:
@@ -1656,6 +1737,9 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
                         price_excl = matched.price_excl_vat if matched else Decimal("0")
                         price_incl = matched.price_incl_vat if matched else Decimal("0")
 
+                        meta_pr = {"key": key, "paint_matched": matched is not None}
+                        if matched:
+                            meta_pr["paint_pk"] = int(matched.pk)
                         li = QuotationLineItem.objects.create(
                             quotation   = quotation,
                             section     = section,
@@ -1666,7 +1750,7 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
                             paint       = matched,
                             price_excl_vat = price_excl,
                             price_incl_vat = price_incl,
-                            metadata    = {"key": key, "paint_matched": matched is not None},
+                            metadata    = meta_pr,
                         )
 
                         try:
@@ -1679,15 +1763,46 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
 
                 # ── 4. PREP_WORK items ───────────────────────────────────────────────
                 prep_labels = dict(OTHER_PREP_OPTIONS)
+                # Mapping of prep option keys to Paint.Category values
+                prep_key_to_category = {
+                    "filling": Paint.Category.CRACKS,
+                    "mould_treatment": Paint.Category.MOULD,
+                    "efflor_removal": Paint.Category.EFFLORESCENCE,
+                    "cleaning": Paint.Category.CLEANING,
+                    "sanding": Paint.Category.SANDING,
+                    "remove_paint": Paint.Category.OLD_PAINT_REMOVAL,
+                }
+
                 for prep_key in POST.getlist("prep_work"):
                     if prep_key not in prep_labels:
                         continue
-                    # Preserve any pack/grit/quantity choices in metadata so UI
-                    # can restore user selections for generic sections.
-                    meta = {"key": prep_key}
+                    prep_label = prep_labels[prep_key]
+                    category = prep_key_to_category.get(prep_key)
+
+                    # Attempt to match a catalogue product using pack/variant inputs when available
+                    matched = None
                     try:
                         if prep_key == 'filling':
                             pack_raw = POST.get('prep_filling_pack_size', '').strip()
+                            if pack_raw:
+                                try:
+                                    kint = int(pack_raw)
+                                    matched = Paint.objects.filter(pk=kint, is_active=True, category=Paint.Category.CRACKS).first()
+                                except Exception:
+                                    matched = None
+                            if not matched and pack_raw:
+                                try:
+                                    ps = Decimal(pack_raw)
+                                    matched = Paint.objects.filter(category=Paint.Category.CRACKS, package_size=ps, is_active=True).first()
+                                except Exception:
+                                    matched = None
+                            if not matched:
+                                matched = _find_catalogue_paint_by_label(prep_label, category) if category else None
+
+                            # Build metadata with package_count from quantity input
+                            meta = {"key": prep_key, "paint_matched": matched is not None}
+                            if matched:
+                                meta["paint_pk"] = int(matched.pk)
                             if pack_raw:
                                 try:
                                     meta['package_size'] = str(Decimal(pack_raw))
@@ -1695,12 +1810,34 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
                                     meta['package_size'] = pack_raw
                             qty_raw = POST.get('prep_filling_quantity', '').strip()
                             try:
-                                meta['package_count'] = int(qty_raw) if qty_raw else 1
+                                pkg_cnt = int(qty_raw) if qty_raw else 1
+                                pkg_cnt = max(1, pkg_cnt)
                             except Exception:
-                                pass
+                                pkg_cnt = 1
+                            if matched and matched.pricing_method == Paint.PricingMethod.FIXED_PACK:
+                                meta["package_count"] = pkg_cnt
+
                         elif prep_key in ('mould_treatment', 'cleaning'):
                             field_prefix = 'prep_mould_treatment' if prep_key == 'mould_treatment' else 'prep_cleaning'
                             pack_raw = POST.get(f'{field_prefix}_pack_size', '').strip()
+                            if pack_raw:
+                                try:
+                                    kint = int(pack_raw)
+                                    matched = Paint.objects.filter(pk=kint, is_active=True, category=(Paint.Category.MOULD if prep_key == 'mould_treatment' else Paint.Category.CLEANING)).first()
+                                except Exception:
+                                    matched = None
+                            if not matched and pack_raw:
+                                try:
+                                    ps = Decimal(pack_raw)
+                                    matched = Paint.objects.filter(category=(Paint.Category.MOULD if prep_key == 'mould_treatment' else Paint.Category.CLEANING), package_size=ps, is_active=True).first()
+                                except Exception:
+                                    matched = None
+                            if not matched:
+                                matched = _find_catalogue_paint_by_label(prep_label, category) if category else None
+
+                            meta = {"key": prep_key, "paint_matched": matched is not None}
+                            if matched:
+                                meta["paint_pk"] = int(matched.pk)
                             if pack_raw:
                                 try:
                                     meta['package_size'] = str(Decimal(pack_raw))
@@ -1708,28 +1845,78 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
                                     meta['package_size'] = pack_raw
                             qty_raw = POST.get(f'{field_prefix}_quantity', '').strip()
                             try:
-                                meta['package_count'] = int(qty_raw) if qty_raw else 1
+                                pkg_cnt = int(qty_raw) if qty_raw else 1
+                                pkg_cnt = max(1, pkg_cnt)
                             except Exception:
-                                pass
+                                pkg_cnt = 1
+                            if matched and matched.pricing_method == Paint.PricingMethod.FIXED_PACK:
+                                meta["package_count"] = pkg_cnt
+
                         elif prep_key == 'sanding':
                             grit = POST.get('prep_sanding_grit', '').strip()
                             rolls_raw = POST.get('prep_sanding_rolls', '').strip()
                             if grit:
-                                meta['variant_label'] = f"{grit} grit"
-                            try:
-                                meta['roll_count'] = int(rolls_raw) if rolls_raw else 1
-                            except Exception:
-                                pass
-                    except Exception:
-                        pass
+                                try:
+                                    kint = int(grit)
+                                    matched = Paint.objects.filter(pk=kint, is_active=True, category=Paint.Category.SANDING).first()
+                                except Exception:
+                                    matched = None
+                            if not matched and grit:
+                                # Try variant match first (e.g. '80 grit')
+                                try:
+                                    matched = Paint.objects.filter(category=Paint.Category.SANDING, variant_label__icontains=(grit + ' grit'), is_active=True).first()
+                                except Exception:
+                                    matched = None
+                            if not matched:
+                                matched = _find_catalogue_paint_by_label(prep_label, category) if category else None
 
-                    QuotationLineItem.objects.create(
+                            meta = {"key": prep_key, "paint_matched": matched is not None}
+                            if matched:
+                                meta["paint_pk"] = int(matched.pk)
+                            try:
+                                rolls = int(rolls_raw) if rolls_raw else 1
+                                rolls = max(1, rolls)
+                            except Exception:
+                                rolls = 1
+                            # Persist roll_count for UI restoration irrespective of pricing match
+                            meta["roll_count"] = rolls
+                            # Preserve chosen grit in metadata for description/variant
+                            if grit:
+                                meta["variant_label"] = f"{grit} grit"
+
+                        else:
+                            # efflorescence, remove_paint, and others: simple match
+                            matched = _find_catalogue_paint_by_label(prep_label, category) if category else None
+                            meta = {"key": prep_key, "paint_matched": matched is not None}
+                            if matched:
+                                meta["paint_pk"] = int(matched.pk)
+                    except Exception:
+                        matched = _find_catalogue_paint_by_label(prep_label, category) if category else None
+                        meta = {"key": prep_key, "paint_matched": matched is not None}
+                        if matched:
+                            meta["paint_pk"] = int(matched.pk)
+
+                    price_excl = matched.price_excl_vat if matched else Decimal("0")
+                    price_incl = matched.price_incl_vat if matched else Decimal("0")
+
+                    li = QuotationLineItem.objects.create(
                         quotation   = quotation,
                         section     = section,
                         item_type   = QuotationLineItem.ItemType.PREP_WORK,
-                        description = prep_labels[prep_key],
+                        description = prep_label,
+                        paint       = matched,
+                        price_excl_vat = price_excl,
+                        price_incl_vat = price_incl,
                         metadata    = meta,
                     )
+
+                    try:
+                        apply_paint_pricing_to_line_item(li)
+                    except Exception:
+                        meta = dict(li.metadata or {})
+                        meta.update({"pricing_status": "pending", "pricing_pending_reason": "pricing_exception"})
+                        li.metadata = meta
+                        li.save(update_fields=["metadata"])
 
                 # ── 5. PAINT items ───────────────────────────────────────────────────
                 # Per-row inputs preferred; fallback to legacy group inputs when
@@ -1789,7 +1976,14 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
                         if matched_paint is None:
                             groups = get_paint_groups_for_finishes([finish])
                             for pg in groups:
-                                candidate = _try_match_paint(pg.paint_name, base_val) if base_val else None
+                                # Match by explicit product.group_key instead of substring name lookup
+                                try:
+                                    if base_val:
+                                        candidate = _Paint.objects.filter(group_key=pg.key, base_type=base_val, is_active=True).first()
+                                    else:
+                                        candidate = _Paint.objects.filter(group_key=pg.key, is_active=True).first()
+                                except Exception:
+                                    candidate = None
                                 if candidate:
                                     matched_paint = candidate
                                     paint_group_key = pg.key
@@ -1802,8 +1996,26 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
                             description = matched_paint.name
                             base_label = getattr(matched_paint, 'base_type', '') or ''
 
+                        # Ensure paint_group_key reflects the matched product's explicit group_key
+                        if matched_paint is not None and not paint_group_key:
+                            paint_group_key = getattr(matched_paint, 'group_key', None)
+
                         price_excl = matched_paint.price_excl_vat if matched_paint else Decimal("0")
                         price_incl = matched_paint.price_incl_vat if matched_paint else Decimal("0")
+
+                        meta = {
+                            "finish":       finish,
+                            "paint_group":  paint_group_key,
+                            "paint_name":   matched_paint.name if matched_paint else None,
+                            "base":         base_val,
+                            "base_label":   base_label,
+                            "paint_matched": matched_paint is not None,
+                        }
+                        if matched_paint:
+                            try:
+                                meta["paint_pk"] = int(matched_paint.pk)
+                            except Exception:
+                                pass
 
                         li = QuotationLineItem.objects.create(
                             quotation      = quotation,
@@ -1815,14 +2027,7 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
                             area_sqm       = row_area,
                             price_excl_vat = price_excl,
                             price_incl_vat = price_incl,
-                            metadata       = {
-                                "finish":       finish,
-                                "paint_group":  paint_group_key,
-                                "paint_name":   matched_paint.name if matched_paint else None,
-                                "base":         base_val,
-                                "base_label":   base_label,
-                                "paint_matched": matched_paint is not None,
-                            },
+                            metadata       = meta,
                         )
 
                         try:
@@ -2117,12 +2322,20 @@ class QuotationPdfGenerateView(QuotationAccessMixin, View):
             )
             return redirect("quotation:pdf_select", pk=pk)
 
+        # Ensure cached quotation totals are up-to-date before rendering PDF
+        try:
+            from .pricing import recalculate_quotation_totals
+            recalculate_quotation_totals(quotation)
+        except Exception:
+            pass
+
         export = render_quotation_pdf(
             quotation=quotation,
             template_key=template_key,
             generated_by=request.user,
             request=request,
         )
+
 
         if export.status == QuotationPdfExport.Status.GENERATED:
             # Optionally remember the chosen template as the user's default.

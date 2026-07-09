@@ -85,7 +85,7 @@ class Pack5C4_2_StructureTests(TestCase):
     def test_project_details_render_before_sections(self):
         context = build_pdf_context(self.quotation, request=self.request)
         html = render_to_string('quotation/pdf/detailed_spec.html', context)
-
+        
         idx_summary = html.find('class="summary-bar"')
         idx_first_section = html.find('class="sec-title"')
         self.assertNotEqual(idx_summary, -1, "Expected 'class=\"summary-bar\"' to be present in rendered HTML")

@@ -503,6 +503,22 @@
             els[0].value = rowData[name];
           });
         });
+        // After restoring values, trigger change events on restored selects so delegated
+        // handlers (per-section inline scripts) populate dependent controls (bases, spreads)
+        existing.forEach(function (row) {
+          try {
+            if (rowClass === 'paint-row') {
+              var ps = row.querySelector('.paint-row-paint-select');
+              if (ps) ps.dispatchEvent(new Event('change', { bubbles: true }));
+            } else if (rowClass === 'primer-row') {
+              var prs = row.querySelector('[name="primer_row_key"]');
+              if (prs) prs.dispatchEvent(new Event('change', { bubbles: true }));
+            } else if (rowClass === 'waterproof-row') {
+              var wfs = row.querySelector('[name="waterproof_row_key"]');
+              if (wfs) wfs.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          } catch (e) { /* ignore dispatch errors */ }
+        });
       }
 
       ensureAndRestoreRows('paintRows_' + pk, 'paint-row', data.paint_rows);
@@ -577,6 +593,15 @@
     // Global catalogue exported by server in template as ALL_PAINTS
     var CATALOGUE = window.ALL_PAINTS || [];
 
+    function _filterCatalogueBySectionCategory(cat, desiredCategories) {
+      if (!CATALOGUE || !CATALOGUE.length) return [];
+      return CATALOGUE.filter(function (p) {
+        if (!p) return false;
+        if (desiredCategories.length && desiredCategories.indexOf(p.category) === -1) return false;
+        return true;
+      });
+    }
+
     function rebuildPaintOptions(selectEl, finishKey, substrate, rowType) {
       if (!selectEl) return;
       // preserve current selection if present
@@ -590,18 +615,26 @@
 
       // Determine desired category for rowType
       var desiredCategories = [];
-      if (rowType === 'paint') desiredCategories = ['INTERIOR', 'EXTERIOR'];
-      else if (rowType === 'primer') desiredCategories = ['PRIMER'];
-      else if (rowType === 'waterproof') desiredCategories = ['WATERPROOFING'];
+      if (rowType === 'paint') {
+        // Mirror server-side behaviour: choose INTERIOR or EXTERIOR based on section substrate
+        if (substrate && substrate === 'EXTERIOR') {
+          desiredCategories = ['EXTERIOR'];
+        } else {
+          desiredCategories = ['INTERIOR'];
+        }
+      } else if (rowType === 'primer') {
+        desiredCategories = ['PRIMER'];
+      } else if (rowType === 'waterproof') {
+        desiredCategories = ['WATERPROOFING'];
+      }
 
-      // Filter catalogue
-      var matched = CATALOGUE.filter(function (p) {
+      // Filter catalogue by desired categories and substrate
+      var catFiltered = _filterCatalogueBySectionCategory(null, desiredCategories);
+      var matched = catFiltered.filter(function (p) {
         if (!p) return false;
-        if (desiredCategories.length && desiredCategories.indexOf(p.category) === -1) return false;
         if (rowType === 'paint' && finishKey && p.finish && p.finish !== finishKey) return false;
         // substrate constraint: if section is EXTERIOR, prefer EXTERIOR category only
         if (substrate && substrate === 'EXTERIOR' && p.category !== 'EXTERIOR') return false;
-        // only active paints are provided by server
         return true;
       });
 

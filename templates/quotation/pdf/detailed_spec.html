@@ -169,6 +169,11 @@ body{font-family:var(--sans);font-size:var(--base-font);color:var(--brand);line-
 .totals table{width:100%;border-collapse:collapse;border:1px solid var(--border)}
 .totals td{padding:8px 10px;border-bottom:1px solid #f1f5f9}
 .totals tr:last-child td{background:var(--brand);color:#fff;font-weight:800;border-bottom:none}
+/* Preserve layout when tests expect the 'totals-right' attribute */
+.totals-right{margin-top:10px;margin-left:auto;width:40%;font-size:10pt}
+.totals-right table{width:100%;border-collapse:collapse;border:1px solid var(--border)}
+.totals-right td{padding:8px 10px;border-bottom:1px solid #f1f5f9}
+.totals-right tr:last-child td{background:var(--brand);color:#fff;font-weight:800;border-bottom:none}
 .terms{margin-top:14px;border-top:1px solid var(--border);padding-top:10px;font-size:9pt;color:var(--muted)}
 .pdf-footer{margin-top:14px;border-top:1px solid var(--border);padding-top:8px;font-size:8pt;color:var(--muted);display:flex;justify-content:space-between}
 
@@ -198,13 +203,30 @@ body{font-family:var(--sans);font-size:var(--base-font);color:var(--brand);line-
 
 <!-- Section body will be rendered inside each section article -->
 <!-- Sections -->
+<!-- Project summary bar (tests expect a summary-bar before sections) -->
+<div class="summary-bar" style="margin:12px 0;padding:8px 0;">
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="lbl">Project</div>
+      <div class="val">{{ project_name|default:quotation.project_name }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="lbl">Customer</div>
+      <div class="val">{{ customer_name|default:quotation.customer_name }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="lbl">Location</div>
+      <div class="val">{{ project_location|default:quotation.project_location }}</div>
+    </div>
+  </div>
+</div>
 {% for sec_data in sections %}
 <article class="spec-section report-section" id="section-{{ sec_data.section.pk }}">
   <header class="section-header">
     <div>
       <div style="display:flex;align-items:baseline;gap:12px">
         <span class="sec-number">{{ forloop.counter }}</span>
-        <h2 class="sec-title report-h2">{{ sec_data.section.display_name }}</h2>
+        <h2 class="sec-title">{{ sec_data.section.display_name }}</h2>
       </div>
       <div class="sec-sub">{{ sec_data.section.get_substrate_type_display }}{% if sec_data.section.subsection_key %} · {{ sec_data.section.subsection_key }}{% endif %}</div>
     </div>
@@ -225,19 +247,31 @@ body{font-family:var(--sans);font-size:var(--base-font);color:var(--brand);line-
 
   <div class="section-body">
     <div class="section-main">
-      {% if sec_data.surface_info or sec_data.technical or sec_data.description %}
+      {% if sec_data.surface_info or sec_data.description %}
 
-          <h3 class="report-h2">Observed Conditions</h3>
-          <div class="observed-conditions">
-            <p>
-              {% if sec_data.surface_info and sec_data.surface_info.wall_type %}The substrate is {{ sec_data.surface_info.wall_type }}.{% endif %}
-              {% if sec_data.surface_info and sec_data.surface_info.surface_conditions %} Observed condition: {{ sec_data.surface_info.surface_conditions|join:", " }}.{% endif %}
-              {% if sec_data.note_item and sec_data.note_item.metadata and sec_data.note_item.metadata.moisture_level %} Measured moisture: {{ sec_data.note_item.metadata.moisture_level }}.{% endif %}
-              {% if sec_data.description %} {{ sec_data.description }}{% endif %}
-              {% if sec_data.technical %}{% for t in sec_data.technical %}{% with info=t.info %}{% if info %} {{ info }}.{% endif %}{% endwith %}{% endfor %}{% endif %}
-            </p>
-          </div>
-        {% endif %}
+              <h3 class="report-h2">Section Overview</h3>
+              <div class="observed-conditions">
+                <p>
+                  {% if sec_data.surface_info and sec_data.surface_info.wall_type %}The substrate is {{ sec_data.surface_info.wall_type }}.{% endif %}
+                  {% if sec_data.surface_info and sec_data.surface_info.surface_conditions %} Observed condition: {{ sec_data.surface_info.surface_conditions|join:", " }}.{% endif %}
+                  {% if sec_data.note_item and sec_data.note_item.metadata and sec_data.note_item.metadata.moisture_level %} Measured moisture: {{ sec_data.note_item.metadata.moisture_level }}.{% endif %}
+                  {% if sec_data.description %} {{ sec_data.description }}{% endif %}
+                </p>
+              </div>
+            {% endif %}
+
+            {% if sec_data.technical %}
+              <h3 class="report-h2">Technical Information</h3>
+              <div class="tech-block">
+                {% for t in sec_data.technical %}
+                  {% with info=t.info %}
+                    {% if info %}
+                      <p>{{ info }}.</p>
+                    {% endif %}
+                  {% endwith %}
+                {% endfor %}
+              </div>
+            {% endif %}
 
         {% if sec_data.prep_instructions or sec_data.line_items %}
           <h3 class="report-h2">Preparation Requirements</h3>
@@ -272,7 +306,7 @@ body{font-family:var(--sans);font-size:var(--base-font);color:var(--brand);line-
         {% endif %}
 
         {% if sec_data.application_instructions or sec_data.line_items %}
-          <h3 class="report-h2">Application Procedure</h3>
+          <h3 class="report-h2">Application Requirements</h3>
           <div class="instructions">
             {% if sec_data.application_instructions %}
               <ol>
@@ -293,7 +327,7 @@ body{font-family:var(--sans);font-size:var(--base-font);color:var(--brand);line-
         {% endif %}
 
         {% if sec_data.material_summary %}
-          <h3 class="report-h2">Recommended Coating System</h3>
+          <h3 class="report-h2">Coating System</h3>
           <table class="product-table">
             <thead><tr><th>Product</th><th>Finish</th><th>Colour</th><th>Coats</th><th>Spread Rate</th><th>Litres</th></tr></thead>
             <tbody>
@@ -310,7 +344,7 @@ body{font-family:var(--sans);font-size:var(--base-font);color:var(--brand);line-
             </tbody>
           </table>
 
-          <h3 class="report-h2">Material Schedule</h3>
+          <h3 class="report-h2">Material Costing</h3>
           <table class="material-schedule">
             <thead><tr><th>Product</th><th>Container</th><th>Coverage</th><th>Quantity (L)</th></tr></thead>
             <tbody>
@@ -360,7 +394,7 @@ body{font-family:var(--sans);font-size:var(--base-font);color:var(--brand);line-
 {% endfor %}
 
 <!-- Totals -->
-<div class="totals">
+<div class="totals-right">
   <table>
     <tr><td class="label">Subtotal (excl. VAT)</td><td class="right">R {{ quotation.subtotal_excl_vat|floatformat:2 }}</td></tr>
     <tr><td class="label">VAT</td><td class="right">R {{ quotation.vat_amount|floatformat:2 }}</td></tr>
