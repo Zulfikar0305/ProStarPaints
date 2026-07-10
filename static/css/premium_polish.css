@@ -1518,3 +1518,151 @@ body[data-psp-page*="app_settings"] .psp-main h4.fw-bold::before {
   background: radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.03) 0%, transparent 80%);
   pointer-events: none;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   PREMIUM LOGIN SCREEN OVERRIDES
+   Redesigns authentication screen to match Linear/Stripe/Vercel
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Full page layout overlay */
+.psp-login-wrap {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  min-height: 100vh !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 1.5rem !important;
+  z-index: 99999 !important;
+  overflow-y: auto !important;
+
+  /* Inverted ProStar brand gradient: green at top-left, deep midnight at bottom-right */
+  background: linear-gradient(
+    135deg,
+    #89c541 0%,
+    #6c43a6 20%,
+    #35215f 55%,
+    #131826 100%
+  ) !important;
+}
+
+/* Soft radial glow overlays */
+.psp-login-wrap::before {
+  content: "";
+  position: absolute;
+  top: -15%;
+  left: -15%;
+  width: 50%;
+  height: 50%;
+  background: radial-gradient(circle, rgba(137, 197, 65, 0.07) 0%, transparent 70%) !important;
+  pointer-events: none;
+}
+
+.psp-login-wrap::after {
+  content: "";
+  position: absolute;
+  bottom: -15%;
+  right: -15%;
+  width: 50%;
+  height: 50%;
+  background: radial-gradient(circle, rgba(108, 67, 166, 0.12) 0%, transparent 70%) !important;
+  pointer-events: none;
+}
+
+/* Subtle oversized brand watermark behind card */
+.psp-login-card::before {
+  content: "ProStar";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 16rem;
+  font-weight: 900;
+  color: rgba(91, 33, 182, 0.015);
+  letter-spacing: -0.05em;
+  pointer-events: none;
+  z-index: -1;
+  user-select: none;
+}
+
+/* Branded login card: glassmorphism, larger width, rich shadows */
+.psp-login-card {
+  width: 100% !important;
+  max-width: 500px !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 20px 48px -12px rgba(0, 0, 0, 0.28), 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  padding: 3.5rem 3.25rem 3rem !important;
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+@media (max-width: 575.98px) {
+  .psp-login-card {
+    padding: 2.25rem 1.5rem !important;
+    border-radius: 20px !important;
+  }
+}
+
+/* Branded header elements */
+.psp-login-logo {
+  height: 90px !important;
+  width: auto !important;
+  max-width: 240px !important;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+
+.psp-login-title {
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.03em !important;
+  margin-top: 1.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.psp-login-subtitle {
+  font-size: 0.84rem !important;
+  line-height: 1.5 !important;
+  color: #475569 !important;
+  max-width: 420px;
+  margin: 0 auto !important;
+}
+
+/* Form input adaptations for luxury feel */
+.psp-login-card .form-control-lg {
+  font-size: 0.9rem !important;
+  padding: 0.65rem 0.85rem !important;
+  border-radius: var(--psp-radius-sm) !important;
+}
+
+/* Establish brand gradient on the primary submit button */
+.psp-login-submit {
+  background: var(--psp-brand-gradient) !important;
+  border: 1px solid var(--psp-purple-dark) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-size: 0.9rem !important;
+  padding: 0.65rem 1.25rem !important;
+  box-shadow: 0 4px 14px rgba(91, 33, 182, 0.25) !important;
+  border-radius: var(--psp-radius-sm) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.psp-login-submit:hover {
+  background: var(--psp-purple-dark) !important;
+  box-shadow: 0 6px 20px rgba(91, 33, 182, 0.35) !important;
+  transform: translateY(-1px) !important;
+}
+
+.psp-login-submit:active {
+  transform: translateY(0) !important;
+}
