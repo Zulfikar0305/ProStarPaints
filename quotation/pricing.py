@@ -1,4 +1,4 @@
-from decimal import Decimal, ROUND_HALF_UP, localcontext
+from decimal import Decimal, ROUND_HALF_UP, localcontext, ROUND_CEILING
 from typing import Optional
 
 from django.db import transaction
@@ -165,6 +165,15 @@ def apply_paint_pricing_to_line_item(line_item: QuotationLineItem) -> QuotationL
             "finish": str(getattr(paint, "finish", None)) if getattr(paint, "finish", None) is not None else None,
             "base_type": str(getattr(paint, "base_type", None)) if getattr(paint, "base_type", None) is not None else None,
         }
+
+        # Backwards-compatibility: some historical rows stored top-level
+        # area/packaging/pricing keys directly in line_item.metadata instead
+        # of inside a nested `product_snapshot`. When creating a new snapshot
+        # for legacy rows, prefer preserved metadata values where present so
+        # recalculation reproduces previously persisted behaviour.
+        for legacy_key in ("package_size", "package_unit", "spread_rate_per_litre", "priced_volume_litres", "price_excl_vat", "price_incl_vat"):
+            if meta.get(legacy_key) is not None:
+                product_snapshot[legacy_key] = _to_json_safe(meta.get(legacy_key))
         # Persist immutable snapshot into metadata
         meta["product_snapshot"] = product_snapshot
         created_snapshot = True
@@ -604,24 +613,88 @@ def calculate_product_pricing(
             "rate_per_sqm_selected_coats_excl_vat": calc.get("rate_per_sqm_selected_coats_excl_vat"),
         }
 
-        # Recommended containers: if package size is provided (litres), compute how many
-        # packages are required to cover the required litres (ceiling division).
+        # Recommended containers and pack-based pricing: if package size is provided (litres),
+        # compute how many packages are required to cover the required litres (ceiling division)
+        # and charge using whole saleable packs. Falls back to litre-based pricing when no
+        # suitable package information is present.
+        # Determine package size: prefer explicit package_size, but fallback
+        # to priced_volume_litres when package_size is not present. Some
+        # catalogue products store their package volume in
+        # `priced_volume_litres` (e.g. 20.00 for a 20L drum).
         package_size = _to_decimal(product_snapshot.get("package_size"))
+        if package_size is None:
+            package_size = _to_decimal(product_snapshot.get("priced_volume_litres"))
         package_unit = product_snapshot.get("package_unit")
-        if package_size is not None and package_size > 0 and package_unit == "L":
+
+        req = calc.get("required_litres")
+
+        if package_size is not None and package_size > 0 and req is not None:
             try:
-                req = calc.get("required_litres")
-                if req is not None:
-                    q = (req // package_size)
-                    r = (req % package_size)
-                    recommended = int(q) + (1 if (r and r > 0) else 0)
-                    metadata["recommended_containers"] = recommended
-                    metadata["package_size"] = package_size
-                    metadata["package_unit"] = package_unit
+                # Derive package price from the authoritative product snapshot.
+                # product_snapshot.price_excl_vat is the price for
+                # product_snapshot.priced_volume_litres. Scale that price
+                # to the configured package_size to obtain the package price.
+                snap_price_excl = _to_decimal(product_snapshot.get("price_excl_vat"))
+                snap_price_incl = _to_decimal(product_snapshot.get("price_incl_vat"))
+                snap_priced_vol = _to_decimal(product_snapshot.get("priced_volume_litres"))
+
+                price_per_package_excl = None
+                price_per_package_incl = None
+                # Use product catalogue selling price as the package price.
+                # Do NOT derive package price by scaling by litres.
+                if snap_price_excl is not None:
+                    price_per_package_excl = snap_price_excl
+                    price_per_package_incl = snap_price_incl
+                # Do NOT derive package price by scaling price-per-litre. The
+                # product catalogue value (`price_excl_vat`) is the authoritative
+                # selling price for the package. If it's missing, we fall back to
+                # litre-based pricing (do not invent a package price).
+
+                # Ceiling division to determine number of packs required
+                packs_needed = (req / package_size).to_integral_value(rounding=ROUND_CEILING)
+
+                # Totals priced by whole packages (fall back to litre-based calc if package price missing)
+                total_excl = (price_per_package_excl * packs_needed) if price_per_package_excl is not None else calc.get("total_excl_vat")
+                total_incl = (price_per_package_incl * packs_needed) if price_per_package_incl is not None else calc.get("total_incl_vat")
+
+                # Populate metadata and extras (store recommended_containers as string
+                # for JSON-friendly legacy metadata expectations)
+                metadata["recommended_containers"] = str(packs_needed)
+                metadata["package_size"] = package_size
+                metadata["package_unit"] = package_unit
+
+                # Only expose price-per-litre when the product itself is a 1L product
+                price_per_litre_excl = calc.get("price_per_litre_excl_vat") if snap_priced_vol == Decimal("1") else None
+                price_per_litre_incl = calc.get("price_per_litre_incl_vat") if snap_priced_vol == Decimal("1") else None
+
+                extras = {
+                    "price_per_litre_excl_vat": price_per_litre_excl,
+                    "price_per_litre_incl_vat": price_per_litre_incl,
+                    "required_litres": calc.get("required_litres"),
+                    "rate_per_sqm_per_coat_excl_vat": calc.get("rate_per_sqm_per_coat_excl_vat"),
+                    "rate_per_sqm_selected_coats_excl_vat": calc.get("rate_per_sqm_selected_coats_excl_vat"),
+                    "recommended_containers": str(packs_needed),
+                    "package_size": package_size,
+                    "package_unit": package_unit,
+                    "price_per_package_excl_vat": price_per_package_excl,
+                    "price_per_package_incl_vat": price_per_package_incl,
+                }
+
+                res = _priced_result_common(
+                    pricing_method="AREA_COATING",
+                    quantity=packs_needed,
+                    unit="pack",
+                    total_excl_vat=total_excl or Decimal("0.00"),
+                    total_incl_vat=total_incl or Decimal("0.00"),
+                    metadata=metadata,
+                    extras=extras,
+                )
+                return res
             except Exception:
-                # If any arithmetic fails, skip recommended containers
+                # On any error fall back to litre-based priced result below
                 pass
 
+        # Default behaviour (no package information): maintain litre-based pricing
         res = _priced_result_common(
             pricing_method="AREA_COATING",
             quantity=calc.get("required_litres"),

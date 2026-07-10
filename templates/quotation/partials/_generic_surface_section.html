@@ -64,9 +64,9 @@
           <div class="col-auto text-muted ms-3">Finish:</div>
           <div class="col-auto fw-semibold">{{ meta.finish_labels|join:", " }}</div>
         {% endif %}
-        {% if meta.area_sqm %}
+        {% if area_sqm %}
           <div class="col-auto text-muted ms-3">Area:</div>
-          <div class="col-auto">{{ meta.area_sqm }} m&sup2;</div>
+          <div class="col-auto">{{ area_sqm }} m&sup2;</div>
         {% endif %}
         {% if meta.moisture_level %}
           <div class="col-auto text-muted ms-3">Moisture:</div>
@@ -226,16 +226,16 @@
                 <div class="fw-semibold paint-row-spread">{{ row.metadata.spread_rate_per_litre|default:'—' }}</div>
                 <div class="small text-muted">Required Paint (L)</div>
                 <div class="fw-semibold paint-row-litres">{{ row.metadata.required_litres|default:'—' }}</div>
-                <div class="small text-muted">Recommended Supply</div>
+                <div class="small text-muted">Supply Required</div>
                 <div class="fw-semibold paint-row-recommended">
                   {% if row.metadata.recommended_containers %}
-                    {{ row.metadata.recommended_containers }}{% if row.metadata.package_size %} x {{ row.metadata.package_size }}{{ row.metadata.package_unit|default:'' }}{% endif %}
+                    {{ row.metadata.recommended_containers }}{% if row.metadata.package_size %} × {{ row.metadata.package_size }}{{ row.metadata.package_unit|default:'' }}{% endif %}
                   {% else %}
                     &mdash;
                   {% endif %}
                 </div>
                 <div class="small text-muted mt-2">Estimated Material Cost</div>
-                <div class="fw-semibold paint-row-cost">{{ row.price_excl_vat|default:'—' }}</div>
+                <div class="fw-semibold paint-row-cost">{{ row.total_excl_vat|default:'—' }}</div>
                 {% if row.metadata.pricing_status and row.metadata.pricing_status != 'priced' %}
                   <div class="alert alert-warning small mt-2 mb-0">Pricing incomplete: {{ row.metadata.pricing_pending_reason|default:"Incomplete inputs" }}</div>
                 {% endif %}
@@ -316,9 +316,9 @@
         <div class="row g-3 mb-4">
           <div class="col-12 col-sm-6 col-md-4">
             <label class="form-label fw-semibold small">Area (m&sup2;)</label>
-            <input type="number" name="area_sqm" class="form-control form-control-sm"
+                 <input type="number" name="area_sqm" class="form-control form-control-sm"
                    step="0.01" min="0" placeholder="e.g. 45.5"
-                   value="{{ meta.area_sqm|default:'' }}">
+                   value="{{ area_sqm|default:'' }}">
           </div>
           <div class="col-12 col-sm-6 col-md-4">
             <label class="form-label fw-semibold small">

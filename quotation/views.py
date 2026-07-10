@@ -359,6 +359,18 @@ class QuotationBuilderView(QuotationAccessMixin, View):
         )
         meta = note_item.metadata if note_item else {}
 
+        # Resolve area_sqm for rendering: prefer metadata value but fall
+        # back to the NOTE line's `area_sqm` DB field when metadata is
+        # missing or empty. Do NOT modify `meta` or persist this value.
+        try:
+            _meta_area = meta.get("area_sqm") if isinstance(meta, dict) else None
+        except Exception:
+            _meta_area = None
+        if _meta_area in (None, "", "null"):
+            _resolved_area_sqm = note_item.area_sqm if note_item else None
+        else:
+            _resolved_area_sqm = _meta_area
+
         # Keys from saved items
         saved_waterproofing = set()
         saved_primers       = {}   # key → coats str
@@ -427,6 +439,8 @@ class QuotationBuilderView(QuotationAccessMixin, View):
                     "area_sqm": str(li.area_sqm) if li.area_sqm is not None else "",
                     "price_excl_vat": str(li.price_excl_vat or 0),
                     "price_incl_vat": str(li.price_incl_vat or 0),
+                    "total_excl_vat": str(li.total_excl_vat or 0),
+                    "total_incl_vat": str(li.total_incl_vat or 0),
                     "metadata": li.metadata or {},
                 })
                 gk = li.metadata.get("paint_group", "")
@@ -438,6 +452,8 @@ class QuotationBuilderView(QuotationAccessMixin, View):
         return {
             "configured":          note_item is not None,
             "meta":                meta,
+            # Resolved area value for template rendering (not persisted)
+            "area_sqm":            _resolved_area_sqm,
             "line_count":          len(line_items),
             "saved_waterproofing": saved_waterproofing,
             "saved_primers":       saved_primers,
@@ -470,6 +486,18 @@ class QuotationBuilderView(QuotationAccessMixin, View):
             None,
         )
         meta = note_item.metadata if note_item else {}
+
+        # Resolve area_sqm for rendering: prefer metadata value but fall
+        # back to the NOTE line's `area_sqm` DB field when metadata is
+        # missing or empty. Do NOT modify `meta` or persist this value.
+        try:
+            _meta_area = meta.get("area_sqm") if isinstance(meta, dict) else None
+        except Exception:
+            _meta_area = None
+        if _meta_area in (None, "", "null"):
+            _resolved_area_sqm = note_item.area_sqm if note_item else None
+        else:
+            _resolved_area_sqm = _meta_area
 
         saved_waterproofing: set  = set()
         saved_primers:       dict = {}
@@ -536,6 +564,8 @@ class QuotationBuilderView(QuotationAccessMixin, View):
                     "area_sqm": str(li.area_sqm) if li.area_sqm is not None else "",
                     "price_excl_vat": str(li.price_excl_vat or 0),
                     "price_incl_vat": str(li.price_incl_vat or 0),
+                    "total_excl_vat": str(li.total_excl_vat or 0),
+                    "total_incl_vat": str(li.total_incl_vat or 0),
                     "metadata": li.metadata or {},
                 })
                 gk = li.metadata.get("paint_group", "")
@@ -547,6 +577,8 @@ class QuotationBuilderView(QuotationAccessMixin, View):
         return {
             "configured":          note_item is not None,
             "meta":                meta,
+            # Resolved area value for template rendering (not persisted)
+            "area_sqm":            _resolved_area_sqm,
             "line_count":          len(line_items),
             "saved_waterproofing": saved_waterproofing,
             "saved_primers":       saved_primers,
