@@ -1449,33 +1449,15 @@ body[data-psp-page*="app_settings"] .psp-main h4.fw-bold::before {
 :root {
   /* Branded linear-gradient matching ProStar Paints logo identity:
      Stronger purple transition and clean green accent at the far end */
-  --psp-brand-gradient: linear-gradient(
-    135deg,
-    #131826 0%,   /* deep midnight base */
-    #35215f 45%,  /* visible purple transition */
-    #6c43a6 80%,  /* richer purple accent */
-    #89c541 100%  /* green swoosh accent on the far edge */
-  );
+  --psp-brand-gradient: linear-gradient(135deg, #131826 0%, #35215f 45%, #6c43a6 80%, #89c541 100%);
 }
 
-/* Apply gradient to Sidebar and Topbar across all themes and user-roles to prevent overrides */
-.psp-sidebar,
-[data-theme="dark"] .psp-sidebar,
-[data-theme="system"] .psp-sidebar,
-.psp-body[data-theme="dark"] .psp-sidebar,
-.psp-body[data-theme="system"] .psp-sidebar,
-.psp-body[data-theme="dark"]:not([data-user-admin]) .psp-sidebar {
-  background: var(--psp-brand-gradient) !important;
+/* Apply border and text color defaults to Sidebar and Topbar */
+.psp-sidebar {
   border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
 
-.psp-topbar,
-[data-theme="dark"] .psp-topbar,
-[data-theme="system"] .psp-topbar,
-.psp-body[data-theme="dark"] .psp-topbar,
-.psp-body[data-theme="system"] .psp-topbar,
-.psp-body[data-theme="dark"]:not([data-user-admin]) .psp-topbar {
-  background: var(--psp-brand-gradient) !important;
+.psp-topbar {
   border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
   color: #ffffff !important;
 }

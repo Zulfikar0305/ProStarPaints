@@ -17,10 +17,9 @@
   -webkit-font-smoothing: antialiased;
 }
 
-/* Shell: keep a dark shell (sidebar + topbar) while preserving a light content area */
 .psp-body .psp-sidebar,
 .psp-body .psp-topbar {
-  background: var(--psp-navy) !important;
+  background: var(--psp-brand-gradient) !important;
 }
 
 /* Sidebar text: force white for readability across roles (Admin & Sales Rep) */
