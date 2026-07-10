@@ -1438,3 +1438,91 @@ body[data-psp-page*="app_settings"] .psp-main h4.fw-bold::before {
   pointer-events: none;
   user-select: none;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   FINAL BRAND IDENTITY PASS
+   subtle branded linear gradient with green accent at the far end
+   Applied to: Sidebar, Topbar, and related interactive elements
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Branded linear-gradient matching ProStar Paints logo identity:
+     75% Purple focus, 25% Green accent at the bottom-right corner */
+  --psp-brand-gradient: linear-gradient(
+    135deg,
+    #111827 0%,    /* deep midnight */
+    #2d1f4e 50%,   /* muted ProStar purple */
+    #5a3a87 85%,   /* richer ProStar purple */
+    #7bc043 100%   /* ProStar green accent on the far edge */
+  );
+}
+
+/* Apply gradient to Sidebar and Topbar */
+.psp-sidebar {
+  background: var(--psp-brand-gradient) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.psp-topbar {
+  background: var(--psp-brand-gradient) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  color: #ffffff !important;
+}
+
+/* Adjust topbar text and elements for optimal contrast on dark gradient */
+.psp-topbar-greeting {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.psp-topbar-greeting strong {
+  color: #ffffff !important;
+}
+
+/* Search bar contrast refinement on dark topbar background */
+.psp-search-wrap {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+.psp-search-input {
+  color: #ffffff !important;
+}
+
+.psp-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+
+.psp-search-icon {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Topbar action buttons contrast refinement */
+.psp-icon-btn {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.psp-icon-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+.psp-topbar-avatar {
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+.psp-topbar-avatar:hover {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Soft inner lighting overlay for brand sidebar depth */
+.psp-sidebar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.03) 0%, transparent 80%);
+  pointer-events: none;
+}
