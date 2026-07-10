@@ -233,3 +233,346 @@ h1,h2,h3,h4,h5,h6,.h1,.h2,.h3,.h4,.h5,.h6 {
   transition: none !important;
   transform: none !important;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   PRIORITY 4 — Category Badge System
+   10 categories — each gets a distinct premium tint
+   CSS class: .psp-cat-{category_key_lowercase}
+   Applied to: badge elements and paint thumbnails
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Base badge token — all psp-cat-* badges share this foundation */
+[class^="psp-cat-"], [class*=" psp-cat-"] {
+  font-weight: 600;
+  font-size: .7rem;
+  letter-spacing: .02em;
+  border-radius: 50px;
+  padding: .28em .72em;
+  border-width: 1px;
+  border-style: solid;
+  display: inline-flex;
+  align-items: center;
+  gap: .3em;
+}
+
+/* Interior — ProStar brand purple tint */
+.psp-cat-interior {
+  background: #ede9fe;
+  color: #5b21b6;
+  border-color: #c4b5fd;
+}
+
+/* Exterior — clear sky blue */
+.psp-cat-exterior {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #93c5fd;
+}
+
+/* Primer — warm amber/yellow */
+.psp-cat-primer {
+  background: #fef9c3;
+  color: #854d0e;
+  border-color: #fde047;
+}
+
+/* Waterproofing — deep teal */
+.psp-cat-waterproofing {
+  background: #ccfbf1;
+  color: #0f766e;
+  border-color: #5eead4;
+}
+
+/* Cracks — warm red */
+.psp-cat-cracks {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+/* Mould — earthy green */
+.psp-cat-mould {
+  background: #d1fae5;
+  color: #065f46;
+  border-color: #6ee7b7;
+}
+
+/* Cleaning — bright cyan */
+.psp-cat-cleaning {
+  background: #cffafe;
+  color: #0e7490;
+  border-color: #67e8f9;
+}
+
+/* Sanding — warm orange */
+.psp-cat-sanding {
+  background: #ffedd5;
+  color: #9a3412;
+  border-color: #fed7aa;
+}
+
+/* Efflorescence — soft indigo */
+.psp-cat-efflorescence {
+  background: #e0e7ff;
+  color: #3730a3;
+  border-color: #a5b4fc;
+}
+
+/* Old Paint Removal — deep rose */
+.psp-cat-old_paint_removal {
+  background: #fce7f3;
+  color: #9d174d;
+  border-color: #f9a8d4;
+}
+
+/* Fallback for any unmapped category */
+.psp-cat-generic {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #cbd5e1;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   PRIORITY 3 — Product Catalogue Upgrade
+   paint_list.html specific styles
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Product thumbnail ─────────────────────────────────────────── */
+.psp-paint-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, .12);
+  flex-shrink: 0;
+  display: block;
+}
+
+/* Placeholder — uses category tint as background */
+.psp-paint-thumb--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  /* background/color/border comes from psp-cat-* class */
+}
+
+/* Ensure psp-cat-* styles apply well on div elements (placeholder) */
+.psp-paint-thumb--placeholder[class*="psp-cat-"] {
+  border-radius: 10px;
+  border-width: 1px;
+  border-style: solid;
+  font-size: 1.1rem;
+}
+
+/* ── Paint catalogue table rows ────────────────────────────────── */
+.psp-paint-catalogue tbody tr {
+  transition: background .14s ease;
+}
+
+.psp-paint-catalogue tbody tr:hover {
+  background: var(--psp-purple-light, #ede9fe) !important;
+}
+
+.psp-paint-catalogue thead th {
+  font-size: .67rem;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--psp-text-muted);
+  border-bottom-width: 1px;
+  padding: .75rem .9rem;
+}
+
+.psp-paint-catalogue tbody td {
+  padding: .75rem .9rem;
+  vertical-align: middle;
+}
+
+/* ── Product name cell ─────────────────────────────────────────── */
+.psp-paint-name {
+  font-weight: 600;
+  color: var(--psp-text);
+  font-size: .87rem;
+  line-height: 1.3;
+}
+
+.psp-paint-desc {
+  font-size: .75rem;
+  color: var(--psp-text-soft);
+  margin-top: 1px;
+}
+
+/* ── Active / Inactive status badges (existing badge classes) ──── */
+.badge.badge-active {
+  background: #d1fae5 !important;
+  color: #065f46 !important;
+  border: 1px solid #6ee7b7;
+  font-weight: 600;
+}
+
+.badge.badge-inactive {
+  background: #f1f5f9 !important;
+  color: #64748b !important;
+  border: 1px solid #cbd5e1;
+  font-weight: 600;
+}
+
+/* Responsive: hide updated column on small screens */
+@media (max-width: 767.98px) {
+  .psp-paint-catalogue .col-updated { display: none; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   PRIORITY 5 — Premium ProStar Branding
+   Systematic polish: page headers, card headers, section titles,
+   table hierarchy, button hierarchy
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Consistent page header pattern ───────────────────────────── */
+.psp-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.psp-page-header-meta { min-width: 0; }
+
+.psp-page-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -.022em;
+  color: var(--psp-text);
+  margin: 0 0 .25rem;
+  line-height: 1.25;
+}
+
+.psp-page-subtitle {
+  font-size: .82rem;
+  color: var(--psp-text-soft);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Section title label (small uppercase) ─────────────────────── */
+.psp-section-title {
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--psp-text-soft);
+  margin-bottom: .6rem;
+  display: block;
+}
+
+/* ── Card header: section labels upgrade ───────────────────────── */
+.card-header .small.text-uppercase {
+  font-size: .63rem !important;
+  letter-spacing: .09em;
+  font-weight: 700;
+}
+
+/* ── Button hierarchy ──────────────────────────────────────────── */
+/* Primary: gradient purple pill */
+.btn-primary {
+  background: var(--psp-grad-purple) !important;
+  border: none !important;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+
+.btn-primary:hover {
+  background: var(--psp-purple-dark) !important;
+  box-shadow: 0 4px 14px rgba(var(--psp-purple-rgb), .32) !important;
+  transform: translateY(-1px);
+}
+
+.btn-primary:active { transform: translateY(0); }
+
+/* Secondary outline: subtle ghost */
+.btn-outline-secondary {
+  color: var(--psp-text-muted) !important;
+  border-color: var(--psp-border) !important;
+}
+
+.btn-outline-secondary:hover {
+  background: var(--psp-card-header-bg, #f8fafc) !important;
+  color: var(--psp-text) !important;
+  border-color: var(--psp-purple) !important;
+}
+
+/* Destructive: outline danger stays readable */
+.btn-outline-danger {
+  color: #dc2626 !important;
+  border-color: rgba(220, 38, 38, .35) !important;
+}
+
+.btn-outline-danger:hover {
+  background: #fee2e2 !important;
+  color: #991b1b !important;
+  border-color: #fca5a5 !important;
+}
+
+/* ── Generic table row hover (non-ws-table) ─────────────────────── */
+.table-hover > tbody > tr:hover > * {
+  background-color: var(--psp-purple-light, #ede9fe);
+  color: var(--psp-text);
+}
+
+/* ── Pagination refinement ─────────────────────────────────────── */
+.pagination .page-link {
+  border-radius: 8px !important;
+  margin: 0 2px;
+  font-size: .82rem;
+  font-weight: 500;
+  border-color: var(--psp-border);
+  color: var(--psp-text-muted);
+  transition: all .15s ease;
+}
+
+.pagination .page-item.active .page-link {
+  background: var(--psp-grad-purple);
+  border-color: var(--psp-purple);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(var(--psp-purple-rgb), .28);
+}
+
+.pagination .page-link:hover {
+  background: var(--psp-purple-light);
+  border-color: var(--psp-purple);
+  color: var(--psp-purple);
+}
+
+/* ── Avatar img in sidebar footer ──────────────────────────────── */
+.psp-sidebar-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* ── Breadcrumb refinement ─────────────────────────────────────── */
+.breadcrumb {
+  font-size: .78rem;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+  color: var(--psp-text-soft);
+}
+
+/* ── Input group focus within ──────────────────────────────────── */
+.input-group:focus-within .form-control,
+.input-group:focus-within .input-group-text {
+  border-color: var(--psp-purple);
+}
+
+.input-group:focus-within {
+  box-shadow: 0 0 0 2px rgba(var(--psp-purple-rgb), .10);
+  border-radius: calc(var(--psp-radius-sm) + 1px);
+}

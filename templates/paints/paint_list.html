@@ -20,7 +20,7 @@
     <h4 class="fw-bold mb-0" style="letter-spacing:-.02em;">{% trans "Products & Pricing" %}</h4>
     <p class="mb-0 mt-1" style="font-size:.82rem;color:var(--psp-text-soft);">{% trans "Manage products, pricing and colours" %}</p>
   </div>
-  <div class="d-flex gap-2">
+  <div class="d-flex gap-2 psp-page-actions">
     {% if user.is_superuser or user.role == "ADMIN" %}
     <a href="{% url 'paints:paint_pricing' %}" class="btn btn-outline-secondary btn-sm">
       <i class="bi bi-currency-dollar me-1"></i>{% trans "Pricing" %}
@@ -33,7 +33,7 @@
 </div>
 
 <!-- Search & Filters -->
-<div class="card mb-3">
+<div class="card mb-3 psp-filter-card {% if q or current_category or current_status != 'active' %}psp-filter-card--active{% endif %}">
   <div class="card-body py-2">
     <form method="get" class="row g-2 align-items-end">
 
@@ -86,7 +86,7 @@
 <div class="card">
   <div class="card-body p-0">
     <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
+      <table class="table table-hover align-middle mb-0 psp-paint-catalogue">
         <thead class="table-light">
           <tr>
             <th style="width:56px;"></th>
@@ -105,17 +105,16 @@
               <td class="ps-3">
                 {% if paint.image %}
                   <img src="{{ paint.image.url }}" alt="{{ paint.name }}"
-                       class="rounded" style="width:40px;height:40px;object-fit:cover;">
+                       class="psp-paint-thumb">
                 {% else %}
-                  <div class="rounded bg-light d-flex align-items-center justify-content-center"
-                       style="width:40px;height:40px;">
-                    <i class="bi bi-image text-muted"></i>
+                  <div class="psp-paint-thumb psp-paint-thumb--placeholder psp-cat-{{ paint.category|lower }}">
+                    <i class="bi bi-palette2" aria-hidden="true"></i>
                   </div>
                 {% endif %}
               </td>
               <td class="fw-semibold">{{ paint.name }}</td>
               <td class="d-none d-md-table-cell">
-                <span class="badge text-bg-secondary">{{ paint.get_category_display }}</span>
+                <span class="badge psp-cat-{{ paint.category|lower }}">{{ paint.get_category_display }}</span>
               </td>
               <td class="text-end fw-semibold">R {{ paint.price_incl_vat }}</td>
               <td>
@@ -126,7 +125,7 @@
                 {% endif %}
               </td>
               <td class="text-end d-none d-md-table-cell small text-muted">{{ paint.updated_at|date:"Y-m-d H:i" }}</td>
-              <td class="text-end">
+              <td class="text-end psp-row-actions">
                 <a href="{% url 'paints:paint_update' paint.pk %}"
                    class="btn btn-sm btn-outline-secondary me-1" title="{% trans 'Edit' %}">
                   <i class="bi bi-pencil"></i>

@@ -30,6 +30,8 @@
   <link rel="stylesheet" href="{% static 'css/ui_polish.css' %}">
   <!-- Premium SaaS polish — Inter type scale, card hierarchy, empty states, etc. -->
   <link rel="stylesheet" href="{% static 'css/premium_polish.css' %}">
+  <!-- Responsive navigation system — sidebar collapse + layout fixes -->
+  <link rel="stylesheet" href="{% static 'css/nav_responsive.css' %}">
   {% if user.is_authenticated %}
     {% if user.is_superuser or user.role == 'ADMIN' %}
       <link rel="stylesheet" href="{% static 'css/admin_redesign.css' %}">
@@ -163,6 +165,18 @@
             <span>Tools</span>
           </a>
         </li>
+
+      <!-- Desktop sidebar collapse toggle (hidden on mobile via nav_responsive.css) -->
+      <li class="psp-sidebar-collapse-li">
+        <button class="psp-sidebar-link psp-sidebar-collapse-btn"
+                id="pspSidebarCollapseBtn"
+                type="button"
+                aria-label="{% trans 'Collapse sidebar' %}"
+                title="{% trans 'Collapse sidebar ([ key)' %}">
+          <i class="bi bi-chevrons-left psp-collapse-icon" aria-hidden="true"></i>
+          <span>{% trans "Collapse" %}</span>
+        </button>
+      </li>
 
       {% endif %}
 
@@ -661,6 +675,7 @@
 {% block extra_js %}{% endblock %}
 <!-- Hidden iframe used to receive PDF downloads while keeping the page active. -->
 <iframe id="pspPdfDownloadFrame" name="pspPdfDownloadFrame" style="display:none;" aria-hidden="true"></iframe>
+<script src="{% static 'js/sidebar.js' %}"></script>
 <script src="{% static 'js/toast.js' %}"></script>
 </body>
 </html>

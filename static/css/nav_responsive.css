@@ -1,0 +1,273 @@
+﻿/* ═══════════════════════════════════════════════════════════════
+   ProStar Paints — Navigation Responsive System
+   P1: Collapsible desktop sidebar (icon-rail)
+   P2: Full responsive layout across all breakpoints
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Variables ──────────────────────────────────────────────── */
+:root {
+  --psp-sidebar-w:          240px;
+  --psp-sidebar-rail-w:      64px;
+  --psp-nav-ease:            cubic-bezier(.4, 0, .2, 1);
+  --psp-nav-duration:        .24s;
+  --psp-nav-transition:      .24s cubic-bezier(.4, 0, .2, 1);
+}
+
+/* ─── Smooth transitions for both collapse AND mobile slide ──── */
+.psp-sidebar {
+  transition: width var(--psp-nav-duration) var(--psp-nav-ease),
+              transform var(--psp-nav-duration) var(--psp-nav-ease);
+  will-change: width, transform;
+}
+
+.psp-content-area {
+  transition: margin-left var(--psp-nav-duration) var(--psp-nav-ease);
+  will-change: margin-left;
+}
+
+/* ─── Sidebar nav: needs flex column to allow push-to-bottom ─── */
+.psp-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.psp-sidebar-menu {
+  flex: 1;
+}
+
+/* ─── Collapse nav item (desktop only) ───────────────────────── */
+.psp-sidebar-collapse-li {
+  margin-top: auto;
+  padding-top: .5rem;
+  border-top: 1px solid rgba(255, 255, 255, .06);
+}
+
+.psp-sidebar-collapse-btn {
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  box-shadow: none !important;
+  outline-offset: 2px;
+}
+
+.psp-sidebar-collapse-btn:focus-visible {
+  outline: 2px solid rgba(var(--psp-purple-rgb), .5);
+  border-radius: 10px;
+}
+
+/* Collapse icon transition */
+.psp-collapse-icon {
+  transition: transform var(--psp-nav-transition);
+  flex-shrink: 0;
+}
+
+/* Brand: flex row so logo + button sit side by side */
+.psp-sidebar-brand {
+  display: flex;
+  align-items: center;
+}
+
+.psp-sidebar-logo-link {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   ─── DESKTOP COLLAPSED STATE (body[data-sidebar-collapsed])
+   ═══════════════════════════════════════════════════════════════ */
+@media (min-width: 992px) {
+
+  /* Show collapse button on desktop */
+  .psp-sidebar-collapse-li { display: block; }
+
+  /* ── Sidebar shrinks to icon rail ── */
+  [data-sidebar-collapsed] .psp-sidebar {
+    width: var(--psp-sidebar-rail-w);
+    min-width: var(--psp-sidebar-rail-w);
+    overflow: visible; /* allow tooltips */
+  }
+
+  /* ── Content area offset shrinks ── */
+  [data-sidebar-collapsed] .psp-content-area {
+    margin-left: var(--psp-sidebar-rail-w);
+  }
+
+  /* ── Hide text elements in nav ── */
+  [data-sidebar-collapsed] .psp-sidebar-link span,
+  [data-sidebar-collapsed] .psp-sidebar-collapse-btn span,
+  [data-sidebar-collapsed] .psp-sidebar-section-label,
+  [data-sidebar-collapsed] .psp-sidebar-brand-name,
+  [data-sidebar-collapsed] .psp-sidebar-user-info,
+  [data-sidebar-collapsed] .psp-sidebar-signout {
+    opacity: 0;
+    max-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    pointer-events: none;
+    transition: opacity .12s, max-width .12s;
+  }
+
+  /* ── Centre icons in nav links ── */
+  [data-sidebar-collapsed] .psp-sidebar-link {
+    justify-content: center;
+    padding: .62rem .5rem;
+    gap: 0;
+  }
+
+  /* ── Brand: centre the logo icon ── */
+  [data-sidebar-collapsed] .psp-sidebar-brand {
+    padding: 1.1rem .5rem .85rem;
+    justify-content: center;
+  }
+
+  [data-sidebar-collapsed] .psp-sidebar-logo-link {
+    flex: 0 0 auto;
+    justify-content: center;
+  }
+
+  [data-sidebar-collapsed] .psp-sidebar-logo {
+    max-width: 30px;
+  }
+
+  /* ── Collapse button icon rotates to show "expand" ── */
+  [data-sidebar-collapsed] .psp-collapse-icon {
+    transform: rotate(180deg);
+  }
+
+  /* ── Footer: centre avatar ── */
+  [data-sidebar-collapsed] .psp-sidebar-footer {
+    justify-content: center;
+    padding: .75rem .5rem;
+  }
+
+  [data-sidebar-collapsed] .psp-sidebar-user {
+    gap: 0;
+  }
+
+  /* ── Section labels collapse li: centre ── */
+  [data-sidebar-collapsed] .psp-sidebar-collapse-li {
+    padding: .5rem .3rem .35rem;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   ─── TABLET & MOBILE (<992px): off-canvas overlay
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 991.98px) {
+  .psp-sidebar {
+    transform: translateX(-100%);
+    width: 240px !important;
+    min-width: 240px !important;
+    overflow-y: auto;
+  }
+
+  .psp-sidebar.open {
+    transform: translateX(0);
+    box-shadow: 8px 0 48px rgba(15, 23, 42, .35);
+  }
+
+  .psp-content-area {
+    margin-left: 0 !important;
+  }
+
+  /* Hide the desktop-only collapse button */
+  .psp-sidebar-collapse-li {
+    display: none;
+  }
+}
+
+/* ─── Tablet topbar ──────────────────────────────────────────── */
+@media (max-width: 991.98px) {
+  .psp-topbar { padding: 0 1rem; }
+}
+
+/* ─── Mobile topbar ──────────────────────────────────────────── */
+@media (max-width: 575.98px) {
+  .psp-topbar { padding: 0 .75rem; gap: .5rem; }
+  .psp-topbar-greeting { font-size: .8rem; }
+  .psp-search-wrap { width: 150px; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   ─── PRIORITY 2: Responsive layout fixes (all screens)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Global: prevent horizontal overflow */
+.psp-main { overflow-x: hidden; }
+.psp-content-area { overflow-x: hidden; min-width: 0; }
+
+/* Dashboard admin quick-action tiles — equal width when 5 tiles present */
+@media (min-width: 992px) {
+  /* Prevent auto col-lg from making tiles unequal when conditional 5th tile shows */
+  .psp-main .row > .col-lg { flex: 1 1 0; min-width: 160px; max-width: 240px; }
+}
+
+/* Quotation builder: flow bar stacks on mobile */
+@media (max-width: 575.98px) {
+  .psp-builder-flow-bar {
+    flex-direction: column !important;
+    gap: .5rem !important;
+  }
+  .psp-builder-flow-bar .btn { width: 100%; }
+}
+
+/* Responsive tables: touch scrolling */
+.table-responsive { -webkit-overflow-scrolling: touch; }
+
+/* Cards in flex grids: no overflow clip */
+.psp-ws-cards .card,
+.psp-ws-pin-mini { min-width: 0; }
+
+/* Main content: better mobile padding */
+@media (max-width: 575.98px) {
+  .psp-main { padding: .9rem; }
+}
+
+/* Row gutters: tighter on mobile */
+@media (max-width: 575.98px) {
+  .row.g-3 { --bs-gutter-x: .65rem; }
+  .row.g-4 { --bs-gutter-x: .9rem; }
+}
+
+/* Invoice / User list page: action column hover reveal */
+.ws-table .ws-row td.psp-row-actions,
+table.table .psp-row-actions {
+  opacity: 0;
+  transition: opacity .15s ease;
+}
+table.table tr:hover .psp-row-actions,
+table.table tr:focus-within .psp-row-actions {
+  opacity: 1;
+}
+@media (hover: none) {
+  table.table .psp-row-actions { opacity: 1 !important; }
+}
+
+/* Forms: prevent inputs from overflowing on mobile */
+@media (max-width: 575.98px) {
+  .form-control, .form-select { max-width: 100%; }
+  .input-group { flex-wrap: nowrap; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   ─── Reduce motion overrides
+   ═══════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .psp-sidebar,
+  .psp-content-area,
+  .psp-collapse-icon {
+    transition: none !important;
+  }
+}
+[data-reduce-motion="true"] .psp-sidebar,
+[data-reduce-motion="true"] .psp-content-area,
+[data-reduce-motion="true"] .psp-collapse-icon {
+  transition: none !important;
+}
