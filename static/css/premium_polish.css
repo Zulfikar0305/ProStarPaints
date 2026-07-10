@@ -1521,24 +1521,20 @@ body[data-psp-page*="app_settings"] .psp-main h4.fw-bold::before {
 
 
 /* ═══════════════════════════════════════════════════════════════
-   PREMIUM LOGIN SCREEN OVERRIDES
+   PREMIUM SPLIT-SCREEN LOGIN OVERRIDES (FINAL PASS)
    Redesigns authentication screen to match Linear/Stripe/Vercel
    ═══════════════════════════════════════════════════════════════ */
 
-/* Full page layout overlay */
-.psp-login-wrap {
+/* Full page viewport lock */
+.psp-login-page {
   position: fixed !important;
   inset: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  min-height: 100vh !important;
   display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 1.5rem !important;
   z-index: 99999 !important;
-  overflow-y: auto !important;
-
+  overflow: hidden !important;
+  
   /* Inverted ProStar brand gradient: green at top-left, deep midnight at bottom-right */
   background: linear-gradient(
     135deg,
@@ -1549,109 +1545,134 @@ body[data-psp-page*="app_settings"] .psp-main h4.fw-bold::before {
   ) !important;
 }
 
-/* Soft radial glow overlays */
-.psp-login-wrap::before {
-  content: "";
-  position: absolute;
-  top: -15%;
-  left: -15%;
-  width: 50%;
-  height: 50%;
-  background: radial-gradient(circle, rgba(137, 197, 65, 0.07) 0%, transparent 70%) !important;
-  pointer-events: none;
+/* ─── Left Branding Column (60% width) ─────────────────────── */
+.psp-login-branding-side {
+  width: 60%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 5rem 6rem;
+  position: relative;
+  z-index: 10;
+  overflow: hidden;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.psp-login-wrap::after {
-  content: "";
-  position: absolute;
-  bottom: -15%;
-  right: -15%;
-  width: 50%;
-  height: 50%;
-  background: radial-gradient(circle, rgba(108, 67, 166, 0.12) 0%, transparent 70%) !important;
-  pointer-events: none;
+.psp-login-branding-content {
+  position: relative;
+  z-index: 20;
 }
 
-/* Subtle oversized brand watermark behind card */
-.psp-login-card::before {
-  content: "ProStar";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 16rem;
-  font-weight: 900;
-  color: rgba(91, 33, 182, 0.015);
-  letter-spacing: -0.05em;
-  pointer-events: none;
-  z-index: -1;
-  user-select: none;
+.psp-login-brand-logo {
+  height: 100px !important;
+  width: auto !important;
+  max-width: 280px !important;
+  object-fit: contain;
+  display: block;
+}
+
+.psp-brand-heading {
+  font-size: 2.5rem !important;
+  font-weight: 800 !important;
+  color: #ffffff !important;
+  letter-spacing: -0.04em !important;
+  line-height: 1.15 !important;
+  margin-top: 2.5rem !important;
+  margin-bottom: 1rem !important;
+}
+
+.psp-brand-sub {
+  font-size: 1.05rem !important;
+  line-height: 1.65 !important;
+  color: rgba(255, 255, 255, 0.72) !important;
+  max-width: 620px !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Brand check features */
+.psp-brand-features {
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+  margin-top: 2.5rem;
+}
+
+.psp-feature-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  color: #ffffff;
+}
+
+.psp-feature-row i {
+  color: #89c541 !important;
+  font-size: 1.15rem;
+}
+
+.psp-feature-row span {
+  font-weight: 500;
+  font-size: 1.02rem;
+  opacity: 0.92;
+}
+
+/* ─── Right Form Column (40% width) ────────────────────────── */
+.psp-login-form-side {
+  width: 40%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3.5rem;
+  position: relative;
+  z-index: 10;
+  background: rgba(15, 23, 42, 0.15);
 }
 
 /* Branded login card: glassmorphism, larger width, rich shadows */
 .psp-login-card {
   width: 100% !important;
-  max-width: 500px !important;
+  max-width: 460px !important;
   background: rgba(255, 255, 255, 0.94) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
   border: 1px solid rgba(255, 255, 255, 0.18) !important;
   border-radius: 24px !important;
-  box-shadow: 0 20px 48px -12px rgba(0, 0, 0, 0.28), 0 1px 3px rgba(0, 0, 0, 0.05) !important;
-  padding: 3.5rem 3.25rem 3rem !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  padding: 3.5rem 3rem 3rem !important;
   position: relative !important;
-  z-index: 10 !important;
+  z-index: 100 !important;
 }
 
-@media (max-width: 575.98px) {
-  .psp-login-card {
-    padding: 2.25rem 1.5rem !important;
-    border-radius: 20px !important;
-  }
-}
-
-/* Branded header elements */
-.psp-login-logo {
-  height: 90px !important;
+.psp-login-logo-mobile {
+  height: 64px !important;
   width: auto !important;
-  max-width: 240px !important;
   object-fit: contain;
-  display: block;
-  margin: 0 auto;
+  display: inline-block;
 }
 
-.psp-login-title {
-  font-size: 1.5rem !important;
+.psp-login-header-form h3 {
+  font-size: 1.4rem !important;
   font-weight: 700 !important;
   color: #0f172a !important;
-  letter-spacing: -0.03em !important;
-  margin-top: 1.5rem !important;
-  margin-bottom: 0.5rem !important;
+  letter-spacing: -0.025em !important;
 }
 
-.psp-login-subtitle {
-  font-size: 0.84rem !important;
-  line-height: 1.5 !important;
-  color: #475569 !important;
-  max-width: 420px;
-  margin: 0 auto !important;
-}
-
-/* Form input adaptations for luxury feel */
+/* Larger inputs */
 .psp-login-card .form-control-lg {
   font-size: 0.9rem !important;
   padding: 0.65rem 0.85rem !important;
   border-radius: var(--psp-radius-sm) !important;
 }
 
-/* Establish brand gradient on the primary submit button */
+/* Submit button brand gradient */
 .psp-login-submit {
   background: var(--psp-brand-gradient) !important;
   border: 1px solid var(--psp-purple-dark) !important;
   color: #ffffff !important;
   font-weight: 600 !important;
   font-size: 0.9rem !important;
-  padding: 0.65rem 1.25rem !important;
+  padding: 0.68rem 1.25rem !important;
   box-shadow: 0 4px 14px rgba(91, 33, 182, 0.25) !important;
   border-radius: var(--psp-radius-sm) !important;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
@@ -1663,6 +1684,110 @@ body[data-psp-page*="app_settings"] .psp-main h4.fw-bold::before {
   transform: translateY(-1px) !important;
 }
 
-.psp-login-submit:active {
-  transform: translateY(0) !important;
+/* Subtle oversized brand watermark behind card */
+.psp-login-card::before {
+  content: "ProStar";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 19rem;
+  font-weight: 900;
+  color: rgba(91, 33, 182, 0.012) !important;
+  letter-spacing: -0.05em;
+  pointer-events: none;
+  z-index: -1;
+  user-select: none;
 }
+
+/* ─── Abstract Paint-inspired Blobs (Windows 11 / Adobe style) ─── */
+.psp-paint-blob {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.blob-1 {
+  top: -10%;
+  left: -10%;
+  width: 450px;
+  height: 450px;
+  background: radial-gradient(circle, rgba(137, 197, 65, 0.15) 0%, transparent 70%);
+  filter: blur(60px);
+}
+
+.blob-2 {
+  bottom: 5%;
+  left: 20%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(108, 67, 166, 0.2) 0%, transparent 75%);
+  filter: blur(75px);
+}
+
+.blob-3 {
+  top: 25%;
+  right: -5%;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(91, 33, 182, 0.18) 0%, transparent 70%);
+  filter: blur(60px);
+}
+
+/* ─── Floating Glass Panels / Ribbons ────────────────────────── */
+.psp-glass-layer {
+  position: absolute;
+  border-radius: 120px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.layer-1 {
+  width: 600px;
+  height: 100px;
+  transform: rotate(-35deg);
+  background: linear-gradient(90deg, rgba(255,255,255,0.01), rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.01));
+  top: 15%;
+  left: -10%;
+}
+
+.layer-2 {
+  width: 450px;
+  height: 140px;
+  transform: rotate(25deg);
+  background: linear-gradient(90deg, rgba(255,255,255,0.01), rgba(255,255,255,0.04) 50%, rgba(255,255,255,0.01));
+  bottom: 8%;
+  left: 25%;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.layer-3 {
+  width: 350px;
+  height: 70px;
+  transform: rotate(-45deg);
+  background: linear-gradient(90deg, rgba(255,255,255,0.01), rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.01));
+  top: 8%;
+  right: -5%;
+}
+
+/* ─── Responsive Breakpoints ────────────────────────────────── */
+@media (max-width: 991.98px) {
+  .psp-login-branding-side {
+    display: none !important;
+  }
+  .psp-login-form-side {
+    width: 100% !important;
+    padding: 1.5rem !important;
+    background: transparent !important;
+  }
+  .psp-login-card {
+    padding: 2.75rem 2rem 2.5rem !important;
+    border-radius: 20px !important;
+  }
+}
+

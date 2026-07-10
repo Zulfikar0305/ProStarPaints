@@ -4,54 +4,113 @@
 {% block title %}Sign In — ProStar Paints{% endblock %}
 
 {% block content %}
-<div class="psp-login-wrap">
-  <div class="psp-login-card">
+<div class="psp-login-page">
 
-    <!-- Logo & Branded Header -->
-    <div class="text-center mb-4 psp-login-header">
+  <!-- Left: Branding Side (60% width) -->
+  <div class="psp-login-branding-side">
+    <!-- Abstract paint blobs and floating glass layers (left) -->
+    <div class="psp-paint-blob blob-1"></div>
+    <div class="psp-paint-blob blob-2"></div>
+    <div class="psp-glass-layer layer-1"></div>
+    <div class="psp-glass-layer layer-2"></div>
+
+    <div class="psp-login-branding-content">
+      <!-- Large Logo -->
       <img src="{{ branding.logo_url }}"
            alt="{{ branding.company_name }}"
-           class="psp-login-logo"
+           class="psp-login-brand-logo"
            onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex';" />
       <div class="psp-login-logo-fallback d-inline-flex align-items-center justify-content-center"
-           style="display:none !important;width:96px;height:96px;background:var(--psp-grad-purple);border-radius:24px;">
-        <i class="bi bi-paint-bucket text-white fs-2"></i>
+           style="display:none !important;width:120px;height:120px;background:rgba(255,255,255,0.06);border-radius:24px;border:1px solid rgba(255,255,255,0.12);">
+        <i class="bi bi-paint-bucket text-white fs-1"></i>
       </div>
-      <h3 class="fw-bold mt-4 mb-2 psp-login-title">{% trans "Welcome to ProStar Paints" %}</h3>
-      <p class="mb-0 psp-login-subtitle">
-        {% trans "Sign in to access quotations, product catalogues, customer projects, pricing tools and business insights from one secure workspace." %}
+
+      <h1 class="psp-brand-heading">{% trans "Professional Paint Management Platform" %}</h1>
+      <p class="psp-brand-sub">
+        {% trans "Designed to help representatives prepare quotations, manage customers, generate professional documents and streamline the entire sales workflow." %}
       </p>
-    </div>
 
-    <form method="post" novalidate>
-      {% csrf_token %}
-
-      {% if form.errors %}
-        <div class="alert alert-danger py-2 small mb-3">
-          <i class="bi bi-exclamation-circle-fill me-2"></i>{% trans "Invalid username or password." %}
+      <!-- Elegant Feature Rows -->
+      <div class="psp-brand-features">
+        <div class="psp-feature-row">
+          <i class="bi bi-check-circle-fill"></i>
+          <span>{% trans "Professional Quotations" %}</span>
         </div>
-      {% endif %}
-
-      <div class="mb-3">
-        <label for="id_username" class="form-label fw-semibold">{% trans "Username" %}</label>
-        <input type="text" name="username" id="id_username"
-               class="form-control form-control-lg {% if form.username.errors %}is-invalid{% endif %}"
-               autofocus autocomplete="username" required />
+        <div class="psp-feature-row">
+          <i class="bi bi-check-circle-fill"></i>
+          <span>{% trans "Smart Product Catalogue" %}</span>
+        </div>
+        <div class="psp-feature-row">
+          <i class="bi bi-check-circle-fill"></i>
+          <span>{% trans "Customer Management" %}</span>
+        </div>
+        <div class="psp-feature-row">
+          <i class="bi bi-check-circle-fill"></i>
+          <span>{% trans "PDF & Invoice Generation" %}</span>
+        </div>
+        <div class="psp-feature-row">
+          <i class="bi bi-check-circle-fill"></i>
+          <span>{% trans "Secure Business Workspace" %}</span>
+        </div>
       </div>
-
-      <div class="mb-3">
-        <label for="id_password" class="form-label fw-semibold">{% trans "Password" %}</label>
-        <input type="password" name="password" id="id_password"
-               class="form-control form-control-lg {% if form.password.errors %}is-invalid{% endif %}"
-               autocomplete="current-password" required />
-      </div>
-
-      <input type="hidden" name="next" value="{{ next }}" />
-      <div class="d-grid mt-4">
-        <button type="submit" class="btn btn-primary btn-lg psp-login-submit">{% trans "Sign In" %}</button>
-      </div>
-    </form>
-
+    </div>
   </div>
+
+  <!-- Right: Form Side (40% width) -->
+  <div class="psp-login-form-side">
+    <!-- Abstract paint blobs and floating glass layers (right) -->
+    <div class="psp-paint-blob blob-3"></div>
+    <div class="psp-glass-layer layer-3"></div>
+
+    <div class="psp-login-card">
+      <!-- Logo for small screens where the left column is hidden -->
+      <div class="d-lg-none text-center mb-4">
+        <img src="{{ branding.logo_url }}"
+             alt="{{ branding.company_name }}"
+             class="psp-login-logo-mobile"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex';" />
+        <div class="psp-login-logo-fallback d-inline-flex align-items-center justify-content-center"
+             style="display:none !important;width:64px;height:64px;background:var(--psp-grad-purple);border-radius:14px;margin-bottom:0.5rem;">
+          <i class="bi bi-paint-bucket text-white fs-3"></i>
+        </div>
+        <h4 class="fw-bold mt-2 mb-0" style="letter-spacing:-.02em;">{{ branding.company_name|default:"ProStar Paints" }}</h4>
+      </div>
+
+      <div class="psp-login-header-form">
+        <h3 class="fw-bold mb-1">{% trans "Welcome Back" %}</h3>
+        <p class="text-muted small mb-4">{% trans "Sign in to access your secure workspace." %}</p>
+      </div>
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        {% if form.errors %}
+          <div class="alert alert-danger py-2 small mb-3">
+            <i class="bi bi-exclamation-circle-fill me-2"></i>{% trans "Invalid username or password." %}
+          </div>
+        {% endif %}
+
+        <div class="mb-3">
+          <label for="id_username" class="form-label fw-semibold">{% trans "Username" %}</label>
+          <input type="text" name="username" id="id_username"
+                 class="form-control form-control-lg {% if form.username.errors %}is-invalid{% endif %}"
+                 autofocus autocomplete="username" required />
+        </div>
+
+        <div class="mb-3">
+          <label for="id_password" class="form-label fw-semibold">{% trans "Password" %}</label>
+          <input type="password" name="password" id="id_password"
+                 class="form-control form-control-lg {% if form.password.errors %}is-invalid{% endif %}"
+                 autocomplete="current-password" required />
+        </div>
+
+        <input type="hidden" name="next" value="{{ next }}" />
+        <div class="d-grid mt-4">
+          <button type="submit" class="btn btn-primary btn-lg psp-login-submit">{% trans "Sign In" %}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
 </div>
 {% endblock %}
