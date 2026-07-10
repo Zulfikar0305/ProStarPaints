@@ -235,7 +235,7 @@ body {
             {% elif li.item.quantity %}{{ li.item.quantity }} {{ li.item.unit }}
             {% else %}—{% endif %}
           </td>
-          <td class="right tbc">TBC</td>
+          <td class="right">R {{ li.item.total_excl_vat|floatformat:2 }}</td>
         </tr>
         {% endfor %}
       {% endif %}
@@ -249,9 +249,9 @@ body {
 <div class="clearfix">
   <div class="totals-compact">
     <table>
-      <tr><td class="lbl">Subtotal (excl. VAT)</td><td class="val tbc">TBC</td></tr>
-      <tr><td class="lbl">VAT</td><td class="val tbc">TBC</td></tr>
-      <tr><td>Total (incl. VAT)</td><td class="val">TBC — Pending</td></tr>
+      <tr><td class="lbl">Subtotal (excl. VAT)</td><td class="val">R {{ quotation.subtotal_excl_vat|floatformat:2 }}</td></tr>
+      <tr><td class="lbl">VAT</td><td class="val">R {{ quotation.vat_amount|floatformat:2 }}</td></tr>
+      <tr><td>Total (incl. VAT)</td><td class="val">R {{ quotation.total_incl_vat|floatformat:2 }}</td></tr>
     </table>
   </div>
 </div>
@@ -264,7 +264,7 @@ body {
 <div class="footer">
   <span>{{ branding.company_name|default:"ProStar Paints" }} — Compact Estimate{% if branding.pdf_footer_note %} · {{ branding.pdf_footer_note }}{% endif %}</span>
   <span>{{ quotation.reference }}</span>
-  <span>Pricing TBC · Generated {{ generated_at|date:"d M Y" }}</span>
+  <span>R {{ quotation.total_incl_vat|floatformat:2 }} · Generated {{ generated_at|date:"d M Y" }}</span>
 </div>
 
 </body>

@@ -9,8 +9,20 @@
 @page {
   size: A4;
   margin: 18mm 20mm 22mm 20mm;
+  @bottom-left {
+    content: "{{ branding.company_name|default:'ProStar Paints' }} — Professional Quotation";
+    font-size: 8pt;
+    color: #94a3b8;
+    font-family: Arial, Helvetica, sans-serif;
+  }
   @bottom-center {
     content: "Page " counter(page) " of " counter(pages);
+    font-size: 8pt;
+    color: #94a3b8;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  @bottom-right {
+    content: "{{ quotation.reference }} | Generated {{ generated_at|date:'d M Y' }}";
     font-size: 8pt;
     color: #94a3b8;
     font-family: Arial, Helvetica, sans-serif;
@@ -193,6 +205,8 @@ p { margin-bottom: 4pt; }
   vertical-align: top;
   border-bottom: 1px solid #f1f5f9;
   color: #1e293b;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .items-table td.text-right { text-align: right; }
 .items-table td.price-cell {
@@ -214,6 +228,13 @@ p { margin-bottom: 4pt; }
   background: #ede9fe;
   color: #7c3aed;
 }
+
+/* Avoid splitting table rows across pages */
+.items-table tr { page-break-inside: avoid; break-inside: avoid; }
+
+/* Keep key document blocks together on a single page when possible */
+.info-grid, .totals-wrapper, .signature-section, .section-block { page-break-inside: avoid; break-inside: avoid; }
+
 .items-table .item-type-badge.prep   { background: #fef3c7; color: #d97706; }
 .items-table .item-type-badge.primer { background: #dbeafe; color: #2563eb; }
 .items-table .item-type-badge.water  { background: #d1fae5; color: #059669; }
@@ -424,7 +445,7 @@ p { margin-bottom: 4pt; }
           {% if li.item.coats %}{{ li.item.coats }}{% else %}—{% endif %}
         </td>
         <td class="price-cell">
-          <span class="tbc-text">TBC</span>
+          R {{ li.item.total_excl_vat|floatformat:2 }}
         </td>
       </tr>
       {% endfor %}
@@ -442,37 +463,38 @@ p { margin-bottom: 4pt; }
 </div>
 {% endfor %}
 
-<!-- ══ TOTALS ══════════════════════════════════════════════════════════════ -->
-<div class="totals-wrapper">
+<!-- ══ TOTALS + SIGNATURE (kept together) ═══════════════════════════════════ -->
+<div class="final-block">
+  <div class="totals-wrapper">
   <div class="totals-spacer"></div>
   <div class="totals-box">
     <table class="totals-table">
       <tr>
         <td class="totals-label">Subtotal (excl. VAT)</td>
-        <td class="totals-val"><span class="tbc-text">TBC</span></td>
+        <td class="totals-val">R {{ quotation.subtotal_excl_vat|floatformat:2 }}</td>
       </tr>
       <tr>
         <td class="totals-label">VAT</td>
-        <td class="totals-val"><span class="tbc-text">TBC</span></td>
+        <td class="totals-val">R {{ quotation.vat_amount|floatformat:2 }}</td>
       </tr>
       <tr class="grand-row">
         <td>Total (incl. VAT)</td>
-        <td class="totals-val">TBC — Pricing Pending</td>
+        <td class="totals-val">R {{ quotation.total_incl_vat|floatformat:2 }}</td>
       </tr>
     </table>
   </div>
-</div>
+  </div>
 
-<!-- ══ NOTES ══════════════════════════════════════════════════════════════ -->
+  <!-- ══ NOTES ══════════════════════════════════════════════════════════════ -->
 {% if notes %}
-<div class="notes-block">
+  <div class="notes-block">
   <div class="notes-label">Notes &amp; Conditions</div>
   {{ notes|linebreaksbr }}
-</div>
+  </div>
 {% endif %}
 
-<!-- ══ SIGNATURES ═════════════════════════════════════════════════════════ -->
-<div class="signature-section">
+  <!-- ══ SIGNATURES ═════════════════════════════════════════════════════════ -->
+  <div class="signature-section">
   <div class="sig-col">
     <div class="sig-box">
       <div class="sig-title">Prepared By</div>
@@ -497,13 +519,7 @@ p { margin-bottom: 4pt; }
       <div class="sig-line">Signature &amp; Date</div>
     </div>
   </div>
-</div>
-
-<!-- ══ FOOTER ═════════════════════════════════════════════════════════════ -->
-<div class="footer-bar">
-  <span>{{ branding.company_name|default:"ProStar Paints" }} — Professional Quotation{% if branding.pdf_footer_note %} · {{ branding.pdf_footer_note }}{% endif %}</span>
-  <span>{{ quotation.reference }} | Generated {{ generated_at|date:"d M Y" }}</span>
-  <span>Prices are TBC pending final assessment</span>
+  </div>
 </div>
 
 </body>
