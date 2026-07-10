@@ -32,13 +32,48 @@
   </div>
 </div>
 
+<!-- Category Leaflets Selector -->
+<div class="psp-leaflets-section mb-4">
+  <div class="psp-leaflets-scroll-wrapper">
+    <div class="psp-leaflets-container">
+      
+      <!-- All Categories Leaflet -->
+      <button type="button" class="psp-leaflet {% if not current_category %}active{% endif %}" data-category="">
+        <span class="psp-leaflet-icon"><i class="bi bi-grid"></i></span>
+        <span class="psp-leaflet-name">{% trans "All" %}</span>
+      </button>
+
+      {% for value, label in category_choices %}
+        <button type="button" class="psp-leaflet {% if current_category == value %}active{% endif %}" data-category="{{ value }}">
+          <span class="psp-leaflet-icon">
+            {% if value == 'INTERIOR' %}<i class="bi bi-house-door"></i>
+            {% elif value == 'EXTERIOR' %}<i class="bi bi-house"></i>
+            {% elif value == 'PRIMER' %}<i class="bi bi-paint-bucket"></i>
+            {% elif value == 'WATERPROOFING' %}<i class="bi bi-droplet"></i>
+            {% elif value == 'CRACKS' %}<i class="bi bi-bricks"></i>
+            {% elif value == 'MOULD' %}<i class="bi bi-shield-exclamation"></i>
+            {% elif value == 'CLEANING' %}<i class="bi bi-stars"></i>
+            {% elif value == 'SANDING' %}<i class="bi bi-brush"></i>
+            {% elif value == 'EFFLORESCENCE' %}<i class="bi bi-moisture"></i>
+            {% elif value == 'OLD_PAINT_REMOVAL' %}<i class="bi bi-trash"></i>
+            {% else %}<i class="bi bi-tag"></i>
+            {% endif %}
+          </span>
+          <span class="psp-leaflet-name">{{ label }}</span>
+        </button>
+      {% endfor %}
+
+    </div>
+  </div>
+</div>
+
 <!-- Search & Filters -->
 <div class="card mb-3 psp-filter-card {% if q or current_category or current_status != 'active' %}psp-filter-card--active{% endif %}">
   <div class="card-body py-2">
-    <form method="get" class="row g-2 align-items-end">
+    <form method="get" class="row g-2 align-items-end" id="pspCatalogueFilterForm">
 
       <!-- Search box -->
-      <div class="col-12 col-sm-6 col-md-4">
+      <div class="col-12 col-sm-6 col-md-5">
         <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Search" %}</label>
         <div class="input-group input-group-sm">
           <input type="text" name="q" value="{{ q }}"
@@ -49,19 +84,16 @@
         </div>
       </div>
 
-      <!-- Category filter -->
-      <div class="col-6 col-sm-3 col-md-2">
-        <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Category" %}</label>
-        <select name="category" class="form-select form-select-sm" onchange="this.form.submit()">
-          <option value="">{% trans "All" %}</option>
-          {% for value, label in category_choices %}
-            <option value="{{ value }}" {% if current_category == value %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-      </div>
+      <!-- Hidden Category filter select (manipulated by Javascript) -->
+      <select name="category" id="pspCategorySelect" class="d-none">
+        <option value="">{% trans "All" %}</option>
+        {% for value, label in category_choices %}
+          <option value="{{ value }}" {% if current_category == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
 
       <!-- Status filter -->
-      <div class="col-6 col-sm-3 col-md-2">
+      <div class="col-6 col-sm-3 col-md-3">
         <label class="form-label small fw-semibold text-muted text-uppercase mb-1">{% trans "Status" %}</label>
         <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
           <option value="active"   {% if current_status == "active"   %}selected{% endif %}>{% trans "Active" %}</option>
@@ -71,7 +103,7 @@
       </div>
 
       {% if q or current_category or current_status != "active" %}
-        <div class="col-auto">
+        <div class="col-auto ms-auto">
           <a href="{% url 'paints:paint_list' %}" class="btn btn-sm btn-outline-danger">
             <i class="bi bi-x-lg me-1"></i>{% trans "Clear" %}
           </a>
@@ -184,5 +216,21 @@
     </ul>
   </nav>
 {% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const leaflets = document.querySelectorAll('.psp-leaflet');
+  const selectEl = document.getElementById('pspCategorySelect');
+  if (selectEl) {
+    leaflets.forEach(leaflet => {
+      leaflet.addEventListener('click', function() {
+        const val = this.getAttribute('data-category');
+        selectEl.value = val;
+        selectEl.form.submit();
+      });
+    });
+  }
+});
+</script>
 
 {% endblock %}
