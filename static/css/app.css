@@ -4589,3 +4589,159 @@ a:hover > .psp-dq-item { transform: translateY(-2px); box-shadow: var(--psp-shad
   /* Tour-related reduce-motion rules removed */
 }
 [data-reduce-motion="true"] { /* Tour motion rules removed */ }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   Antigravity UI Polish — Fixes W1 · W2 · W5
+   Branch: ui/antigravity-exploration
+   ═══════════════════════════════════════════════════════════════ */
+
+
+/* ── W5: PDF template card — preferred / default highlight ───── */
+
+/* The .is-preferred class is emitted by pdf_template_select.html
+   when a user has a saved default template, but was never defined
+   in any stylesheet. This block provides the visual identity. */
+
+.psp-pdf-tpl-card.is-preferred {
+  border-color: var(--psp-purple) !important;
+  box-shadow:
+    0 0 0 3px rgba(var(--psp-purple-rgb), .14),
+    0 8px 28px rgba(15, 23, 42, .10) !important;
+}
+
+.psp-pdf-tpl-card.is-preferred .psp-pdf-mock-page {
+  border-top-color: var(--psp-purple) !important;
+}
+
+/* Floating "Your default" pill badge */
+.psp-pdf-default-pill {
+  position: absolute;
+  top: .6rem;
+  right: .6rem;
+  background: var(--psp-grad-purple);
+  color: #fff;
+  font-size: .64rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  padding: .22rem .65rem;
+  border-radius: 50px;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(var(--psp-purple-rgb), .36);
+  pointer-events: none;
+}
+
+/* Accessible focus ring on the generate button */
+.psp-pdf-tpl-card button[type="submit"]:focus-visible {
+  outline: 3px solid rgba(var(--psp-purple-rgb), .5);
+  outline-offset: 2px;
+}
+
+
+/* ── W1: Topbar icon buttons — dark-surface styling ──────────── */
+
+/* The topbar is forced to var(--psp-navy) by ui_polish.css but
+   the icon buttons (bell, help, command palette) kept their light
+   background (#fff). This block corrects the mismatch. */
+
+.psp-topbar .psp-icon-btn {
+  background: rgba(255, 255, 255, .08) !important;
+  border-color: rgba(255, 255, 255, .12) !important;
+  color: rgba(255, 255, 255, .72) !important;
+}
+
+.psp-topbar .psp-icon-btn:hover {
+  background: rgba(255, 255, 255, .16) !important;
+  border-color: rgba(255, 255, 255, .22) !important;
+  color: #fff !important;
+}
+
+/* Search pill — dark surface treatment */
+.psp-topbar .psp-search-wrap {
+  background: rgba(255, 255, 255, .08) !important;
+  border-color: rgba(255, 255, 255, .12) !important;
+}
+
+.psp-topbar .psp-search-wrap:focus-within {
+  background: rgba(255, 255, 255, .13) !important;
+  border-color: rgba(var(--psp-purple-rgb), .65) !important;
+  box-shadow: 0 0 0 3px rgba(var(--psp-purple-rgb), .18) !important;
+}
+
+.psp-topbar .psp-search-icon {
+  color: rgba(255, 255, 255, .45) !important;
+}
+
+.psp-topbar .psp-search-input {
+  color: rgba(255, 255, 255, .85) !important;
+}
+
+.psp-topbar .psp-search-input::placeholder {
+  color: rgba(255, 255, 255, .32) !important;
+}
+
+/* Topbar lower edge — defines boundary between dark chrome and light content */
+.psp-topbar {
+  border-bottom: 1px solid rgba(255, 255, 255, .07) !important;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .18) !important;
+}
+
+
+/* ── W2: Admin Dashboard — KPI icon colour + chart height ──── */
+
+/* ui_polish.css strips gradient backgrounds from all admin KPI icons.
+   This block restores them using the existing gradient tokens. */
+
+.psp-body[data-user-admin] .kpi-icon-purple {
+  background: var(--psp-grad-purple) !important;
+  color: #fff !important;
+}
+.psp-body[data-user-admin] .kpi-icon-green {
+  background: var(--psp-grad-green) !important;
+  color: #fff !important;
+}
+.psp-body[data-user-admin] .kpi-icon-blue {
+  background: var(--psp-grad-blue) !important;
+  color: #fff !important;
+}
+.psp-body[data-user-admin] .kpi-icon-amber {
+  background: var(--psp-grad-amber) !important;
+  color: #fff !important;
+}
+
+/* Increase chart height — 160px was too cramped for the trend line */
+[data-psp-page*="dashboard"] .chart-wrap {
+  height: 200px !important;
+  max-height: 200px !important;
+}
+@media (max-width: 767px) {
+  [data-psp-page*="dashboard"] .chart-wrap {
+    height: 150px !important;
+    max-height: 150px !important;
+  }
+}
+
+/* Hero stat card shimmer — CSS-only, reduced-motion safe */
+.stat-hero {
+  overflow: hidden;
+}
+
+.stat-hero::before {
+  animation: psp-stat-shimmer 7s linear infinite;
+}
+
+@keyframes psp-stat-shimmer {
+  0%   { transform: translateX(0%)   translateY(0%)   scale(1); opacity: 1; }
+  50%  { transform: translateX(30%)  translateY(20%)  scale(1.4); opacity: .6; }
+  100% { transform: translateX(0%)   translateY(0%)   scale(1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stat-hero::before { animation: none; }
+}
+
+.psp-body[data-reduce-motion="true"] .stat-hero::before {
+  animation: none !important;
+}
+

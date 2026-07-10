@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% load i18n %}
 
 {% block title %}Review — {{ quotation.reference }} — ProStar Paints{% endblock %}
@@ -160,6 +160,8 @@
 </div>
 {% endwith %}
 {% endif %}
+
+<div class="row g-4 align-items-start">
 
   {# ── Left column: Customer + Project details ── #}
   <div class="col-12 col-lg-4">

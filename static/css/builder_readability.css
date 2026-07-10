@@ -75,12 +75,40 @@
 
 /* Nav tabs (leaflet groups) tuned for dark shell */
 .psp-body[data-user-role="rep"] #pspBuilderMain nav[aria-label="Leaflet groups"] { margin-bottom: .9rem; }
+
+/* Tab strip baseline rule */
+.psp-body[data-user-role="rep"] #pspBuilderMain .nav-tabs {
+  border-bottom: 2px solid var(--psp-border) !important;
+  gap: .1rem;
+}
+
+/* All tab links — reset borders, apply underline affordance */
 .psp-body[data-user-role="rep"] #pspBuilderMain .nav-tabs .nav-link {
   background: transparent !important;
   border: none !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  margin-bottom: -2px;
+  padding: .42rem .7rem;
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--psp-text-muted);
+  transition: color var(--psp-transition), border-color var(--psp-transition);
 }
+
+/* Hover — subtle underline preview */
+.psp-body[data-user-role="rep"] #pspBuilderMain .nav-tabs .nav-link:hover:not(.active) {
+  color: var(--psp-text) !important;
+  border-bottom-color: var(--psp-border) !important;
+  background: transparent !important;
+}
+
+/* Active tab — purple underline + coloured label */
 .psp-body[data-user-role="rep"] #pspBuilderMain .nav-tabs .nav-link.active {
   background: transparent !important;
+  border-bottom: 2px solid var(--psp-purple) !important;
+  color: var(--psp-purple) !important;
+  font-weight: 600 !important;
 }
 
 /* Save bar and flow CTA styling */
