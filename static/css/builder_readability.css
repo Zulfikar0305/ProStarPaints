@@ -61,13 +61,25 @@
 .psp-body[data-user-role="rep"] #pspBuilderContainer .psp-substrate-check:has(input:checked) .psp-substrate-tick {
 }
 
-/* Form controls light-on-dark */
+/* Form controls — base state (no shadow ring at rest) */
 .psp-body[data-user-role="rep"] #pspBuilderContainer .form-control,
 .psp-body[data-user-role="rep"] #pspBuilderContainer .form-control-sm,
 .psp-body[data-user-role="rep"] #pspBuilderContainer .form-select,
 .psp-body[data-user-role="rep"] #pspBuilderContainer .form-select-sm {
-  box-shadow: none !important;
+  box-shadow: none;
+  transition: border-color var(--psp-transition, .15s), box-shadow var(--psp-transition, .15s);
 }
+
+/* Focus state — gentle purple ring (accessibility + UX) */
+.psp-body[data-user-role="rep"] #pspBuilderContainer .form-control:focus,
+.psp-body[data-user-role="rep"] #pspBuilderContainer .form-control-sm:focus,
+.psp-body[data-user-role="rep"] #pspBuilderContainer .form-select:focus,
+.psp-body[data-user-role="rep"] #pspBuilderContainer .form-select-sm:focus {
+  border-color: var(--psp-purple) !important;
+  box-shadow: 0 0 0 2px rgba(var(--psp-purple-rgb), .14) !important;
+  outline: none;
+}
+
 .psp-body[data-user-role="rep"] #pspBuilderContainer .form-control::placeholder { }
 
 /* Paint-row calc column contrast adjustments */

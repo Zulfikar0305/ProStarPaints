@@ -117,74 +117,77 @@
 
 {# ── Filters ─────────────────────────────────────────────────── #}
 {# ── Compact filter toolbar (Section 4) ───────────────────────── #}
-<div class="ws-filter-bar mb-3">
-  <form method="get" class="filter-toolbar d-flex flex-wrap gap-2 align-items-center" id="wsFilters">
-    <input type="hidden" name="view" value="{{ view_mode }}">
+<div class="card mb-3 psp-filter-card {% if has_filters %}psp-filter-card--active{% endif %}">
+  <div class="card-body p-0">
+    <form method="get" class="filter-toolbar d-flex flex-wrap gap-2 align-items-center" id="wsFilters">
+      <input type="hidden" name="view" value="{{ view_mode }}">
 
-    <div>
-      <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="{% trans 'Search reference, customer, project…' %}" style="min-width:220px;">
-    </div>
+      <div class="p-2">
+        <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="{% trans 'Search reference, customer, project…' %}" style="min-width:220px;">
+      </div>
 
-    <div>
-      <select name="status" class="form-select form-select-sm">
-        <option value="">{% trans "All status" %}</option>
-        {% for val, label in status_choices %}
-          <option value="{{ val }}" {% if current_status == val %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-    </div>
+      <div class="p-2">
+        <select name="status" class="form-select form-select-sm">
+          <option value="">{% trans "All status" %}</option>
+          {% for val, label in status_choices %}
+            <option value="{{ val }}" {% if current_status == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
 
-    <div>
-      <input type="date" name="date_from" value="{{ current_date_from }}" class="form-control form-control-sm" title="{% trans 'From' %}">
-    </div>
+      <div class="p-2">
+        <input type="date" name="date_from" value="{{ current_date_from }}" class="form-control form-control-sm" title="{% trans 'From' %}">
+      </div>
 
-    <div>
-      <input type="date" name="date_to" value="{{ current_date_to }}" class="form-control form-control-sm" title="{% trans 'To' %}">
-    </div>
+      <div class="p-2">
+        <input type="date" name="date_to" value="{{ current_date_to }}" class="form-control form-control-sm" title="{% trans 'To' %}">
+      </div>
 
-    <div class="d-flex align-items-center gap-1">
-      <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel"></i></button>
-      {% if has_filters %}
-        <a href="{% url 'quotation:quotation_list' %}?view={{ view_mode }}" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-lg"></i></a>
-      {% endif %}
-    </div>
-
-    <div class="ms-auto d-none d-md-flex align-items-center small text-muted">
-      <a class="link-secondary" data-bs-toggle="collapse" href="#wsMoreFilters" role="button" aria-expanded="false" aria-controls="wsMoreFilters">{% trans "More filters" %}</a>
-    </div>
-
-    <div class="w-100 collapse mt-2" id="wsMoreFilters">
-      <div class="d-flex flex-wrap gap-2">
-        <div>
-          <select name="readiness" class="form-select form-select-sm">
-            <option value="">{% trans "Readiness" %}</option>
-            {% for val, label in readiness_choices %}
-              <option value="{{ val }}" {% if current_readiness == val %}selected{% endif %}>{{ label }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div>
-          <select name="has_pdf" class="form-select form-select-sm">
-            <option value="">{% trans "Has PDF" %}</option>
-            {% for val, label in has_pdf_choices %}
-              <option value="{{ val }}" {% if current_has_pdf == val %}selected{% endif %}>{{ label }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        {% if is_admin %}
-        <div>
-          <select name="rep" class="form-select form-select-sm">
-            <option value="">{% trans "All reps" %}</option>
-            {% for rep in rep_choices %}
-              <option value="{{ rep.pk }}" {% if current_rep == rep.pk|stringformat:'s' %}selected{% endif %}>{{ rep.get_full_name|default:rep.username }}</option>
-            {% endfor %}
-          </select>
-        </div>
+      <div class="d-flex align-items-center gap-1 p-2">
+        <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel"></i></button>
+        {% if has_filters %}
+          <a href="{% url 'quotation:quotation_list' %}?view={{ view_mode }}" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-lg"></i></a>
         {% endif %}
       </div>
-    </div>
 
-  </form>
+      <div class="ms-auto d-none d-md-flex align-items-center p-2">
+        <a class="psp-more-filters-toggle" data-bs-toggle="collapse" href="#wsMoreFilters" role="button" aria-expanded="false" aria-controls="wsMoreFilters">
+          <i class="bi bi-sliders2"></i>{% trans "More filters" %}
+        </a>
+      </div>
+
+      <div class="w-100 collapse p-2 pt-0" id="wsMoreFilters">
+        <div class="d-flex flex-wrap gap-2">
+          <div>
+            <select name="readiness" class="form-select form-select-sm">
+              <option value="">{% trans "Readiness" %}</option>
+              {% for val, label in readiness_choices %}
+                <option value="{{ val }}" {% if current_readiness == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <select name="has_pdf" class="form-select form-select-sm">
+              <option value="">{% trans "Has PDF" %}</option>
+              {% for val, label in has_pdf_choices %}
+                <option value="{{ val }}" {% if current_has_pdf == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% if is_admin %}
+          <div>
+            <select name="rep" class="form-select form-select-sm">
+              <option value="">{% trans "All reps" %}</option>
+              {% for rep in rep_choices %}
+                <option value="{{ rep.pk }}" {% if current_rep == rep.pk|stringformat:'s' %}selected{% endif %}>{{ rep.get_full_name|default:rep.username }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </form>
+  </div>
 </div>
 
 {# ── Results ────────────────────────────────────────────────── #}
@@ -278,11 +281,11 @@
                 <td class="text-muted">{{ row.q.project_name|default:'—' }}</td>
                 <td>
                   {% if row.q.status == "COMPLETED" %}
-                    <span class="badge text-bg-success">{{ row.q.get_status_display }}</span>
+                    <span class="badge text-bg-success psp-status-complete">{{ row.q.get_status_display }}</span>
                   {% elif row.q.status == "CANCELLED" %}
-                    <span class="badge text-bg-secondary">{{ row.q.get_status_display }}</span>
+                    <span class="badge text-bg-secondary psp-status-cancelled">{{ row.q.get_status_display }}</span>
                   {% else %}
-                    <span class="badge text-bg-warning text-dark">{{ row.q.get_status_display }}</span>
+                    <span class="badge text-bg-warning text-dark psp-status-draft">{{ row.q.get_status_display }}</span>
                   {% endif %}
                 </td>
                 <td>
@@ -297,7 +300,7 @@
                   {% endif %}
                 </td>
                 <td class="text-muted small">{{ row.q.updated_at|timesince }} {% trans "ago" %}</td>
-                <td class="text-end">
+                <td class="text-end psp-row-actions">
                   <a href="{% url 'quotation:quotation_builder' row.q.pk %}" class="btn btn-sm btn-outline-primary mx-1" title="{% trans 'Edit' %}"><i class="bi bi-pencil-square"></i></a>
                   <a href="{% url 'quotation:quotation_review' row.q.pk %}" class="btn btn-sm btn-outline-secondary mx-1" title="{% trans 'Preview' %}"><i class="bi bi-eye"></i></a>
                   <a href="{% url 'quotation:pdf_select' row.q.pk %}" class="btn btn-sm btn-outline-secondary mx-1" title="{% trans 'PDF' %}"><i class="bi bi-file-earmark-pdf"></i></a>
