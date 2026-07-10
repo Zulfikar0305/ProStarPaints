@@ -1225,3 +1225,216 @@ table.table tr:focus-within .psp-row-actions {
   box-shadow: var(--psp-shadow-xs) !important;
   background-color: #ffffff !important;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   FINAL VISUAL HIERARCHY PASS (PAGE HEADERS & SECTION TITLES)
+   1. Branded Page Headers with rounded-square icon background
+   2. Module accent colors system
+   3. Uniform section headings with inline colored indicator
+   4. Enhanced empty states with watermark logo fallback
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── 1 & 2. Branded Page Headers System ─────────────────────── */
+/* Unified header spacing & size */
+.psp-ws-header, 
+.psp-main > .d-flex.mb-4, 
+.psp-main > .d-flex.align-items-center.mb-4,
+.psp-main > .d-flex.align-items-center.justify-content-between.mb-4 {
+  margin-bottom: 2rem !important;
+}
+
+.psp-main h4.fw-bold {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.85rem !important;
+  font-size: 1.45rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.025em !important;
+}
+
+/* Base icon styling for header pseudo-elements */
+.psp-main h4.fw-bold::before {
+  font-family: "bootstrap-icons" !important;
+  font-style: normal;
+  font-weight: normal !important;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  vertical-align: -0.125em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+  border: 1px solid transparent;
+}
+
+/* Hide plain inline <i> elements inside headers so we don't have duplicates */
+.psp-main h4.fw-bold > i {
+  display: none !important;
+}
+
+/* --- Dashboard (Purple) --- */
+body[data-psp-page*="dashboard"] .psp-main h4.fw-bold::before {
+  content: "\F560"; /* bi-speedometer2 */
+  background-color: #f5f3ff;
+  color: #7c3aed;
+  border-color: #e4e0fc;
+}
+
+/* --- Quotations (Indigo) --- */
+body[data-psp-page*="quotation"] .psp-main h4.fw-bold::before {
+  content: "\F370"; /* bi-file-earmark-text */
+  background-color: #eef2ff;
+  color: #4f46e5;
+  border-color: #dbe4fe;
+}
+
+/* --- Products (Emerald) --- */
+body[data-psp-page*="paint"] .psp-main h4.fw-bold::before {
+  content: "\F4E5"; /* bi-palette */
+  background-color: #ecfdf5;
+  color: #059669;
+  border-color: #d1fae5;
+}
+
+/* --- Invoices (Blue) --- */
+body[data-psp-page*="invoice"] .psp-main h4.fw-bold::before {
+  content: "\F519"; /* bi-receipt */
+  background-color: #eff6ff;
+  color: #2563eb;
+  border-color: #dbeafe;
+}
+
+/* --- Users (Orange) --- */
+body[data-psp-page*="user_list"] .psp-main h4.fw-bold::before,
+body[data-psp-page*="users:user_list"] .psp-main h4.fw-bold::before {
+  content: "\F4C0"; /* bi-people */
+  background-color: #fff7ed;
+  color: #ea580c;
+  border-color: #ffedd5;
+}
+
+/* --- Audit Log (Slate) --- */
+body[data-psp-page*="audit"] .psp-main h4.fw-bold::before {
+  content: "\F456"; /* bi-journal-text */
+  background-color: #f8fafc;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+/* --- Branding Settings (Violet) --- */
+body[data-psp-page*="branding"] .psp-main h4.fw-bold::before {
+  content: "\F4D5"; /* bi-brush */
+  background-color: #f5f3ff;
+  color: #7c3aed;
+  border-color: #e4e0fc;
+}
+
+/* --- Control Center (Teal) --- */
+body[data-psp-page*="control_center"] .psp-main h4.fw-bold::before {
+  content: "\F531"; /* bi-shield-check */
+  background-color: #f0fdfa;
+  color: #0d9488;
+  border-color: #ccfbf1;
+}
+
+/* --- System Settings (Amber) --- */
+body[data-psp-page*="system_settings"] .psp-main h4.fw-bold::before,
+body[data-psp-page*="vat_settings"] .psp-main h4.fw-bold::before {
+  content: "\F57E"; /* bi-sliders */
+  background-color: #fffbeb;
+  color: #d97706;
+  border-color: #fef3c7;
+}
+
+/* --- Tools (Cyan) --- */
+body[data-psp-page*="system_tools"] .psp-main h4.fw-bold::before {
+  content: "\F5F4"; /* bi-tools */
+  background-color: #ecfeff;
+  color: #0891b2;
+  border-color: #cffafe;
+}
+
+/* --- Profile (Rose) --- */
+body[data-psp-page*="profile"] .psp-main h4.fw-bold::before {
+  content: "\F4DA"; /* bi-person-circle */
+  background-color: #fff1f2;
+  color: #e11d48;
+  border-color: #ffe4e6;
+}
+
+/* --- App Settings (Purple) --- */
+body[data-psp-page*="app_settings"] .psp-main h4.fw-bold::before {
+  content: "\F3E5"; /* bi-gear */
+  background-color: #f5f3ff;
+  color: #7c3aed;
+  border-color: #e4e0fc;
+}
+
+
+/* ─── 3. Section Headers Polish ──────────────────────────────── */
+.card-body h5, .psp-main h5 {
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  letter-spacing: var(--psp-tracking-snug);
+  color: #0f172a !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  margin-bottom: 1.15rem !important;
+}
+
+/* Bullet indicator for sub-sections */
+.card-body h5::before, .psp-main h5::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--psp-purple);
+  flex-shrink: 0;
+}
+
+/* Card titles inside header elements */
+.card-header .fw-semibold {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.card-header .fw-semibold > i {
+  color: var(--psp-purple);
+}
+
+
+/* ─── 4. Enhanced Empty States with Watermark ────────────────── */
+.psp-empty {
+  padding: 4.5rem 2rem !important;
+  background-color: #ffffff !important;
+  border: 1px solid var(--psp-border) !important;
+  border-radius: var(--psp-radius) !important;
+  box-shadow: var(--psp-shadow-xs) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.psp-empty::after {
+  content: "ProStar";
+  position: absolute;
+  right: 5%;
+  bottom: 0%;
+  font-size: 6rem;
+  font-weight: 800;
+  color: rgba(91, 33, 182, 0.02);
+  letter-spacing: -0.04em;
+  pointer-events: none;
+  user-select: none;
+}
