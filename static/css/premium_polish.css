@@ -1,71 +1,826 @@
 ﻿/* ═══════════════════════════════════════════════════════════════
-   ProStar Paints — Premium SaaS Polish
-   Design target: Linear · Stripe · Vercel · Monday.com
-   Branch: ui/antigravity-exploration
+   ProStar Paints — Enterprise Design System Transformation
+   Design targets: Stripe Dashboard · Linear · Vercel
+   Branch: experiment/gemini-premium-ui
    ═══════════════════════════════════════════════════════════════ */
 
-/* ─── 1. Typography — Inter font + design tokens ─────────────── */
+/* ─── 1. Design Tokens (Stripe & Linear inspired) ─────────────── */
 :root {
-  --psp-font-sans:      'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --psp-tracking-tight: -.022em;
-  --psp-tracking-snug:  -.012em;
-  --psp-card-header-bg: #f8fafc;
-  --psp-shadow-xs: 0 1px 2px rgba(15,23,42,.04);
-  --psp-shadow:    0 2px 8px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
-  --psp-shadow-md: 0 6px 22px rgba(15,23,42,.10), 0 1px 4px rgba(15,23,42,.05);
-  --psp-shadow-lg: 0 12px 36px rgba(15,23,42,.13), 0 2px 6px rgba(15,23,42,.06);
+  /* Colors */
+  --psp-bg:                 #f8fafc; /* Neutral clean canvas instead of bluish grey */
+  --psp-navy:               #090d16; /* Ultra-deep midnight slate for dark sidebar */
+  --psp-card-bg:            #ffffff;
+  --psp-border:             #e2e8f0; /* Crisp thin slate borders */
+  --psp-border-hover:       #cbd5e1;
+  --psp-purple:             #5b21b6; /* Richer, restrained enterprise purple */
+  --psp-purple-dark:        #4c1d95;
+  --psp-purple-light:       #f5f3ff; /* Pastel purple tint */
+  --psp-purple-rgb:         91, 33, 182;
+
+  /* Typography */
+  --psp-font-sans:          'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --psp-tracking-tight:     -0.021em;
+  --psp-tracking-snug:      -0.011em;
+  --psp-tracking-normal:    -0.006em;
+
+  /* Elevations */
+  --psp-radius:             8px; /* Linear style sharp corners */
+  --psp-radius-sm:          6px;
+  --psp-shadow-xs:          0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --psp-shadow:             0 1px 3px 0 rgba(15, 23, 42, 0.08), 0 1px 2px -1px rgba(15, 23, 42, 0.08);
+  --psp-shadow-md:          0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.06);
+  --psp-shadow-lg:          0 10px 15px -3px rgba(15, 23, 42, 0.06), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
 }
+
+/* ─── 2. Global Base & Layout ────────────────────────────────── */
 body, .psp-main, .psp-topbar, .psp-sidebar {
   font-family: var(--psp-font-sans) !important;
+  background-color: var(--psp-bg);
 }
-h1,h2,h3,h4,h5,h6,.h1,.h2,.h3,.h4,.h5,.h6 {
+
+body {
+  color: var(--psp-text, #0f172a);
+}
+
+/* Base content area and wrapper padding */
+.psp-main {
+  background-color: var(--psp-bg);
+  padding: 2rem !important;
+}
+
+@media (max-width: 767.98px) {
+  .psp-main {
+    padding: 1.25rem !important;
+  }
+}
+
+/* Scroll prevention */
+.psp-main, .psp-content-area {
+  overflow-x: hidden;
+  min-width: 0;
+}
+
+/* ─── 3. Typography Hierarchy ────────────────────────────────── */
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
   font-family: var(--psp-font-sans);
+  font-weight: 600;
+  color: #0f172a;
   letter-spacing: var(--psp-tracking-tight);
-}
-.psp-main h4.fw-bold {
-  font-size: 1.2rem;
-  line-height: 1.25;
-  letter-spacing: var(--psp-tracking-tight);
-}
-@media (min-width: 992px) {
-  .psp-main h4.fw-bold { font-size: 1.28rem; }
-}
-.kpi-num, .fs-2.fw-bold {
-  font-feature-settings: "tnum" 1;
-  font-variant-numeric: tabular-nums;
 }
 
-/* ─── 2. Card hierarchy ─────────────────────────────────────── */
+/* Page title typography style */
+.psp-page-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: #0f172a;
+  margin-bottom: 0.25rem;
+}
+
+.psp-page-subtitle {
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+/* ─── 4. Topbar Polish (White background header) ─────────────── */
+.psp-topbar {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid var(--psp-border) !important;
+  height: 64px;
+}
+
+.psp-search-wrap {
+  background: #f8fafc !important;
+  border: 1px solid var(--psp-border) !important;
+  border-radius: 6px !important;
+  padding: 0.35rem 0.8rem !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+}
+
+.psp-search-wrap:focus-within {
+  border-color: var(--psp-purple) !important;
+  box-shadow: 0 0 0 1px var(--psp-purple), 0 0 0 3px rgba(91, 33, 182, 0.12) !important;
+}
+
+.psp-icon-btn {
+  background-color: #ffffff !important;
+  border: 1px solid var(--psp-border) !important;
+  color: #475569 !important;
+  border-radius: 6px !important;
+  transition: all 0.15s ease !important;
+}
+
+.psp-icon-btn:hover {
+  background-color: #f8fafc !important;
+  color: var(--psp-purple) !important;
+  border-color: var(--psp-border-hover) !important;
+}
+
+/* ─── 5. Premium Cards (Linear/Stripe style) ─────────────────── */
 .card {
+  background-color: var(--psp-card-bg) !important;
+  border: 1px solid var(--psp-border) !important;
+  border-radius: var(--psp-radius) !important;
   box-shadow: var(--psp-shadow) !important;
-  transition: box-shadow .18s ease, transform .18s ease;
+  transition: box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
-.card-header:not(.bg-transparent) {
-  background-color: var(--psp-card-header-bg) !important;
-}
-.kpi-card:hover, .psp-quick-action:hover, .psp-ws-card:hover,
-.today-work-card:hover, .psp-onboarding-step:hover {
-  box-shadow: var(--psp-shadow-lg) !important;
-  transform: translateY(-2px);
-}
-.psp-ws-pin-mini, .kpi-small { box-shadow: var(--psp-shadow-xs) !important; }
-.psp-continue-card, .psp-review-hero { box-shadow: var(--psp-shadow-md) !important; }
 
-/* ─── 3. Filter bar card wrapper + active accent ─────────────── */
+/* Card header - ultra clean, no heavy dividing line */
+.card-header {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  padding: 1rem 1.25rem !important;
+}
+
+.card-header:not(.bg-transparent) {
+  background-color: #fafafa !important;
+}
+
+/* Card body inner padding */
+.card-body {
+  padding: 1.25rem !important;
+}
+
+/* Interactive Card Hovers */
+.kpi-card:hover, .psp-quick-action:hover, .psp-qa-card:hover, 
+.today-work-card:hover, .psp-onboarding-step:hover {
+  border-color: var(--psp-border-hover) !important;
+  box-shadow: var(--psp-shadow-md) !important;
+  transform: translateY(-1.5px) !important;
+}
+
+/* Hero draft continue block */
+.psp-continue-card {
+  border: 1px solid var(--psp-border) !important;
+  background-color: #ffffff !important;
+  box-shadow: var(--psp-shadow-xs) !important;
+  border-radius: var(--psp-radius) !important;
+  padding: 1.25rem 1.5rem !important;
+}
+
+/* ─── 6. Clean Enterprise Tables (Vercel-like) ────────────────── */
+.table-responsive {
+  border-radius: var(--psp-radius);
+  border: 1px solid var(--psp-border);
+  background-color: #ffffff;
+}
+
+.table {
+  width: 100%;
+  margin-bottom: 0 !important;
+  border-collapse: collapse;
+  background-color: #ffffff;
+}
+
+.table thead th {
+  background-color: #fafafa !important;
+  border-bottom: 1px solid var(--psp-border) !important;
+  color: #475569 !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  padding: 0.8rem 1rem !important;
+}
+
+.table tbody td {
+  border-bottom: 1px solid #f1f5f9 !important;
+  padding: 0.9rem 1rem !important;
+  font-size: 0.85rem !important;
+  color: #334155;
+  background-color: #ffffff;
+}
+
+.table-hover > tbody > tr:hover > td {
+  background-color: #fafafa !important;
+  color: #0f172a !important;
+}
+
+/* Action reveal wrapper inside table cells */
+.psp-row-actions {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.table tbody tr:hover .psp-row-actions,
+.table tbody tr:focus-within .psp-row-actions {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .psp-row-actions {
+    opacity: 1 !important;
+  }
+}
+
+/* Row Action Buttons inside tables */
+.table .btn-outline-primary {
+  background: var(--psp-purple-light) !important;
+  border-color: rgba(91, 33, 182, 0.15) !important;
+  color: var(--psp-purple) !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+}
+
+.table .btn-outline-primary:hover {
+  background: var(--psp-purple) !important;
+  border-color: var(--psp-purple) !important;
+  color: #ffffff !important;
+}
+
+/* ─── 7. Stripe-style Forms & Inputs ─────────────────────────── */
+.form-label {
+  font-size: 0.76rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  color: #475569 !important;
+  margin-bottom: 0.4rem !important;
+}
+
+.form-control, .form-select {
+  background-color: #ffffff !important;
+  border: 1px solid var(--psp-border) !important;
+  border-radius: var(--psp-radius-sm) !important;
+  color: #0f172a !important;
+  font-size: 0.85rem !important;
+  padding: 0.45rem 0.75rem !important;
+  box-shadow: var(--psp-shadow-xs) !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: var(--psp-purple) !important;
+  box-shadow: 0 0 0 1px var(--psp-purple), 0 0 0 3px rgba(91, 33, 182, 0.14) !important;
+  outline: none !important;
+}
+
+/* Input group integrations */
+.input-group {
+  border-radius: var(--psp-radius-sm);
+  box-shadow: var(--psp-shadow-xs);
+}
+
+.input-group-text {
+  background-color: #fafafa !important;
+  border: 1px solid var(--psp-border) !important;
+  color: #64748b !important;
+  font-size: 0.85rem !important;
+}
+
+/* Filter Card Layout (Stripe Style) */
 .psp-filter-card {
+  background-color: #ffffff !important;
   border: 1px solid var(--psp-border) !important;
   border-radius: var(--psp-radius) !important;
   box-shadow: var(--psp-shadow-xs) !important;
-  background: var(--psp-card-bg);
-  overflow: hidden;
 }
-.psp-filter-card .filter-toolbar {
-  background: transparent;
-  border-radius: 0;
-  padding: .75rem 1rem;
-}
+
 .psp-filter-card--active {
   border-left: 3px solid var(--psp-purple) !important;
+}
+
+.psp-more-filters-toggle {
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
+  border: 1px solid var(--psp-border) !important;
+  border-radius: 6px !important;
+  background-color: #ffffff !important;
+  padding: 0.3rem 0.7rem !important;
+}
+
+.psp-more-filters-toggle:hover {
+  background-color: #f8fafc !important;
+  border-color: var(--psp-border-hover) !important;
+  color: var(--psp-purple) !important;
+}
+
+/* ─── 8. Redesigned Category Badge System ─────────────────────── */
+[class^="psp-cat-"], [class*=" psp-cat-"] {
+  font-weight: 600 !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.01em !important;
+  border-radius: 30px !important;
+  padding: 0.25rem 0.65rem !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+}
+
+/* Left circle indicator in category badges */
+[class^="psp-cat-"]::before, [class*=" psp-cat-"]::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+/* Interior (Purple) */
+.psp-cat-interior {
+  background: #f5f3ff !important;
+  color: #5b21b6 !important;
+  border-color: #c4b5fd !important;
+}
+.psp-cat-interior::before { background-color: #5b21b6; }
+
+/* Exterior (Blue) */
+.psp-cat-exterior {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: #93c5fd !important;
+}
+.psp-cat-exterior::before { background-color: #1d4ed8; }
+
+/* Primer (Yellow/Amber) */
+.psp-cat-primer {
+  background: #fef9c3 !important;
+  color: #713f12 !important;
+  border-color: #fde047 !important;
+}
+.psp-cat-primer::before { background-color: #a16207; }
+
+/* Waterproofing (Teal) */
+.psp-cat-waterproofing {
+  background: #f0fdfa !important;
+  color: #0f766e !important;
+  border-color: #99f6e4 !important;
+}
+.psp-cat-waterproofing::before { background-color: #0f766e; }
+
+/* Cracks (Red) */
+.psp-cat-cracks {
+  background: #fef2f2 !important;
+  color: #991b1b !important;
+  border-color: #fca5a5 !important;
+}
+.psp-cat-cracks::before { background-color: #991b1b; }
+
+/* Mould (Green) */
+.psp-cat-mould {
+  background: #ecfdf5 !important;
+  color: #065f46 !important;
+  border-color: #a7f3d0 !important;
+}
+.psp-cat-mould::before { background-color: #065f46; }
+
+/* Cleaning (Cyan) */
+.psp-cat-cleaning {
+  background: #ecfeff !important;
+  color: #0e7490 !important;
+  border-color: #a5f3fc !important;
+}
+.psp-cat-cleaning::before { background-color: #0e7490; }
+
+/* Sanding (Orange) */
+.psp-cat-sanding {
+  background: #fff7ed !important;
+  color: #9a3412 !important;
+  border-color: #ffedd5 !important;
+}
+.psp-cat-sanding::before { background-color: #9a3412; }
+
+/* Efflorescence (Indigo) */
+.psp-cat-efflorescence {
+  background: #eef2ff !important;
+  color: #3730a3 !important;
+  border-color: #c7d2fe !important;
+}
+.psp-cat-efflorescence::before { background-color: #3730a3; }
+
+/* Old Paint Removal (Rose) */
+.psp-cat-old_paint_removal {
+  background: #fff1f2 !important;
+  color: #9f1239 !important;
+  border-color: #fecdd3 !important;
+}
+.psp-cat-old_paint_removal::before { background-color: #9f1239; }
+
+/* Generic Fallback */
+.psp-cat-generic {
+  background: #f8fafc !important;
+  color: #475569 !important;
+  border-color: #e2e8f0 !important;
+}
+.psp-cat-generic::before { background-color: #475569; }
+
+/* ─── 9. Platform Dashboard Polishing ─────────────────────────── */
+.stat-hero {
+  background: var(--psp-navy) !important;
+  border: none !important;
+  border-radius: var(--psp-radius) !important;
+}
+
+.kpi-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+.kpi-icon-purple { background-color: #f5f3ff; color: var(--psp-purple); }
+.kpi-icon-green { background-color: #ecfdf5; color: #10b981; }
+.kpi-icon-blue { background-color: #eff6ff; color: #3b82f6; }
+
+/* Quick Action Tiles grid */
+.psp-quick-action {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1.1rem !important;
+  text-decoration: none;
+  background-color: #ffffff;
+  border: 1px solid var(--psp-border);
+  border-radius: var(--psp-radius);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--psp-shadow-xs);
+  min-height: 84px;
+}
+
+.psp-quick-action-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+.psp-quick-action-icon--purple { background-color: #f5f3ff; color: var(--psp-purple); }
+.psp-quick-action-icon--blue { background-color: #eff6ff; color: #3b82f6; }
+.psp-quick-action-icon--green { background-color: #ecfdf5; color: #10b981; }
+.psp-quick-action-icon--amber { background-color: #fffbeb; color: #f59e0b; }
+
+.psp-quick-action-title {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #0f172a;
+}
+
+.psp-quick-action-sub {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+/* ─── 10. Product Catalogue Polish ────────────────────────────── */
+.psp-paint-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  object-fit: cover;
+  box-shadow: var(--psp-shadow-xs);
+  flex-shrink: 0;
+  display: block;
+}
+
+.psp-paint-thumb--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+}
+
+.psp-paint-catalogue tbody tr {
+  transition: background-color 0.12s ease;
+}
+
+.psp-paint-catalogue tbody tr:hover {
+  background-color: #fafafa !important;
+}
+
+.psp-paint-name {
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 0.88rem;
+}
+
+.psp-paint-desc {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* Muted semantic status tags */
+.badge.badge-active {
+  background-color: #ecfdf5 !important;
+  color: #065f46 !important;
+  border: 1px solid #a7f3d0 !important;
+  font-weight: 600 !important;
+  padding: 0.25rem 0.55rem !important;
+  border-radius: 4px !important;
+}
+
+.badge.badge-inactive {
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+  border: 1px solid #cbd5e1 !important;
+  font-weight: 600 !important;
+  padding: 0.25rem 0.55rem !important;
+  border-radius: 4px !important;
+}
+
+/* ─── 11. Custom Buttons & Interactivity ──────────────────────── */
+.btn {
+  font-family: var(--psp-font-sans);
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding: 0.45rem 0.95rem;
+  border-radius: var(--psp-radius-sm);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  letter-spacing: var(--psp-tracking-snug);
+}
+
+.btn-primary {
+  background-color: var(--psp-purple) !important;
+  border: 1px solid var(--psp-purple-dark) !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.btn-primary:hover {
+  background-color: var(--psp-purple-dark) !important;
+  border-color: var(--psp-purple-dark) !important;
+  box-shadow: 0 4px 6px -1px rgba(91, 33, 182, 0.2) !important;
+}
+
+.btn-outline-secondary {
+  background-color: #ffffff !important;
+  border: 1px solid var(--psp-border) !important;
+  color: #475569 !important;
+}
+
+.btn-outline-secondary:hover {
+  background-color: #f8fafc !important;
+  border-color: var(--psp-border-hover) !important;
+  color: #0f172a !important;
+}
+
+/* Semantic Muted status badges */
+.badge.psp-status-draft {
+  background-color: #fffbeb !important;
+  color: #b45309 !important;
+  border: 1px solid #fde68a !important;
+}
+
+.badge.psp-status-complete {
+  background-color: #ecfdf5 !important;
+  color: #047857 !important;
+  border: 1px solid #a7f3d0 !important;
+}
+
+.badge.psp-status-cancelled {
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+/* Pagination polish */
+.pagination .page-link {
+  border-radius: var(--psp-radius-sm) !important;
+  margin: 0 2px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-color: var(--psp-border);
+  color: #475569;
+}
+
+.pagination .page-item.active .page-link {
+  background-color: var(--psp-purple) !important;
+  border-color: var(--psp-purple) !important;
+  color: #ffffff !important;
+}
+
+.pagination .page-link:hover {
+  background-color: var(--psp-purple-light);
+  border-color: var(--psp-purple);
+  color: var(--psp-purple);
+}
+/* Softer progress bars */
+.progress { border-radius: 50px !important; background: rgba(15,23,42,.05) !important; }
+.progress-bar { border-radius: 50px !important; }
+.form-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+.card-body a:not(.btn):not(.psp-recent-item):not(.psp-pdf-default-pill) {
+  text-decoration: none;
+  color: var(--psp-purple);
+}
+.card-body a:not(.btn):not(.psp-recent-item):hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  .card, .kpi-card, .psp-quick-action, .psp-qa-card,
+  .psp-row-actions, .psp-more-filters-toggle,
+  .today-work-card, .psp-onboarding-step {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+[data-reduce-motion="true"] .card,
+[data-reduce-motion="true"] .kpi-card,
+[data-reduce-motion="true"] .psp-quick-action,
+[data-reduce-motion="true"] .psp-qa-card,
+[data-reduce-motion="true"] .today-work-card {
+  transition: none !important;
+  transform: none !important;
+}
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.breadcrumb {
+  font-size: .78rem;
+}
+.breadcrumb-item + .breadcrumb-item::before {
+  color: var(--psp-text-soft);
+}
+.input-group:focus-within .form-control,
+.input-group:focus-within .input-group-text {
+  border-color: var(--psp-purple);
+}
+.input-group:focus-within {
+  box-shadow: 0 0 0 2px rgba(91, 33, 182, 0.10);
+  border-radius: calc(var(--psp-radius-sm) + 1px);
+}
+.psp-sidebar-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.card-header .small.text-uppercase {
+  font-size: .63rem !important;
+  letter-spacing: .09em;
+  font-weight: 700;
+}
+.psp-section-title {
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--psp-text-soft);
+  margin-bottom: .6rem;
+  display: block;
+}
+.psp-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+.psp-page-header-meta { min-width: 0; }
+.psp-page-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -.022em;
+  color: var(--psp-text);
+  margin: 0 0 .25rem;
+  line-height: 1.25;
+}
+.psp-page-subtitle {
+  font-size: .82rem;
+  color: var(--psp-text-soft);
+  margin: 0;
+  line-height: 1.5;
+}
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .psp-review-hero { gap: 1rem; padding: 1rem 1.15rem; }
+  .psp-review-hero-cta { min-width: 190px; }
+  .ws-kpis .kpi-mini { flex: 1 1 calc(50% - .5rem); }
+  .psp-continue-card { flex-direction: row; align-items: center; }
+}
+.progress { border-radius: 50px !important; background: rgba(15,23,42,.05) !important; }
+.progress-bar { border-radius: 50px !important; }
+.btn.btn-sm i { pointer-events: none; }
+@media (max-width: 575.98px) {
+  .psp-main > .d-flex.mb-4 { margin-bottom: 1.1rem !important; }
+  .psp-main > .d-flex.mb-3 { margin-bottom: .85rem !important; }
+  .psp-main > .d-flex.gap-3.mb-3 { margin-bottom: .75rem !important; }
+  .row.g-3 { --bs-gutter-y: .65rem; }
+  .row.g-4 { --bs-gutter-y: .9rem; }
+  .psp-page-actions .btn-label { display: none !important; }
+  .psp-page-actions .btn {
+    min-width: 36px !important;
+    padding-left: .5rem !important;
+    padding-right: .5rem !important;
+  }
+  .psp-page-actions .btn i { margin-right: 0 !important; }
+}
+@media (min-width: 576px) {
+  .psp-page-actions .btn-label { display: inline !important; }
+}
+.psp-row-actions {
+  opacity: 0;
+  transition: opacity .15s ease;
+}
+.ws-table .ws-row:hover .psp-row-actions,
+.ws-table .ws-row:focus-within .psp-row-actions {
+  opacity: 1;
+}
+@media (hover: none) {
+  .psp-row-actions { opacity: 1 !important; }
+}
+.ws-table .ws-row td .btn.btn-outline-primary {
+  background: var(--psp-purple-light) !important;
+  border-color: rgba(var(--psp-purple-rgb), .3) !important;
+  color: var(--psp-purple) !important;
+}
+.ws-table .ws-row td .btn.btn-outline-primary:hover {
+  background: var(--psp-purple) !important;
+  border-color: var(--psp-purple) !important;
+  color: #fff !important;
+}
+.ws-table .ws-row td .btn {
+  margin-inline: .15rem !important;
+}
+@media (max-width: 575.98px) {
+  .ws-kpis { flex-wrap: wrap; }
+  .ws-kpis .kpi-mini {
+    flex: 1 1 calc(50% - .5rem);
+    min-width: 130px;
+  }
+}
+.psp-quick-action {
+  min-height: 86px;
+}
+.psp-qa-card {
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.psp-qa-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--psp-shadow-md) !important;
+}
+.badge.psp-status-draft {
+  background: #fef3c7 !important;
+  color: #78350f !important;
+  border: 1px solid #fcd34d;
+  font-weight: 600;
+}
+.badge.psp-status-complete {
+  background: #d1fae5 !important;
+  color: #064e3b !important;
+  border: 1px solid #6ee7b7;
+  font-weight: 600;
+}
+.badge.psp-status-cancelled {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  border: 1px solid #cbd5e1;
+  font-weight: 600;
+}
+.psp-empty {
+  padding: 3rem 2rem !important;
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: transparent;
+}
+.psp-empty-icon {
+  font-size: 2.25rem !important;
+  color: var(--psp-text-soft);
+  margin-bottom: 1rem;
+  opacity: .5;
+  line-height: 1;
+}
+.psp-empty-title {
+  font-size: 1.02rem !important;
+  font-weight: 700 !important;
+  color: var(--psp-text) !important;
+  letter-spacing: var(--psp-tracking-tight);
+  margin-bottom: .4rem !important;
+  line-height: 1.3;
+}
+.psp-empty-text {
+  font-size: .875rem !important;
+  color: var(--psp-text-muted) !important;
+  max-width: 340px;
+  line-height: 1.65;
+  margin: 0 auto;
+}
+.psp-empty-actions {
+  margin-top: 1.35rem;
+}
+@media (max-width: 575.98px) {
+  .psp-empty { padding: 2rem 1.25rem !important; }
 }
 .psp-more-filters-toggle {
   font-size: .78rem;
@@ -87,492 +842,228 @@ h1,h2,h3,h4,h5,h6,.h1,.h2,.h3,.h4,.h5,.h6 {
   color: var(--psp-purple);
   background: var(--psp-purple-light);
 }
-.psp-filter-card .collapse { padding: 0 1rem .75rem; }
-
-/* ─── 4. Semantic status badges ─────────────────────────────── */
-.badge.psp-status-draft {
-  background: #fef3c7 !important;
-  color: #78350f !important;
-  border: 1px solid #fcd34d;
-  font-weight: 600;
+.psp-filter-card .collapse.mt-2 { padding: 0 1rem .75rem; }
+.psp-filter-card {
+  border: 1px solid var(--psp-border) !important;
+  border-radius: var(--psp-radius) !important;
+  box-shadow: var(--psp-shadow-xs) !important;
+  background: var(--psp-card-bg);
+  overflow: hidden;
 }
-.badge.psp-status-complete {
-  background: #d1fae5 !important;
-  color: #064e3b !important;
-  border: 1px solid #6ee7b7;
-  font-weight: 600;
+.psp-filter-card .filter-toolbar {
+  background: transparent;
+  border-radius: 0;
+  padding: .75rem 1rem;
 }
-.badge.psp-status-cancelled {
-  background: #f1f5f9 !important;
-  color: #475569 !important;
-  border: 1px solid #cbd5e1;
-  font-weight: 600;
+.psp-filter-card--active {
+  border-left: 3px solid var(--psp-purple) !important;
 }
-
-/* ─── 5. Empty states ────────────────────────────────────────── */
-.psp-empty {
-  padding: 3rem 2rem !important;
-  display: flex !important;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
+.card-header:not(.bg-transparent) {
+  background-color: var(--psp-card-header-bg) !important;
 }
-.psp-empty-icon {
-  font-size: 2.25rem !important;
-  color: var(--psp-text-soft);
-  margin-bottom: 1rem;
-  opacity: .5;
-  line-height: 1;
+.card {
+  box-shadow: var(--psp-shadow) !important;
+  transition: box-shadow .18s ease, transform .18s ease;
 }
-.psp-empty-title {
-  font-size: 1.02rem !important;
-  font-weight: 700 !important;
-  color: var(--psp-text) !important;
+.kpi-num,
+.fs-2.fw-bold,
+[style*="font-size:2"] {
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+}
+.card-header .fw-semibold { letter-spacing: var(--psp-tracking-snug); }
+.psp-main h4.fw-bold {
+  font-size: 1.2rem;
+  line-height: 1.25;
   letter-spacing: var(--psp-tracking-tight);
-  margin-bottom: .4rem !important;
 }
-.psp-empty-text {
-  font-size: .875rem !important;
-  color: var(--psp-text-muted) !important;
-  max-width: 340px;
-  line-height: 1.65;
-  margin: 0 auto;
+@media (min-width: 992px) {
+  .psp-main h4.fw-bold { font-size: 1.28rem; }
 }
-.psp-empty-actions { margin-top: 1.35rem; }
-@media (max-width: 575.98px) {
-  .psp-empty { padding: 2rem 1.25rem !important; }
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+  font-family: var(--psp-font-sans);
+  letter-spacing: var(--psp-tracking-tight);
 }
-
-/* ─── 6. Mobile page header spacing + icon-only actions ──────── */
-@media (max-width: 575.98px) {
-  .psp-main > .d-flex.mb-4 { margin-bottom: 1.1rem !important; }
-  .psp-main > .d-flex.mb-3 { margin-bottom: .85rem !important; }
-  .row.g-3 { --bs-gutter-y: .65rem; }
-  .row.g-4 { --bs-gutter-y: .9rem; }
-  .psp-page-actions .btn-label { display: none !important; }
-  .psp-page-actions .btn {
-    min-width: 36px !important;
-    padding-left: .5rem !important;
-    padding-right: .5rem !important;
-  }
+body,
+.psp-main,
+.psp-topbar,
+.psp-sidebar {
+  font-family: var(--psp-font-sans) !important;
 }
-@media (min-width: 576px) {
-  .psp-page-actions .btn-label { display: inline !important; }
-}
-
-/* ─── 7. Table row actions — hover reveal + primary tint ─────── */
-.psp-row-actions {
-  opacity: 0;
-  transition: opacity .15s ease;
-}
-.ws-table .ws-row:hover .psp-row-actions,
-.ws-table .ws-row:focus-within .psp-row-actions {
-  opacity: 1;
-}
-@media (hover: none) { .psp-row-actions { opacity: 1 !important; } }
-.ws-table .ws-row td .btn.btn-outline-primary {
-  background: var(--psp-purple-light) !important;
-  border-color: rgba(var(--psp-purple-rgb), .3) !important;
-  color: var(--psp-purple) !important;
-}
-.ws-table .ws-row td .btn.btn-outline-primary:hover {
-  background: var(--psp-purple) !important;
-  border-color: var(--psp-purple) !important;
-  color: #fff !important;
-}
-.ws-table .ws-row td .btn { margin-inline: .15rem !important; }
-
-/* ─── 8. Dashboard quick-action consistency ─────────────────── */
-.psp-quick-action { min-height: 86px; }
-.psp-qa-card { transition: transform .18s ease, box-shadow .18s ease; }
-.psp-qa-card:hover { transform: translateY(-2px); box-shadow: var(--psp-shadow-md) !important; }
-@media (max-width: 575.98px) {
-  .ws-kpis .kpi-mini {
-    flex: 1 1 calc(50% - .5rem);
-    min-width: 130px;
-  }
-}
-
-/* ─── 10. Tablet breakpoints ─────────────────────────────────── */
-@media (min-width: 768px) and (max-width: 991.98px) {
-  .psp-review-hero { gap: 1rem; padding: 1rem 1.15rem; }
-  .psp-review-hero-cta { min-width: 190px; }
-  .ws-kpis .kpi-mini { flex: 1 1 calc(50% - .5rem); }
-  .psp-continue-card { flex-direction: row; align-items: center; }
-}
-
-/* ─── Global micro-polish ────────────────────────────────────── */
-.progress { border-radius: 50px !important; background: rgba(15,23,42,.05) !important; }
-.progress-bar { border-radius: 50px !important; }
-.form-select {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
-}
-.card-body a:not(.btn):not(.psp-recent-item):not(.psp-pdf-default-pill) {
-  text-decoration: none;
-  color: var(--psp-purple);
-}
-.card-body a:not(.btn):not(.psp-recent-item):hover {
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-/* ─── Reduce motion ──────────────────────────────────────────── */
-@media (prefers-reduced-motion: reduce) {
-  .card, .kpi-card, .psp-quick-action, .psp-qa-card,
-  .psp-row-actions, .psp-more-filters-toggle,
-  .today-work-card, .psp-onboarding-step {
-    transition: none !important;
-    transform: none !important;
-  }
-}
-[data-reduce-motion="true"] .card,
-[data-reduce-motion="true"] .kpi-card,
-[data-reduce-motion="true"] .psp-quick-action,
-[data-reduce-motion="true"] .psp-qa-card,
-[data-reduce-motion="true"] .today-work-card {
-  transition: none !important;
-  transform: none !important;
-}
-
-
-/* ═══════════════════════════════════════════════════════════════
-   PRIORITY 4 — Category Badge System
-   10 categories — each gets a distinct premium tint
-   CSS class: .psp-cat-{category_key_lowercase}
-   Applied to: badge elements and paint thumbnails
-   ═══════════════════════════════════════════════════════════════ */
-
-/* Base badge token — all psp-cat-* badges share this foundation */
-[class^="psp-cat-"], [class*=" psp-cat-"] {
-  font-weight: 600;
-  font-size: .7rem;
-  letter-spacing: .02em;
-  border-radius: 50px;
-  padding: .28em .72em;
-  border-width: 1px;
-  border-style: solid;
-  display: inline-flex;
-  align-items: center;
-  gap: .3em;
-}
-
-/* Interior — ProStar brand purple tint */
-.psp-cat-interior {
-  background: #ede9fe;
-  color: #5b21b6;
-  border-color: #c4b5fd;
-}
-
-/* Exterior — clear sky blue */
-.psp-cat-exterior {
-  background: #dbeafe;
-  color: #1d4ed8;
-  border-color: #93c5fd;
-}
-
-/* Primer — warm amber/yellow */
-.psp-cat-primer {
-  background: #fef9c3;
-  color: #854d0e;
-  border-color: #fde047;
-}
-
-/* Waterproofing — deep teal */
-.psp-cat-waterproofing {
-  background: #ccfbf1;
-  color: #0f766e;
-  border-color: #5eead4;
-}
-
-/* Cracks — warm red */
-.psp-cat-cracks {
-  background: #fee2e2;
-  color: #991b1b;
-  border-color: #fca5a5;
-}
-
-/* Mould — earthy green */
-.psp-cat-mould {
-  background: #d1fae5;
-  color: #065f46;
-  border-color: #6ee7b7;
-}
-
-/* Cleaning — bright cyan */
-.psp-cat-cleaning {
-  background: #cffafe;
-  color: #0e7490;
-  border-color: #67e8f9;
-}
-
-/* Sanding — warm orange */
-.psp-cat-sanding {
-  background: #ffedd5;
-  color: #9a3412;
-  border-color: #fed7aa;
-}
-
-/* Efflorescence — soft indigo */
-.psp-cat-efflorescence {
-  background: #e0e7ff;
-  color: #3730a3;
-  border-color: #a5b4fc;
-}
-
-/* Old Paint Removal — deep rose */
-.psp-cat-old_paint_removal {
-  background: #fce7f3;
-  color: #9d174d;
-  border-color: #f9a8d4;
-}
-
-/* Fallback for any unmapped category */
-.psp-cat-generic {
-  background: #f1f5f9;
-  color: #475569;
-  border-color: #cbd5e1;
-}
-
-
-/* ═══════════════════════════════════════════════════════════════
-   PRIORITY 3 — Product Catalogue Upgrade
-   paint_list.html specific styles
-   ═══════════════════════════════════════════════════════════════ */
-
-/* ── Product thumbnail ─────────────────────────────────────────── */
-.psp-paint-thumb {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  object-fit: cover;
-  box-shadow: 0 1px 4px rgba(15, 23, 42, .12);
-  flex-shrink: 0;
-  display: block;
-}
-
-/* Placeholder — uses category tint as background */
-.psp-paint-thumb--placeholder {
+.psp-sidebar-collapse-btn-header {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.5);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
-  /* background/color/border comes from psp-cat-* class */
-}
-
-/* Ensure psp-cat-* styles apply well on div elements (placeholder) */
-.psp-paint-thumb--placeholder[class*="psp-cat-"] {
-  border-radius: 10px;
-  border-width: 1px;
-  border-style: solid;
-  font-size: 1.1rem;
-}
-
-/* ── Paint catalogue table rows ────────────────────────────────── */
-.psp-paint-catalogue tbody tr {
-  transition: background .14s ease;
-}
-
-.psp-paint-catalogue tbody tr:hover {
-  background: var(--psp-purple-light, #ede9fe) !important;
-}
-
-.psp-paint-catalogue thead th {
-  font-size: .67rem;
-  font-weight: 700;
-  letter-spacing: .07em;
-  text-transform: uppercase;
-  color: var(--psp-text-muted);
-  border-bottom-width: 1px;
-  padding: .75rem .9rem;
-}
-
-.psp-paint-catalogue tbody td {
-  padding: .75rem .9rem;
-  vertical-align: middle;
-}
-
-/* ── Product name cell ─────────────────────────────────────────── */
-.psp-paint-name {
-  font-weight: 600;
-  color: var(--psp-text);
-  font-size: .87rem;
-  line-height: 1.3;
-}
-
-.psp-paint-desc {
-  font-size: .75rem;
-  color: var(--psp-text-soft);
-  margin-top: 1px;
-}
-
-/* ── Active / Inactive status badges (existing badge classes) ──── */
-.badge.badge-active {
-  background: #d1fae5 !important;
-  color: #065f46 !important;
-  border: 1px solid #6ee7b7;
-  font-weight: 600;
-}
-
-.badge.badge-inactive {
-  background: #f1f5f9 !important;
-  color: #64748b !important;
-  border: 1px solid #cbd5e1;
-  font-weight: 600;
-}
-
-/* Responsive: hide updated column on small screens */
-@media (max-width: 767.98px) {
-  .psp-paint-catalogue .col-updated { display: none; }
-}
-
-
-/* ═══════════════════════════════════════════════════════════════
-   PRIORITY 5 — Premium ProStar Branding
-   Systematic polish: page headers, card headers, section titles,
-   table hierarchy, button hierarchy
-   ═══════════════════════════════════════════════════════════════ */
-
-/* ── Consistent page header pattern ───────────────────────────── */
-.psp-page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.psp-page-header-meta { min-width: 0; }
-
-.psp-page-title {
-  font-size: 1.2rem;
-  font-weight: 700;
-  letter-spacing: -.022em;
-  color: var(--psp-text);
-  margin: 0 0 .25rem;
-  line-height: 1.25;
-}
-
-.psp-page-subtitle {
-  font-size: .82rem;
-  color: var(--psp-text-soft);
-  margin: 0;
-  line-height: 1.5;
-}
-
-/* ── Section title label (small uppercase) ─────────────────────── */
-.psp-section-title {
-  font-size: .65rem;
-  font-weight: 700;
-  letter-spacing: .09em;
-  text-transform: uppercase;
-  color: var(--psp-text-soft);
-  margin-bottom: .6rem;
-  display: block;
-}
-
-/* ── Card header: section labels upgrade ───────────────────────── */
-.card-header .small.text-uppercase {
-  font-size: .63rem !important;
-  letter-spacing: .09em;
-  font-weight: 700;
-}
-
-/* ── Button hierarchy ──────────────────────────────────────────── */
-/* Primary: gradient purple pill */
-.btn-primary {
-  background: var(--psp-grad-purple) !important;
-  border: none !important;
-  font-weight: 600;
-  letter-spacing: -.01em;
-}
-
-.btn-primary:hover {
-  background: var(--psp-purple-dark) !important;
-  box-shadow: 0 4px 14px rgba(var(--psp-purple-rgb), .32) !important;
-  transform: translateY(-1px);
-}
-
-.btn-primary:active { transform: translateY(0); }
-
-/* Secondary outline: subtle ghost */
-.btn-outline-secondary {
-  color: var(--psp-text-muted) !important;
-  border-color: var(--psp-border) !important;
-}
-
-.btn-outline-secondary:hover {
-  background: var(--psp-card-header-bg, #f8fafc) !important;
-  color: var(--psp-text) !important;
-  border-color: var(--psp-purple) !important;
-}
-
-/* Destructive: outline danger stays readable */
-.btn-outline-danger {
-  color: #dc2626 !important;
-  border-color: rgba(220, 38, 38, .35) !important;
-}
-
-.btn-outline-danger:hover {
-  background: #fee2e2 !important;
-  color: #991b1b !important;
-  border-color: #fca5a5 !important;
-}
-
-/* ── Generic table row hover (non-ws-table) ─────────────────────── */
-.table-hover > tbody > tr:hover > * {
-  background-color: var(--psp-purple-light, #ede9fe);
-  color: var(--psp-text);
-}
-
-/* ── Pagination refinement ─────────────────────────────────────── */
-.pagination .page-link {
-  border-radius: 8px !important;
-  margin: 0 2px;
-  font-size: .82rem;
-  font-weight: 500;
-  border-color: var(--psp-border);
-  color: var(--psp-text-muted);
+  cursor: pointer;
   transition: all .15s ease;
+  padding: 0;
+  margin-left: auto;
+  flex-shrink: 0;
 }
-
-.pagination .page-item.active .page-link {
-  background: var(--psp-grad-purple);
-  border-color: var(--psp-purple);
+.psp-sidebar-collapse-btn-header:hover {
+  background: rgba(255, 255, 255, 0.1);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(var(--psp-purple-rgb), .28);
+  border-color: rgba(255, 255, 255, 0.18);
 }
-
-.pagination .page-link:hover {
-  background: var(--psp-purple-light);
-  border-color: var(--psp-purple);
-  color: var(--psp-purple);
+.psp-sidebar-collapse-btn-header:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.4);
 }
-
-/* ── Avatar img in sidebar footer ──────────────────────────────── */
-.psp-sidebar-avatar-img {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
+.psp-collapse-icon {
+  transition: transform var(--psp-nav-transition);
+  flex-shrink: 0;
+  font-size: .85rem;
 }
-
-/* ── Breadcrumb refinement ─────────────────────────────────────── */
-.breadcrumb {
-  font-size: .78rem;
+.psp-sidebar-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.2rem 1.1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, .05);
+  height: 64px;
 }
-
-.breadcrumb-item + .breadcrumb-item::before {
-  color: var(--psp-text-soft);
+.psp-sidebar-logo-link {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  text-decoration: none;
+  color: #fff;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
-
-/* ── Input group focus within ──────────────────────────────────── */
-.input-group:focus-within .form-control,
-.input-group:focus-within .input-group-text {
-  border-color: var(--psp-purple);
+[data-sidebar-collapsed] .psp-sidebar-logo {
+  max-width: 32px;
 }
-
-.input-group:focus-within {
-  box-shadow: 0 0 0 2px rgba(var(--psp-purple-rgb), .10);
-  border-radius: calc(var(--psp-radius-sm) + 1px);
+[data-sidebar-collapsed] .psp-sidebar-brand {
+  padding: 1.1rem .5rem;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+[data-sidebar-collapsed] .psp-sidebar-logo-link {
+  flex: 0 0 auto;
+  justify-content: center;
+}
+[data-sidebar-collapsed] .psp-sidebar-collapse-btn-header {
+  margin-left: 0;
+  margin-top: 0.25rem;
+}
+[data-sidebar-collapsed] .psp-collapse-icon {
+  transform: rotate(180deg);
+}
+[data-sidebar-collapsed] .psp-sidebar-footer {
+  justify-content: center;
+  padding: .75rem .5rem;
+}
+[data-sidebar-collapsed] .psp-sidebar-user {
+  gap: 0;
+}
+[data-sidebar-collapsed] .psp-sidebar {
+  width: var(--psp-sidebar-rail-w);
+  min-width: var(--psp-sidebar-rail-w);
+  overflow: visible;
+}
+[data-sidebar-collapsed] .psp-content-area {
+  margin-left: var(--psp-sidebar-rail-w);
+}
+[data-sidebar-collapsed] .psp-sidebar-link span,
+[data-sidebar-collapsed] .psp-sidebar-section-label,
+[data-sidebar-collapsed] .psp-sidebar-brand-name,
+[data-sidebar-collapsed] .psp-sidebar-user-info,
+[data-sidebar-collapsed] .psp-sidebar-signout {
+  opacity: 0;
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity .12s, max-width .12s;
+}
+[data-sidebar-collapsed] .psp-sidebar-link {
+  justify-content: center;
+  padding: .62rem .5rem;
+  gap: 0;
+}
+@media (max-width: 991.98px) {
+  .psp-sidebar {
+    transform: translateX(-100%);
+    width: 240px !important;
+    min-width: 240px !important;
+    overflow-y: auto;
+  }
+  .psp-sidebar.open {
+    transform: translateX(0);
+    box-shadow: 8px 0 48px rgba(15, 23, 42, .35);
+  }
+  .psp-content-area {
+    margin-left: 0 !important;
+  }
+  .psp-sidebar-collapse-btn-header {
+    display: none !important;
+  }
+}
+@media (max-width: 991.98px) {
+  .psp-topbar { padding: 0 1rem; }
+}
+@media (max-width: 575.98px) {
+  .psp-topbar { padding: 0 .75rem; gap: .5rem; }
+  .psp-topbar-greeting { font-size: .8rem; }
+  .psp-search-wrap { width: 150px; }
+}
+.psp-main { overflow-x: hidden; }
+.psp-content-area { overflow-x: hidden; min-width: 0; }
+@media (min-width: 992px) {
+  .psp-main .row > .col-lg { flex: 1 1 0; min-width: 160px; max-width: 240px; }
+}
+@media (max-width: 575.98px) {
+  .psp-builder-flow-bar {
+    flex-direction: column !important;
+    gap: .5rem !important;
+  }
+  .psp-builder-flow-bar .btn { width: 100%; }
+}
+.table-responsive { -webkit-overflow-scrolling: touch; }
+.psp-ws-cards .card,
+.psp-ws-pin-mini { min-width: 0; }
+@media (max-width: 575.98px) {
+  .psp-main { padding: .9rem; }
+}
+@media (max-width: 575.98px) {
+  .row.g-3 { --bs-gutter-y: .65rem; }
+  .row.g-4 { --bs-gutter-y: .9rem; }
+}
+.ws-table .ws-row td.psp-row-actions,
+table.table .psp-row-actions {
+  opacity: 0;
+  transition: opacity .15s ease;
+}
+table.table tr:hover .psp-row-actions,
+table.table tr:focus-within .psp-row-actions {
+  opacity: 1;
+}
+@media (hover: none) {
+  table.table .psp-row-actions { opacity: 1 !important; }
+}
+@media (max-width: 575.98px) {
+  .form-control, .form-select { max-width: 100%; }
+  .input-group { flex-wrap: nowrap; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .psp-sidebar,
+  .psp-content-area,
+  .psp-collapse-icon {
+    transition: none !important;
+  }
+}
+[data-reduce-motion="true"] .psp-sidebar,
+[data-reduce-motion="true"] .psp-content-area,
+[data-reduce-motion="true"] .psp-collapse-icon {
+  transition: none !important;
 }

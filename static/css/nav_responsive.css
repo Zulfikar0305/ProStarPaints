@@ -1,4 +1,4 @@
-﻿/* ═══════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════
    ProStar Paints — Navigation Responsive System
    P1: Collapsible desktop sidebar (icon-rail)
    P2: Full responsive layout across all breakpoints
@@ -7,10 +7,10 @@
 /* ─── Variables ──────────────────────────────────────────────── */
 :root {
   --psp-sidebar-w:          240px;
-  --psp-sidebar-rail-w:      64px;
-  --psp-nav-ease:            cubic-bezier(.4, 0, .2, 1);
-  --psp-nav-duration:        .24s;
-  --psp-nav-transition:      .24s cubic-bezier(.4, 0, .2, 1);
+  --psp-sidebar-rail-w:      68px;
+  --psp-nav-ease:            cubic-bezier(0.16, 1, 0.3, 1);
+  --psp-nav-duration:        .22s;
+  --psp-nav-transition:      .22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ─── Smooth transitions for both collapse AND mobile slide ──── */
@@ -25,51 +25,69 @@
   will-change: margin-left;
 }
 
-/* ─── Sidebar nav: needs flex column to allow push-to-bottom ─── */
+/* ─── Sidebar nav: flex column layout ─── */
 .psp-sidebar-nav {
   display: flex;
   flex-direction: column;
+  flex: 1;
 }
 
 .psp-sidebar-menu {
   flex: 1;
 }
 
-/* ─── Collapse nav item (desktop only) ───────────────────────── */
-.psp-sidebar-collapse-li {
-  margin-top: auto;
-  padding-top: .5rem;
-  border-top: 1px solid rgba(255, 255, 255, .06);
-}
-
-.psp-sidebar-collapse-btn {
-  background: transparent !important;
-  border: none !important;
+/* ─── Header collapse button (beside logo) ───────────────────── */
+.psp-sidebar-collapse-btn-header {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.5);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  width: 100%;
-  text-align: left;
-  box-shadow: none !important;
-  outline-offset: 2px;
+  transition: all .15s ease;
+  padding: 0;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
-.psp-sidebar-collapse-btn:focus-visible {
-  outline: 2px solid rgba(var(--psp-purple-rgb), .5);
-  border-radius: 10px;
+.psp-sidebar-collapse-btn-header:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.psp-sidebar-collapse-btn-header:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.4);
 }
 
 /* Collapse icon transition */
 .psp-collapse-icon {
   transition: transform var(--psp-nav-transition);
   flex-shrink: 0;
+  font-size: .85rem;
 }
 
 /* Brand: flex row so logo + button sit side by side */
 .psp-sidebar-brand {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  padding: 1.2rem 1.1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, .05);
+  height: 64px;
 }
 
 .psp-sidebar-logo-link {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  text-decoration: none;
+  color: #fff;
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -80,9 +98,6 @@
    ─── DESKTOP COLLAPSED STATE (body[data-sidebar-collapsed])
    ═══════════════════════════════════════════════════════════════ */
 @media (min-width: 992px) {
-
-  /* Show collapse button on desktop */
-  .psp-sidebar-collapse-li { display: block; }
 
   /* ── Sidebar shrinks to icon rail ── */
   [data-sidebar-collapsed] .psp-sidebar {
@@ -98,7 +113,6 @@
 
   /* ── Hide text elements in nav ── */
   [data-sidebar-collapsed] .psp-sidebar-link span,
-  [data-sidebar-collapsed] .psp-sidebar-collapse-btn span,
   [data-sidebar-collapsed] .psp-sidebar-section-label,
   [data-sidebar-collapsed] .psp-sidebar-brand-name,
   [data-sidebar-collapsed] .psp-sidebar-user-info,
@@ -120,8 +134,10 @@
 
   /* ── Brand: centre the logo icon ── */
   [data-sidebar-collapsed] .psp-sidebar-brand {
-    padding: 1.1rem .5rem .85rem;
+    padding: 1.1rem .5rem;
     justify-content: center;
+    flex-direction: column;
+    gap: 0.75rem;
   }
 
   [data-sidebar-collapsed] .psp-sidebar-logo-link {
@@ -130,7 +146,13 @@
   }
 
   [data-sidebar-collapsed] .psp-sidebar-logo {
-    max-width: 30px;
+    max-width: 32px;
+  }
+
+  /* When collapsed, keep toggle button in line or floating */
+  [data-sidebar-collapsed] .psp-sidebar-collapse-btn-header {
+    margin-left: 0;
+    margin-top: 0.25rem;
   }
 
   /* ── Collapse button icon rotates to show "expand" ── */
@@ -146,11 +168,6 @@
 
   [data-sidebar-collapsed] .psp-sidebar-user {
     gap: 0;
-  }
-
-  /* ── Section labels collapse li: centre ── */
-  [data-sidebar-collapsed] .psp-sidebar-collapse-li {
-    padding: .5rem .3rem .35rem;
   }
 }
 
@@ -175,9 +192,9 @@
     margin-left: 0 !important;
   }
 
-  /* Hide the desktop-only collapse button */
-  .psp-sidebar-collapse-li {
-    display: none;
+  /* Hide the header toggle button on mobile/tablet */
+  .psp-sidebar-collapse-btn-header {
+    display: none !important;
   }
 }
 

@@ -73,6 +73,13 @@
       </span>
       <span class="psp-sidebar-brand-name">{{ branding.company_name|default:"ProStar Paints" }}</span>
     </a>
+    <button class="psp-sidebar-collapse-btn-header"
+            id="pspSidebarCollapseBtn"
+            type="button"
+            aria-label="{% trans 'Collapse sidebar' %}"
+            title="{% trans 'Collapse sidebar ([ key)' %}">
+      <i class="bi bi-chevron-left psp-collapse-icon" aria-hidden="true"></i>
+    </button>
   </div>
 
   <!-- Navigation -->
@@ -166,17 +173,7 @@
           </a>
         </li>
 
-      <!-- Desktop sidebar collapse toggle (hidden on mobile via nav_responsive.css) -->
-      <li class="psp-sidebar-collapse-li">
-        <button class="psp-sidebar-link psp-sidebar-collapse-btn"
-                id="pspSidebarCollapseBtn"
-                type="button"
-                aria-label="{% trans 'Collapse sidebar' %}"
-                title="{% trans 'Collapse sidebar ([ key)' %}">
-          <i class="bi bi-chevrons-left psp-collapse-icon" aria-hidden="true"></i>
-          <span>{% trans "Collapse" %}</span>
-        </button>
-      </li>
+
 
       {% endif %}
 
