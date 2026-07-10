@@ -100,14 +100,7 @@
 {% endwith %}
 {% endif %}
 
-<!-- Pricing notice -->
-<div class="alert alert-warning d-flex align-items-start gap-2 py-2 mb-4" style="font-size:.85rem;border-radius:var(--psp-radius-sm,10px);">
-  <i class="bi bi-info-circle-fill fs-5 mt-1" aria-hidden="true"></i>
-  <div>
-    <strong>{% trans "Pricing will display as TBC" %}</strong> —
-    {% trans "Until pricing rules are configured, all templates render descriptions and specs with TBC totals." %}
-  </div>
-</div>
+<!-- Pricing notice removed: templates now use persisted quotation totals -->
 
 <h6 class="fw-semibold mb-3" style="font-size:.78rem;color:var(--psp-text-soft);text-transform:uppercase;letter-spacing:.06em;">
   <i class="bi bi-grid-3x3-gap-fill me-1"></i>{% trans "Template gallery" %}

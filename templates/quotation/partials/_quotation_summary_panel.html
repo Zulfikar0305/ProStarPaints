@@ -190,7 +190,7 @@
     </div>
   {% endif %}
 
-  {# ── Pricing (show totals when available) ── #}
+  {# ── Pricing (show persisted totals) ── #}
   <div class="psp-summary-section psp-summary-pricing">
     <div class="psp-summary-label mb-2">
       <i class="bi bi-calculator me-1"></i>{% trans "Pricing" %}
@@ -198,68 +198,35 @@
     {% with m=quotation_summary.monetary %}
       <div class="d-flex justify-content-between small py-1">
         <span class="text-muted">{% trans "Paint subtotal (excl. VAT)" %}</span>
-        {% if quotation_summary.pricing_status != 'pending' %}
-          <span class="text-muted fw-semibold">R {{ m.paint_total_excl_vat|floatformat:2 }}</span>
-        {% else %}
-          <span class="text-muted fw-semibold">{% trans "TBC" %}</span>
-        {% endif %}
+        <span class="text-muted fw-semibold">R {{ m.paint_total_excl_vat|floatformat:2 }}</span>
       </div>
       <div class="d-flex justify-content-between small py-1">
         <span class="text-muted">{% trans "Primer subtotal (excl. VAT)" %}</span>
-        {% if quotation_summary.pricing_status != 'pending' %}
-          <span class="text-muted fw-semibold">R {{ m.primer_total_excl_vat|floatformat:2 }}</span>
-        {% else %}
-          <span class="text-muted fw-semibold">{% trans "TBC" %}</span>
-        {% endif %}
+        <span class="text-muted fw-semibold">R {{ m.primer_total_excl_vat|floatformat:2 }}</span>
       </div>
       <div class="d-flex justify-content-between small py-1">
         <span class="text-muted">{% trans "Waterproof subtotal (excl. VAT)" %}</span>
-        {% if quotation_summary.pricing_status != 'pending' %}
-          <span class="text-muted fw-semibold">R {{ m.waterproofing_total_excl_vat|floatformat:2 }}</span>
-        {% else %}
-          <span class="text-muted fw-semibold">{% trans "TBC" %}</span>
-        {% endif %}
+        <span class="text-muted fw-semibold">R {{ m.waterproofing_total_excl_vat|floatformat:2 }}</span>
       </div>
       <div class="d-flex justify-content-between small py-1">
         <span class="text-muted">{% trans "Prep subtotal (excl. VAT)" %}</span>
-        {% if quotation_summary.pricing_status != 'pending' %}
-          <span class="text-muted fw-semibold">R {{ m.prep_total_excl_vat|floatformat:2 }}</span>
-        {% else %}
-          <span class="text-muted fw-semibold">{% trans "TBC" %}</span>
-        {% endif %}
+        <span class="text-muted fw-semibold">R {{ m.prep_total_excl_vat|floatformat:2 }}</span>
       </div>
       <div class="d-flex justify-content-between small py-1">
         <span class="text-muted">{% trans "Subtotal (excl. VAT)" %}</span>
-        {% if quotation_summary.pricing_status != 'pending' %}
-          <span class="text-muted fw-semibold">R {{ m.subtotal_excl_vat|floatformat:2 }}</span>
-        {% else %}
-          <span class="text-muted fw-semibold">{% trans "TBC" %}</span>
-        {% endif %}
+        <span class="text-muted fw-semibold">R {{ m.subtotal_excl_vat|floatformat:2 }}</span>
       </div>
       <div class="d-flex justify-content-between small py-1">
         <span class="text-muted">{% trans "VAT (15%)" %}</span>
-        {% if quotation_summary.pricing_status != 'pending' %}
-          <span class="text-muted fw-semibold">R {{ m.vat_amount|floatformat:2 }}</span>
-        {% else %}
-          <span class="text-muted fw-semibold">{% trans "TBC" %}</span>
-        {% endif %}
+        <span class="text-muted fw-semibold">R {{ m.vat_amount|floatformat:2 }}</span>
       </div>
       <div class="d-flex justify-content-between small py-2 border-top mt-1">
         <span class="fw-bold small">{% trans "Total (incl. VAT)" %}</span>
-        {% if quotation_summary.pricing_status != 'pending' %}
-          <span class="fw-bold text-primary small">R {{ m.total_incl_vat|floatformat:2 }}</span>
-        {% else %}
-          <span class="fw-bold text-primary small">{% trans "TBC" %}</span>
-        {% endif %}
+        <span class="fw-bold text-primary small">R {{ m.total_incl_vat|floatformat:2 }}</span>
       </div>
       <p class="psp-summary-pricing-note mb-0">
-        {% if quotation_summary.pricing_status == 'pending' %}
-          <i class="bi bi-info-circle me-1"></i>
-          {% trans "Pricing pending — totals will be calculated once pricing rules are configured." %}
-        {% else %}
-          <i class="bi bi-info-circle me-1"></i>
-          {% trans "Totals shown are derived from the quotation line items." %}
-        {% endif %}
+        <i class="bi bi-info-circle me-1"></i>
+        {% trans "Totals shown are derived from the persisted quotation line item totals." %}
       </p>
     {% endwith %}
   </div>

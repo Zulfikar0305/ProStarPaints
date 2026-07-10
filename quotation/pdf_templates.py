@@ -22,7 +22,7 @@ from __future__ import annotations
 PDF_TEMPLATES: dict[str, dict] = {
     "professional": {
         "name": "Professional Quotation",
-        "description": "Clean, customer-facing quotation layout with branding, sections, and a professional signature block.",
+        "description": "Clean, customer-facing quotation layout with branding, sections, and a professional signature block. Uses the persisted quotation totals for pricing.",
         "best_for": "Sending the final quotation to your customer — polished, branded, and easy to read.",
         "highlights": [
             "Cover header with logo & customer block",
@@ -36,7 +36,7 @@ PDF_TEMPLATES: dict[str, dict] = {
     },
     "detailed_spec": {
         "name": "Detailed Specification",
-        "description": "Technical section-by-section specification sheet — includes surface type, conditions, coats, and paint details.",
+        "description": "Technical section-by-section specification sheet — includes surface type, conditions, coats, and paint details. Uses the persisted quotation totals for pricing.",
         "best_for": "Site teams, painters, or quantity surveyors who need full surface and coating specs.",
         "highlights": [
             "Per-section surface conditions",
@@ -50,7 +50,7 @@ PDF_TEMPLATES: dict[str, dict] = {
     },
     "compact": {
         "name": "Compact Estimate",
-        "description": "Shorter one-page layout for fast quoting and overview presentations.",
+        "description": "Shorter one-page layout for fast quoting and overview presentations. Uses the persisted quotation totals for pricing.",
         "best_for": "Quick estimates, walk-in customers, or first-pass conversations with a prospect.",
         "highlights": [
             "One-page summary",

@@ -256,22 +256,16 @@
         {% endif %}
         <div class="d-flex justify-content-between small py-1 border-bottom">
           <span class="text-muted">{% trans "Subtotal (excl. VAT)" %}</span>
-          <span class="fw-semibold">
-            {% if subtotal %}R {{ subtotal|floatformat:2 }}{% else %}<span class="text-muted">{% trans "TBC" %}</span>{% endif %}
-          </span>
+          <span class="fw-semibold">R {{ quotation.subtotal_excl_vat|floatformat:2 }}</span>
         </div>
         <div class="d-flex justify-content-between small py-1 border-bottom text-muted">
           <span>{% trans "VAT (15%)" %}</span>
-          <span>{% trans "TBC" %}</span>
+          <span class="fw-semibold">R {{ quotation.vat_amount|floatformat:2 }}</span>
         </div>
         <div class="d-flex justify-content-between py-2 fw-bold">
           <span>{% trans "Total (incl. VAT)" %}</span>
-          <span class="text-primary">{% trans "TBC" %}</span>
+          <span class="text-primary">R {{ quotation.total_incl_vat|floatformat:2 }}</span>
         </div>
-        <p class="small text-muted mb-0 mt-1">
-          <i class="bi bi-info-circle me-1"></i>
-          {% trans "Pricing will be calculated once all sections are configured." %}
-        </p>
       </div>
     </div>
 

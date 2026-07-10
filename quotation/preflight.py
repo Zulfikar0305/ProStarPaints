@@ -221,11 +221,7 @@ def get_quotation_preflight(quotation: Quotation) -> dict[str, Any]:
             "A PDF has already been generated for this quotation.",
         ))
 
-    # ── 11. Pricing pending notice (informational, always shown) ──────────
-    checks.append(_check(
-        "Pricing", WARN,
-        "Pricing engine is not active yet — totals will display as TBC on the PDF.",
-    ))
+    # Pricing engine is active — no informational placeholder required.
 
     # ── Aggregate ─────────────────────────────────────────────────────────
     counts = {

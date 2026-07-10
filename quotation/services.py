@@ -168,6 +168,10 @@ def get_quotation_summary(quotation) -> dict:
     # Pricing status: consider totals available when subtotal > 0
     pricing_status = "ready" if subtotal and subtotal > Decimal("0.00") else "pending"
 
+    # If pricing is present, surface the builder progress as 100%
+    if pricing_status == "ready":
+        progress_pct = 100
+
     return {
         "customer_name":     quotation.customer_name,
         "project_name":      quotation.project_name or quotation.project_location,
