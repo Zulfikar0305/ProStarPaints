@@ -112,7 +112,7 @@
   <!-- ── Template cards ── -->
   {% for tpl in pdf_templates %}
   <div class="col-12 col-md-6 col-xl-4">
-    <form method="post" action="{% url 'quotation:pdf_generate' quotation.pk %}" class="h-100" data-psp-loading="true">
+    <form method="post" action="{% url 'quotation:pdf_generate' quotation.pk %}" class="h-100" data-psp-loading="true" target="pspPdfDownloadFrame">
       {% csrf_token %}
       <input type="hidden" name="template_key" value="{{ tpl.key }}">
       <div class="card h-100 psp-pdf-tpl-card{% if tpl.key == preferred_pdf_template_key %} is-preferred{% endif %}{% if preflight and not preflight.can_generate_pdf %} is-disabled{% endif %}"

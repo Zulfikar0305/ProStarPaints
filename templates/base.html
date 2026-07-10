@@ -415,6 +415,19 @@
     btn.classList.add('psp-btn-loading');
   }
 
+  function clearSpin(btn) {
+    try {
+      if (!btn) return;
+      if (btn.dataset && btn.dataset.originalHtml) {
+        btn.innerHTML = btn.dataset.originalHtml;
+        delete btn.dataset.originalHtml;
+      }
+      btn.disabled = false;
+      btn.removeAttribute('aria-busy');
+      btn.classList.remove('psp-btn-loading');
+    } catch (e) { /* ignore */ }
+  }
+
   document.querySelectorAll('form[data-psp-loading="true"]').forEach(function (form) {
     form.addEventListener('submit', function () {
       spin(form.querySelector('button[type="submit"], input[type="submit"]'));
@@ -428,6 +441,22 @@
     var btn = form.querySelector('button.psp-loading-btn[type="submit"], button.psp-loading-btn:not([type])');
     if (btn) spin(btn);
   }, true);
+
+  // If a dedicated hidden download iframe exists, reload the parent page
+  // after the iframe finishes loading (download completed) so flash
+  // messages and recent exports appear immediately.
+  try {
+    var _dl = document.getElementById('pspPdfDownloadFrame');
+    if (_dl && _dl.addEventListener) {
+      _dl.addEventListener('load', function () {
+        try {
+          document.querySelectorAll('.psp-btn-loading').forEach(function (b) { clearSpin(b); });
+          document.querySelectorAll('form[aria-busy="true"]').forEach(function (f) { f.removeAttribute('aria-busy'); });
+        } catch (e) { /* ignore */ }
+        try { window.location.reload(); } catch (e) { /* ignore */ }
+      });
+    }
+  } catch (e) { /* ignore */ }
 }());
 </script>
 
@@ -623,6 +652,8 @@
 {# Help mode removed: help_mode.js no longer included #}
 
 {% block extra_js %}{% endblock %}
+<!-- Hidden iframe used to receive PDF downloads while keeping the page active. -->
+<iframe id="pspPdfDownloadFrame" name="pspPdfDownloadFrame" style="display:none;" aria-hidden="true"></iframe>
 <script src="{% static 'js/toast.js' %}"></script>
 </body>
 </html>
