@@ -17,7 +17,7 @@
 </div>
 
 <!-- Filters -->
-<div class="card mb-3">
+<div class="card mb-3 psp-filter-card {% if q or current_status or current_rep %}psp-filter-card--active{% endif %}">
   <div class="card-body py-2">
     <form method="get" class="row g-2 align-items-end">
 
@@ -100,16 +100,16 @@
               <td class="text-muted">{{ inv.project_name|default:"—" }}</td>
               <td>
                 {% if inv.status == "COMPLETED" %}
-                  <span class="badge text-bg-success">{{ inv.get_status_display }}</span>
+                  <span class="badge text-bg-success psp-status-complete">{{ inv.get_status_display }}</span>
                 {% elif inv.status == "CANCELLED" %}
-                  <span class="badge text-bg-secondary">{{ inv.get_status_display }}</span>
+                  <span class="badge text-bg-secondary psp-status-cancelled">{{ inv.get_status_display }}</span>
                 {% else %}
-                  <span class="badge text-bg-warning text-dark">{{ inv.get_status_display }}</span>
+                  <span class="badge text-bg-warning text-dark psp-status-draft">{{ inv.get_status_display }}</span>
                 {% endif %}
               </td>
               <td class="text-end fw-semibold">R {{ inv.total_incl_vat|floatformat:2 }}</td>
               <td class="text-muted text-nowrap">{{ inv.created_at|date:"d M Y" }}</td>
-              <td class="text-end pe-3">
+              <td class="text-end pe-3 psp-row-actions">
                 <a href="{% url 'invoices:invoice_detail' inv.pk %}"
                    class="btn btn-sm btn-outline-secondary me-1" title="{% trans 'View' %}">
                   <i class="bi bi-eye"></i>

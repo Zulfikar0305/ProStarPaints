@@ -1067,3 +1067,161 @@ table.table tr:focus-within .psp-row-actions {
 [data-reduce-motion="true"] .psp-collapse-icon {
   transition: none !important;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   FINAL UI COMPLETION REFINEMENTS
+   1. Large empty whitespace fix (Viewport filling layouts)
+   2. Dashboard top bar & psp-main alignment override
+   3. Sales Representative UI layout consistency
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── 1. Viewport filling layouts (No more large empty space) ── */
+.psp-body {
+  min-height: 100vh;
+  display: flex;
+}
+
+.psp-content-area {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.psp-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--psp-bg);
+}
+
+@media (min-width: 992px) {
+  /* Let content blocks grow to naturally use the vertical viewport */
+  .psp-main > .card:last-of-type,
+  .psp-main > .table-responsive:last-of-type,
+  .psp-main > .row:last-of-type {
+    flex-grow: 1;
+  }
+
+  .psp-main > .row:last-of-type {
+    display: flex;
+    align-items: stretch;
+  }
+
+  .psp-main > .row:last-of-type > [class^="col-"] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .psp-main > .row:last-of-type > [class^="col-"] > .card {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .psp-main > .row:last-of-type > [class^="col-"] > .card > .card-body {
+    flex-grow: 1;
+  }
+  
+  /* Ensure tab content and workspace elements scale vertically */
+  .tab-content, .tab-pane {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+}
+
+
+/* ─── 2. Topbar & Layout Alignment (Dashboard alignment fix) ─── */
+.psp-topbar {
+  padding: 0 2rem !important;
+}
+
+.psp-main {
+  padding: 2rem !important;
+}
+
+/* Force override any custom dashboard content-area padding that causes alignment bugs */
+.psp-content-area {
+  padding: 0 !important;
+}
+
+@media (max-width: 767.98px) {
+  .psp-topbar {
+    padding: 0 1.25rem !important;
+  }
+  .psp-main {
+    padding: 1.25rem !important;
+  }
+}
+
+
+/* ─── 3. Sales Representative UI consistency overrides ───────── */
+/* Welcome Hero */
+.psp-hero.card {
+  background-color: #ffffff !important;
+  border: 1px solid var(--psp-border) !important;
+  border-radius: var(--psp-radius) !important;
+  box-shadow: var(--psp-shadow) !important;
+}
+
+.psp-hero h3 {
+  font-size: 1.35rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.025em !important;
+  color: #0f172a !important;
+}
+
+/* Quick Action grid for Rep Dashboard */
+.psp-qa-card {
+  background-color: #ffffff !important;
+  border: 1px solid var(--psp-border) !important;
+  border-radius: var(--psp-radius) !important;
+  box-shadow: var(--psp-shadow-xs) !important;
+  padding: 1.1rem !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.85rem !important;
+}
+
+.psp-qa-card:hover {
+  border-color: var(--psp-border-hover) !important;
+  box-shadow: var(--psp-shadow-md) !important;
+  transform: translateY(-1.5px) !important;
+}
+
+.psp-qa-icon {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 6px !important;
+  background-color: var(--psp-purple-light) !important;
+  color: var(--psp-purple) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 1.05rem !important;
+  flex-shrink: 0 !important;
+}
+
+.psp-qa-title {
+  font-weight: 600 !important;
+  font-size: 0.88rem !important;
+  color: #0f172a !important;
+  margin-bottom: 0 !important;
+}
+
+/* Attention & Today's Work */
+.psp-attention, .today-work-card {
+  border-radius: var(--psp-radius) !important;
+  border: 1px solid var(--psp-border) !important;
+  box-shadow: var(--psp-shadow) !important;
+}
+
+.kpi-small {
+  border: 1px solid var(--psp-border) !important;
+  border-radius: var(--psp-radius) !important;
+  box-shadow: var(--psp-shadow-xs) !important;
+  background-color: #ffffff !important;
+}
