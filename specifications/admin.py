@@ -32,3 +32,10 @@ class KnowledgeRuleAdmin(admin.ModelAdmin):
 class MoistureRuleAdmin(admin.ModelAdmin):
     list_display = ("name", "min_percent", "max_percent", "active")
     search_fields = ("name",)
+
+
+@admin.register(models.SpecificationRule)
+class SpecificationRuleAdmin(admin.ModelAdmin):
+    list_display = ("name", "rule_type", "min_value", "max_value", "unit", "active", "priority")
+    list_filter = ("rule_type", "active")
+    search_fields = ("name", "notes")

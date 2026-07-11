@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Edit Rule — ProStar Paints{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3 psp-ws-header">
+  <div>
+    <h4 class="fw-bold mb-0">{% trans "Specification Rule" %}</h4>
+    <p class="text-muted mb-0 mt-1" style="font-size:.9rem;">{% trans "Create or edit rule ranges and link clauses." %}</p>
+  </div>
+  <div>
+    <a href="{% url 'specifications:rules_index' %}" class="btn btn-outline-secondary btn-sm">&larr; {% trans "Back" %}</a>
+  </div>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  <div class="row g-3">
+    <div class="col-12 col-md-8">
+      <div class="card p-3">
+        <div class="card-body">
+          <div class="mb-2">{{ form.name.label_tag }} {{ form.name }}</div>
+          <div class="mb-2">{{ form.rule_type.label_tag }} {{ form.rule_type }}</div>
+          <div class="mb-2 d-flex gap-2">
+            <div class="flex-grow-1">{{ form.min_value.label_tag }} {{ form.min_value }}</div>
+            <div class="flex-grow-1">{{ form.max_value.label_tag }} {{ form.max_value }}</div>
+            <div style="width:140px;">{{ form.unit.label_tag }} {{ form.unit }}</div>
+          </div>
+          <div class="mb-2">{{ form.notes.label_tag }} {{ form.notes }}</div>
+          <div class="mb-2">{{ form.clauses.label_tag }} {{ form.clauses }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="card p-3">
+        <div class="card-body">
+          <div class="mb-2">{{ form.active.label_tag }} {{ form.active }}</div>
+          <div class="mb-2">{{ form.priority.label_tag }} {{ form.priority }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 text-end">
+      <button class="btn btn-primary" type="submit">{% trans "Save Rule" %}</button>
+    </div>
+  </div>
+</form>
+
+{% endblock %}

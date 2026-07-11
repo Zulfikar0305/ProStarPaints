@@ -1,7 +1,7 @@
 from django import forms
 
 from .models import SpecificationTemplate
-from .models import KnowledgeEntry, KnowledgeCategory
+from .models import KnowledgeEntry, KnowledgeCategory, SpecificationRule
 
 
 class SpecificationTemplateForm(forms.ModelForm):
@@ -79,3 +79,25 @@ class KnowledgeCategoryForm(forms.ModelForm):
     class Meta:
         model = KnowledgeCategory
         fields = ["name", "slug", "description"]
+
+
+class SpecificationRuleForm(forms.ModelForm):
+    class Meta:
+        model = SpecificationRule
+        fields = [
+            "name",
+            "rule_type",
+            "min_value",
+            "max_value",
+            "unit",
+            "notes",
+            "active",
+            "priority",
+            "clauses",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "clauses" in self.fields:
+            self.fields["clauses"].widget = forms.CheckboxSelectMultiple()
+            self.fields["clauses"].help_text = "Select clauses applied when rule matches"

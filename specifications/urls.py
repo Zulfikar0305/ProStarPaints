@@ -20,4 +20,10 @@ urlpatterns = [
     path("knowledge/categories/add/", views.CategoryCreateView.as_view(), name="category_add"),
     path("knowledge/categories/<int:pk>/edit/", views.CategoryEditView.as_view(), name="category_edit"),
     path("knowledge/categories/<int:pk>/delete/", views.CategoryDeleteView.as_view(), name="category_delete"),
+    # Rules
+    path("rules/", views.RulesIndexView.as_view(), name="rules_index"),
+    path("rules/add/", views.RuleCreateView.as_view(), name="rule_add"),
+    path("rules/<int:pk>/edit/", views.RuleEditView.as_view(), name="rule_edit"),
+    path("rules/<int:pk>/delete/", views.RuleDeleteView.as_view(), name="rule_delete"),
+    path("rules/<int:pk>/move/<str:direction>/", views.RuleMoveView.as_view(), name="rule_move"),
 ]

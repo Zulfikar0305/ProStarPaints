@@ -211,6 +211,69 @@ def main():
     rep_post = c2.post("/specifications/knowledge/clauses/add/", clause_data)
     print(f"REP POST /specifications/knowledge/clauses/add/ -> {rep_post.status_code}")
 
+    # ------------------------------------------------------------------
+    # Rules CRUD validation (moisture rules)
+    # ------------------------------------------------------------------
+    print("\n-- RULES CRUD (Moisture) --")
+    from specifications.models import SpecificationRule
+
+    rule_data = {
+        "name": "Low moisture",
+        "rule_type": SpecificationRule.RULE_MOISTURE,
+        "min_value": "0",
+        "max_value": "14.99",
+        "unit": "%",
+        "notes": "Within acceptable moisture limits.",
+        "active": "on",
+        "priority": "10",
+    }
+    # attach the clause if it exists
+    if clause:
+        rule_data["clauses"] = [str(clause.pk)]
+
+    rr = c.post("/specifications/rules/add/", rule_data, follow=True)
+    print(f"ADMIN POST /specifications/rules/add/ -> {rr.status_code}; redirected={rr.redirect_chain}")
+
+    rule = SpecificationRule.objects.filter(name="Low moisture").first()
+    print("RULE_CREATED:", bool(rule), "PK:", getattr(rule, "pk", None))
+
+    if rule:
+        edit_url = f"/specifications/rules/{rule.pk}/edit/"
+        gr = c.get(edit_url)
+        print(f"ADMIN GET {edit_url} -> {gr.status_code}")
+        post_edit = {
+            "name": rule.name,
+            "rule_type": rule.rule_type,
+            "min_value": str(rule.min_value or "0"),
+            "max_value": "15.00",
+            "unit": rule.unit,
+            "notes": rule.notes + " Updated",
+            "active": "on",
+            "priority": str(rule.priority),
+        }
+        if clause:
+            post_edit["clauses"] = [str(clause.pk)]
+        pr = c.post(edit_url, post_edit, follow=True)
+        print(f"ADMIN POST {edit_url} -> {pr.status_code}; redirected={pr.redirect_chain}")
+        rule.refresh_from_db()
+        print("RULE_BODY_UPDATED:", rule.notes.endswith("Updated"))
+
+        # Move rule up/down
+        mv_up = c.post(f"/specifications/rules/{rule.pk}/move/up/", {}, follow=True)
+        mv_down = c.post(f"/specifications/rules/{rule.pk}/move/down/", {}, follow=True)
+        print(f"ADMIN POST move up -> {mv_up.status_code}; move down -> {mv_down.status_code}")
+
+        # Delete
+        del_url = f"/specifications/rules/{rule.pk}/delete/"
+        rd = c.post(del_url, {}, follow=True)
+        print(f"ADMIN POST {del_url} -> {rd.status_code}; redirected={rd.redirect_chain}")
+        exists = SpecificationRule.objects.filter(pk=rule.pk).exists()
+        print("RULE_EXISTS_AFTER_DELETE:", exists)
+
+    # Rep should not be able to create rules
+    rep_rule_post = c2.post("/specifications/rules/add/", rule_data)
+    print(f"REP POST /specifications/rules/add/ -> {rep_rule_post.status_code}")
+
 
 if __name__ == "__main__":
     try:

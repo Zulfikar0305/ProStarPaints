@@ -111,3 +111,58 @@ class ClauseTrigger(models.Model):
 
     def __str__(self):
         return f"Trigger {self.trigger_type}:{self.trigger_key} -> {self.clause}"
+
+
+class SpecificationRule(TimeStampedModel):
+    """Generic specification rule that maps a numeric range to one or more clauses.
+
+    Designed to be extensible for different rule types (moisture, coverage, area, etc.).
+    """
+    RULE_MOISTURE = "MOISTURE"
+    RULE_COVERAGE = "COVERAGE"
+    RULE_AREA = "AREA"
+    RULE_SPREAD_RATE = "SPREAD_RATE"
+    RULE_COATS = "COATS"
+    RULE_PRODUCT_WARNING = "PRODUCT_WARNING"
+    RULE_TEMPERATURE = "TEMPERATURE"
+    RULE_CUSTOM = "CUSTOM"
+
+    RULE_TYPE_CHOICES = [
+        (RULE_MOISTURE, "Moisture"),
+        (RULE_COVERAGE, "Coverage"),
+        (RULE_AREA, "Area"),
+        (RULE_SPREAD_RATE, "Spread Rate"),
+        (RULE_COATS, "Number of Coats"),
+        (RULE_PRODUCT_WARNING, "Product Warning"),
+        (RULE_TEMPERATURE, "Temperature"),
+        (RULE_CUSTOM, "Custom"),
+    ]
+
+    name = models.CharField(max_length=200)
+    rule_type = models.CharField(max_length=30, choices=RULE_TYPE_CHOICES)
+    # Generic numeric range values. Interpretation (percent/meters/etc.) handled by consumers.
+    min_value = models.DecimalField(max_digits=9, decimal_places=4, null=True, blank=True)
+    max_value = models.DecimalField(max_digits=9, decimal_places=4, null=True, blank=True)
+    unit = models.CharField(max_length=30, blank=True)
+    notes = models.TextField(blank=True)
+    active = models.BooleanField(default=True)
+    priority = models.IntegerField(default=0, help_text="Lower values evaluate first")
+
+    # Link to clauses (KnowledgeEntry) that should be applied when this rule matches
+    clauses = models.ManyToManyField("KnowledgeEntry", blank=True, related_name="spec_rules")
+
+    class Meta:
+        ordering = ["priority", "pk"]
+        verbose_name = "Specification Rule"
+        verbose_name_plural = "Specification Rules"
+
+    def __str__(self):
+        if self.min_value is None and self.max_value is None:
+            rng = "Any"
+        elif self.min_value is None:
+            rng = f"≤ {self.max_value}{self.unit or ''}"
+        elif self.max_value is None:
+            rng = f"≥ {self.min_value}{self.unit or ''}"
+        else:
+            rng = f"{self.min_value}{self.unit or ''}–{self.max_value}{self.unit or ''}"
+        return f"{self.name} ({self.get_rule_type_display()}) — {rng}"

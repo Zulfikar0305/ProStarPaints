@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Specification Rules — ProStar Paints{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3 psp-ws-header">
+  <div>
+    <h4 class="fw-bold mb-0">{% trans "Specification Rules" %}</h4>
+    <p class="text-muted mb-0 mt-1" style="font-size:.9rem;">{% trans "Define configurable rules (moisture, coverage, etc.) that map to clauses." %}</p>
+  </div>
+  <div>
+    <a href="{% url 'specifications:rule_add' %}" class="btn btn-primary btn-sm">{% trans "New Rule" %}</a>
+  </div>
+</div>
+
+<div class="row g-3">
+  {% for r in rules %}
+    <div class="col-12 col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">{{ r.name }}</div>
+              <div class="text-muted small">{{ r.get_rule_type_display }} · Priority {{ r.priority }}</div>
+            </div>
+            <div class="text-end">
+              <a href="{% url 'specifications:rule_edit' r.pk %}" class="btn btn-outline-secondary btn-sm">{% trans "Edit" %}</a>
+              <form method="post" action="{% url 'specifications:rule_delete' r.pk %}" style="display:inline-block;">
+                {% csrf_token %}
+                <button class="btn btn-link text-danger small" onclick="return confirm('{% trans "Delete rule?" %}');">{% trans "Delete" %}</button>
+              </form>
+            </div>
+          </div>
+          <div class="mt-2">
+            <div class="fw-semibold small">{% trans "Range" %}</div>
+            <div class="small text-muted">
+              {% if r.min_value is None and r.max_value is None %}
+                {% trans "Any value" %}
+              {% elif r.min_value is None %}
+                ≤ {{ r.max_value }}{{ r.unit }}
+              {% elif r.max_value is None %}
+                ≥ {{ r.min_value }}{{ r.unit }}
+              {% else %}
+                {{ r.min_value }}{{ r.unit }} – {{ r.max_value }}{{ r.unit }}
+              {% endif %}
+            </div>
+            <div class="mt-2 fw-semibold small">{% trans "Clauses" %}</div>
+            <div class="small text-muted">
+              {% for c in r.clauses.all %}{{ c.title }}{% if not forloop.last %}, {% endif %}{% empty %}{% trans "(none)" %}{% endfor %}
+            </div>
+            <div class="mt-3 d-flex gap-2">
+              <form method="post" action="{% url 'specifications:rule_move' r.pk 'up' %}">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-outline-secondary">↑ {% trans "Up" %}</button>
+              </form>
+              <form method="post" action="{% url 'specifications:rule_move' r.pk 'down' %}">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-outline-secondary">↓ {% trans "Down" %}</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <div class="col-12">
+      <div class="psp-empty p-4 text-center">
+        <div class="psp-empty-icon">⚙️</div>
+        <div class="psp-empty-title">{% trans "No rules yet" %}</div>
+        <div class="psp-empty-text">{% trans "Create rules to map values to clauses." %}</div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+{% endblock %}

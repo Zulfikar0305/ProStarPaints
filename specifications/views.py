@@ -3,8 +3,8 @@ from django.views.generic import View
 
 from users.mixins import AdminRequiredMixin
 
-from .models import SpecificationTemplate, KnowledgeEntry
-from .forms import SpecificationTemplateForm
+from .models import SpecificationTemplate, KnowledgeEntry, KnowledgeCategory, SpecificationRule
+from .forms import SpecificationTemplateForm, SpecificationRuleForm
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.contrib import messages
@@ -114,6 +114,74 @@ class CategoryDeleteView(AdminRequiredMixin, View):
         obj.delete()
         messages.success(request, "Category deleted.")
         return redirect(reverse("specifications:categories_index"))
+
+
+class RulesIndexView(AdminRequiredMixin, View):
+    template_name = "specifications/rules_index.html"
+
+    def get(self, request):
+        rules = SpecificationRule.objects.order_by("priority", "pk")
+        return render(request, self.template_name, {"rules": rules})
+
+
+class RuleCreateView(AdminRequiredMixin, View):
+    template_name = "specifications/rule_edit.html"
+
+    def get(self, request):
+        form = SpecificationRuleForm()
+        return render(request, self.template_name, {"form": form, "obj": None})
+
+    def post(self, request):
+        form = SpecificationRuleForm(request.POST)
+        if form.is_valid():
+            saved = form.save()
+            messages.success(request, "Rule created.")
+            return redirect(reverse("specifications:rules_index"))
+        return render(request, self.template_name, {"form": form, "obj": None})
+
+
+class RuleEditView(AdminRequiredMixin, View):
+    template_name = "specifications/rule_edit.html"
+
+    def get(self, request, pk):
+        obj = get_object_or_404(SpecificationRule, pk=pk)
+        form = SpecificationRuleForm(instance=obj)
+        return render(request, self.template_name, {"form": form, "obj": obj})
+
+    def post(self, request, pk):
+        obj = get_object_or_404(SpecificationRule, pk=pk)
+        form = SpecificationRuleForm(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Rule saved.")
+            return redirect(reverse("specifications:rules_index"))
+        return render(request, self.template_name, {"form": form, "obj": obj})
+
+
+class RuleDeleteView(AdminRequiredMixin, View):
+    def post(self, request, pk):
+        obj = get_object_or_404(SpecificationRule, pk=pk)
+        obj.delete()
+        messages.success(request, "Rule deleted.")
+        return redirect(reverse("specifications:rules_index"))
+
+
+class RuleMoveView(AdminRequiredMixin, View):
+    """Move a rule up or down within its rule_type ordering."""
+
+    def post(self, request, pk, direction):
+        obj = get_object_or_404(SpecificationRule, pk=pk)
+        if direction not in ("up", "down"):
+            return redirect(reverse("specifications:rules_index"))
+        if direction == "up":
+            other = SpecificationRule.objects.filter(rule_type=obj.rule_type, priority__lt=obj.priority).order_by("-priority").first()
+        else:
+            other = SpecificationRule.objects.filter(rule_type=obj.rule_type, priority__gt=obj.priority).order_by("priority").first()
+        if other:
+            obj.priority, other.priority = other.priority, obj.priority
+            other.save()
+            obj.save()
+        return redirect(reverse("specifications:rules_index"))
 
 
 class LandingView(AdminRequiredMixin, View):
