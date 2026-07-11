@@ -150,6 +150,14 @@
         </li>
 
         <li>
+          <a href="{% url 'specifications:landing' %}"
+             class="psp-sidebar-link {% if request.resolver_match.app_name == 'specifications' %}active{% endif %}">
+            <i class="bi bi-book"></i>
+            <span>Specification Library</span>
+          </a>
+        </li>
+
+        <li>
           <a href="{% url 'system_tools:system_settings' %}"
              class="psp-sidebar-link {% if request.resolver_match.url_name == 'system_settings' or request.resolver_match.url_name == 'vat_settings' %}active{% endif %}">
             <i class="bi bi-sliders"></i>

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Document Templates — ProStar Paints{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3 psp-ws-header">
+  <div>
+    <h4 class="fw-bold mb-0">{% trans "Document Templates" %}</h4>
+    <p class="text-muted mb-0 mt-1" style="font-size:.9rem;">{% trans "Configure document templates and layouts (coming soon)." %}</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    {% if templates %}
+      <ul class="list-group">
+        {% for t in templates %}
+          <li class="list-group-item">
+            {{ t.name }}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="psp-empty p-4 text-center">
+        <div class="psp-empty-icon">📄</div>
+        <div class="psp-empty-title">{% trans "No templates yet" %}</div>
+        <div class="psp-empty-text">{% trans "Create document templates to standardise PDFs and reports." %}</div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

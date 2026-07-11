@@ -49,6 +49,9 @@ urlpatterns = [
     # Quotation builder
     path("quotations/", include("quotation.urls", namespace="quotation")),
 
+    # Specification Library (admin-only)
+    path("specifications/", include("specifications.urls", namespace="specifications")),
+
     # System Tools (admin-only)
     path("system-tools/", include("system_tools.urls", namespace="system_tools")),
 ]

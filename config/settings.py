@@ -45,6 +45,7 @@ LOCAL_APPS = [
     "backup",
     "quotation",
     "system_tools",
+    "specifications",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + LOCAL_APPS

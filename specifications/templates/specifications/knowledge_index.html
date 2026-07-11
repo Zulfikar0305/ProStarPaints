@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Knowledge Library — ProStar Paints{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3 psp-ws-header">
+  <div>
+    <h4 class="fw-bold mb-0">{% trans "Knowledge Library" %}</h4>
+    <p class="text-muted mb-0 mt-1" style="font-size:.9rem;">{% trans "Create reusable notes and rules used throughout the system." %}</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    {% if entries %}
+      <ul class="list-group">
+        {% for e in entries %}
+          <li class="list-group-item">
+            {{ e.title }} {% if e.category %}<small class="text-muted">· {{ e.category.name }}</small>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="psp-empty p-4 text-center">
+        <div class="psp-empty-icon">📚</div>
+        <div class="psp-empty-title">{% trans "No knowledge entries yet" %}</div>
+        <div class="psp-empty-text">{% trans "Create rules and notes to be reused across quotations and reports." %}</div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

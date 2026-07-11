@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Specification Library — ProStar Paints{% endblock %}
+
+{% block content %}
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 psp-ws-header">
+  <div>
+    <h4 class="fw-bold mb-0">{% trans "Specification Library" %}</h4>
+    <p class="text-muted mb-0 mt-1" style="font-size:.9rem;">{% trans "Manage reusable specification knowledge and document templates." %}</p>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-md-6">
+    <a href="{% url 'specifications:templates_index' %}" class="card text-decoration-none h-100 p-3">
+      <div class="card-body">
+        <div class="d-flex align-items-start">
+          <div class="me-3" style="font-size:1.8rem;">📄</div>
+          <div>
+            <div class="fw-semibold" style="font-size:1.05rem;">{% trans "Document Templates" %}</div>
+            <div class="text-muted mt-2">{% trans "Configure cover pages, headers, footers, layouts, typography and branding." %}</div>
+          </div>
+        </div>
+        <div class="mt-3 text-end">
+          <span class="text-primary">{% trans "Manage Templates →" %}</span>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-12 col-md-6">
+    <a href="{% url 'specifications:knowledge_index' %}" class="card text-decoration-none h-100 p-3">
+      <div class="card-body">
+        <div class="d-flex align-items-start">
+          <div class="me-3" style="font-size:1.8rem;">📚</div>
+          <div>
+            <div class="fw-semibold" style="font-size:1.05rem;">{% trans "Knowledge Library" %}</div>
+            <div class="text-muted mt-2">{% trans "Create reusable notes, rules and specification knowledge used throughout the application." %}</div>
+          </div>
+        </div>
+        <div class="mt-3 text-end">
+          <span class="text-primary">{% trans "Manage Knowledge →" %}</span>
+        </div>
+      </div>
+    </a>
+  </div>
+
+</div>
+
+{% endblock %}

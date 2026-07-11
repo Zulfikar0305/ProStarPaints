@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Edit Template — ProStar Paints{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3 psp-ws-header">
+  <div>
+    <h4 class="fw-bold mb-0">{% trans "Edit Document Template" %}</h4>
+    <p class="text-muted mb-0 mt-1" style="font-size:.9rem;">{% trans "Configure sections used by document templates." %}</p>
+  </div>
+  <div>
+    <a href="{% url 'specifications:templates_index' %}" class="btn btn-outline-secondary btn-sm">&larr; {% trans "Back" %}</a>
+  </div>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  <div class="row g-3">
+    <div class="col-12">
+      <div class="card p-3">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <h5 class="mb-1">{% trans "Basic" %}</h5>
+            <div class="text-muted">{% trans "Template identity" %}</div>
+          </div>
+          <div>
+            {{ form.name }}
+            {{ form.key }}
+            <label class="form-check-label ms-2">{{ form.is_active }} Active</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% comment %} Cover / Intro group {% endcomment %}
+    <div class="col-12 col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">{% trans "Cover Page" %}</h5>
+          <p class="text-muted small">{% trans "Text and placeholders for the cover page." %}</p>
+          {{ form.cover_page }}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">{% trans "Document Title" %}</h5>
+          <p class="text-muted small">{% trans "Default title template for documents." %}</p>
+          {{ form.document_title }}
+          <hr>
+          <h5 class="card-title">{% trans "Introduction" %}</h5>
+          <p class="text-muted small">{% trans "Introductory paragraph for generated documents." %}</p>
+          {{ form.introduction }}
+        </div>
+      </div>
+    </div>
+
+    {% comment %} Header / Footer {% endcomment %}
+    <div class="col-12 col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">{% trans "Header" %}</h5>
+          <p class="text-muted small">{% trans "Header content for pages." %}</p>
+          {{ form.header }}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">{% trans "Footer" %}</h5>
+          <p class="text-muted small">{% trans "Footer content and page numbering." %}</p>
+          {{ form.footer }}
+        </div>
+      </div>
+    </div>
+
+    {% comment %} Closing / Company {% endcomment %}
+    <div class="col-12 col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">{% trans "Closing Statement" %}</h5>
+          <p class="text-muted small">{% trans "Default closing statement for documents." %}</p>
+          {{ form.closing_statement }}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">{% trans "Company Information" %}</h5>
+          <p class="text-muted small">{% trans "Company address, phone and contact defaults." %}</p>
+          {{ form.company_info }}
+        </div>
+      </div>
+    </div>
+
+    {% comment %} Logo / Typography / Colours / Spacing {% endcomment %}
+    <div class="col-12 col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">{% trans "Logo Options" %}</h5>
+          <p class="text-muted small">{% trans "Logo placement and size preferences." %}</p>
+          {{ form.logo_options }}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">{% trans "Typography" %}</h5>
+          <p class="text-muted small">{% trans "Font family, sizes and weights." %}</p>
+          {{ form.typography }}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">{% trans "Colours" %}</h5>
+          <p class="text-muted small">{% trans "Primary, accent and neutral colours." %}</p>
+          {{ form.colours }}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">{% trans "Spacing / Layout" %}</h5>
+          <p class="text-muted small">{% trans "Margins, gutters and spacing defaults." %}</p>
+          {{ form.spacing }}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 text-end">
+      <button class="btn btn-primary" type="submit">{% trans "Save Template" %}</button>
+    </div>
+
+  </div>
+</form>
+
+{% endblock %}
