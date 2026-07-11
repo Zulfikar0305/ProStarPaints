@@ -17,8 +17,8 @@ class KnowledgeCategoryAdmin(admin.ModelAdmin):
 
 @admin.register(models.KnowledgeEntry)
 class KnowledgeEntryAdmin(admin.ModelAdmin):
-    list_display = ("title", "category", "is_published", "created_at")
-    list_filter = ("is_published",)
+    list_display = ("title", "category", "kind", "is_default", "is_active", "sort_order", "created_at")
+    list_filter = ("kind", "is_active", "is_published", "category")
     search_fields = ("title", "body")
 
 

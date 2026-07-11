@@ -149,6 +149,68 @@ def main():
     cfg = getattr(tmpl, "config", {}) or {}
     print("TEMPLATE_CONFIG_KEYS:", list(cfg.keys()))
 
+    # ------------------------------------------------------------------
+    # Categories and Clauses CRUD validation
+    # ------------------------------------------------------------------
+    print("\n-- CATEGORIES / CLAUSES CRUD --")
+    # Create a category via POST
+    cat_data = {"name": "Surface Preparation", "slug": "surface-prep", "description": "Surface prep steps"}
+    cr = c.post("/specifications/knowledge/categories/add/", cat_data, follow=True)
+    print(f"ADMIN POST /specifications/knowledge/categories/add/ -> {cr.status_code}; redirected={cr.redirect_chain}")
+
+    # Find created category
+    from specifications.models import KnowledgeCategory, KnowledgeEntry
+
+    cat = KnowledgeCategory.objects.filter(slug="surface-prep").first()
+    print("CATEGORY_CREATED:", bool(cat))
+
+    # Create a clause
+    clause_data = {
+        "title": "Proper cleaning",
+        "body": "Clean surfaces with detergent and rinse.",
+        "category": str(cat.pk) if cat else "",
+        "kind": KnowledgeEntry.KIND_CLAUSE,
+        "is_default": "on",
+        "is_active": "on",
+        "sort_order": "10",
+    }
+    cr2 = c.post("/specifications/knowledge/clauses/add/", clause_data, follow=True)
+    print(f"ADMIN POST /specifications/knowledge/clauses/add/ -> {cr2.status_code}; redirected={cr2.redirect_chain}")
+
+    clause = KnowledgeEntry.objects.filter(title="Proper cleaning").first()
+    print("CLAUSE_CREATED:", bool(clause), "PK:", getattr(clause, "pk", None))
+
+    # Edit clause
+    if clause:
+        edit_url = f"/specifications/knowledge/clauses/{clause.pk}/edit/"
+        gr = c.get(edit_url)
+        print(f"ADMIN GET {edit_url} -> {gr.status_code}")
+        post_edit = {
+            "title": clause.title,
+            "body": clause.body + " Updated",
+            "category": str(cat.pk) if cat else "",
+            "kind": clause.kind,
+            "is_default": "on",
+            "is_active": "on",
+            "sort_order": str(clause.sort_order),
+        }
+        pr = c.post(edit_url, post_edit, follow=True)
+        print(f"ADMIN POST {edit_url} -> {pr.status_code}; redirected={pr.redirect_chain}")
+        clause.refresh_from_db()
+        print("CLAUSE_BODY_UPDATED:", clause.body.endswith("Updated"))
+
+    # Delete clause
+    if clause:
+        del_url = f"/specifications/knowledge/clauses/{clause.pk}/delete/"
+        rd = c.post(del_url, {}, follow=True)
+        print(f"ADMIN POST {del_url} -> {rd.status_code}; redirected={rd.redirect_chain}")
+        exists = KnowledgeEntry.objects.filter(pk=clause.pk).exists()
+        print("CLAUSE_EXISTS_AFTER_DELETE:", exists)
+
+    # Rep should not be able to access clause create
+    rep_post = c2.post("/specifications/knowledge/clauses/add/", clause_data)
+    print(f"REP POST /specifications/knowledge/clauses/add/ -> {rep_post.status_code}")
+
 
 if __name__ == "__main__":
     try:

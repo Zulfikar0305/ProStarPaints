@@ -51,6 +51,19 @@ class KnowledgeEntry(TimeStampedModel):
     )
     body = models.TextField(blank=True)
     is_published = models.BooleanField(default=True)
+    # Entry kind: note (existing) or clause (specification clause)
+    KIND_NOTE = "note"
+    KIND_CLAUSE = "clause"
+    KIND_CHOICES = [
+        (KIND_NOTE, "Note"),
+        (KIND_CLAUSE, "Clause"),
+    ]
+    kind = models.CharField(max_length=20, choices=KIND_CHOICES, default=KIND_NOTE)
+
+    # Clause-related fields (used when kind == 'clause')
+    is_default = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    sort_order = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return self.title
@@ -75,3 +88,26 @@ class MoistureRule(TimeStampedModel):
 
     def __str__(self):
         return self.name
+
+
+class ClauseTrigger(models.Model):
+    """Domain-specific trigger mapping linking a simple trigger key/type
+    to a `KnowledgeEntry` (clause).
+
+    Examples for `trigger_type` include: 'wall_type', 'paint', 'finish'.
+    `trigger_key` can be a stable string identifying the selection (e.g. 'previously_painted').
+    This keeps the model simple and understandable while still being flexible
+    for future wiring in Pack 2.
+    """
+    trigger_type = models.CharField(max_length=100)
+    trigger_key = models.CharField(max_length=200, blank=True)
+    clause = models.ForeignKey(KnowledgeEntry, on_delete=models.CASCADE, related_name="triggers")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Clause Trigger"
+        verbose_name_plural = "Clause Triggers"
+        unique_together = (("trigger_type", "trigger_key", "clause"),)
+
+    def __str__(self):
+        return f"Trigger {self.trigger_type}:{self.trigger_key} -> {self.clause}"

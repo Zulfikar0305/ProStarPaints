@@ -1,6 +1,7 @@
 from django import forms
 
 from .models import SpecificationTemplate
+from .models import KnowledgeEntry, KnowledgeCategory
 
 
 class SpecificationTemplateForm(forms.ModelForm):
@@ -54,3 +55,27 @@ class SpecificationTemplateForm(forms.ModelForm):
         if commit:
             inst.save()
         return inst
+
+
+
+class KnowledgeEntryForm(forms.ModelForm):
+    class Meta:
+        model = KnowledgeEntry
+        fields = ["title", "body", "category", "kind", "is_default", "is_active", "sort_order"]
+        widgets = {
+            "body": forms.Textarea(attrs={"rows": 6}),
+        }
+
+    def clean(self):
+        data = super().clean()
+        # ensure sort_order is non-negative
+        so = data.get("sort_order")
+        if so is None:
+            data["sort_order"] = 0
+        return data
+
+
+class KnowledgeCategoryForm(forms.ModelForm):
+    class Meta:
+        model = KnowledgeCategory
+        fields = ["name", "slug", "description"]

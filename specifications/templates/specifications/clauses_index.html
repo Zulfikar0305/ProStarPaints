@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Specification Clauses — ProStar Paints{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3 psp-ws-header">
+  <div>
+    <h4 class="fw-bold mb-0">{% trans "Specification Clauses" %}</h4>
+    <p class="text-muted mb-0 mt-1" style="font-size:.9rem;">{% trans "Manage reusable specification clauses used in reports." %}</p>
+  </div>
+  <div>
+    <a href="{% url 'specifications:clause_add' %}" class="btn btn-primary btn-sm">{% trans "New Clause" %}</a>
+  </div>
+</div>
+
+<div class="row g-3">
+  {% for c in clauses %}
+    <div class="col-12 col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">{{ c.title }}</div>
+              <div class="text-muted small">{% if c.category %}{{ c.category.name }} · {% endif %}{% if c.is_default %}{% trans "Default" %}{% else %}{% trans "Optional" %}{% endif %}</div>
+            </div>
+            <div class="text-end">
+              <a href="{% url 'specifications:clause_edit' c.pk %}" class="btn btn-outline-secondary btn-sm">{% trans "Edit" %}</a>
+              <form method="post" action="{% url 'specifications:clause_delete' c.pk %}" style="display:inline-block;">
+                {% csrf_token %}
+                <button class="btn btn-link text-danger small" onclick="return confirm('{% trans "Delete clause?" %}');">{% trans "Delete" %}</button>
+              </form>
+            </div>
+          </div>
+          <div class="mt-2 small text-muted">{{ c.body|linebreaksbr }}</div>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <div class="col-12">
+      <div class="psp-empty p-4 text-center">
+        <div class="psp-empty-icon">📜</div>
+        <div class="psp-empty-title">{% trans "No clauses yet" %}</div>
+        <div class="psp-empty-text">{% trans "Create clauses to be reused in documents." %}</div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Edit Clause — ProStar Paints{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3 psp-ws-header">
+  <div>
+    <h4 class="fw-bold mb-0">{% trans "Specification Clause" %}</h4>
+    <p class="text-muted mb-0 mt-1" style="font-size:.9rem;">{% trans "Create or edit a reusable specification clause." %}</p>
+  </div>
+  <div>
+    <a href="{% url 'specifications:clauses_index' %}" class="btn btn-outline-secondary btn-sm">&larr; {% trans "Back" %}</a>
+  </div>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  <div class="row g-3">
+    <div class="col-12 col-md-8">
+      <div class="card p-3">
+        <div class="card-body">
+          <div class="mb-2">{{ form.title.label_tag }} {{ form.title }}</div>
+          <div class="mb-2">{{ form.category.label_tag }} {{ form.category }}</div>
+          <div class="mb-2">{{ form.body.label_tag }} {{ form.body }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="card p-3">
+        <div class="card-body">
+          <div class="mb-2">{{ form.kind.label_tag }} {{ form.kind }}</div>
+          <div class="mb-2">{{ form.is_default.label_tag }} {{ form.is_default }}</div>
+          <div class="mb-2">{{ form.is_active.label_tag }} {{ form.is_active }}</div>
+          <div class="mb-2">{{ form.sort_order.label_tag }} {{ form.sort_order }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 text-end">
+      <button class="btn btn-primary" type="submit">{% trans "Save Clause" %}</button>
+    </div>
+  </div>
+</form>
+
+{% endblock %}
