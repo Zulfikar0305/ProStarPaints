@@ -8,6 +8,7 @@ from .rule_service import RuleService
 from .template_service import TemplateService
 from .builder_service import ManualSpecificationBuilderService
 from .preview_service import PreviewService
+from .export_service import ExportService
 
 __all__ = [
     "SpecificationResolver",
@@ -16,4 +17,5 @@ __all__ = [
     "TemplateService",
     "ManualSpecificationBuilderService",
     "PreviewService",
+    "ExportService",
 ]

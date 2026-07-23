@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Specification Preview (Rendered)</h1>
+  <div style="margin-bottom:12px">
+    <a class="btn btn-outline-secondary" href="?template=detailed_spec">Detailed Spec</a>
+    <a class="btn btn-outline-secondary" href="?template=professional">Professional</a>
+  </div>
+
+  {% if rendered_html and render_template_key and rendered_html.get(render_template_key) %}
+    <div class="rendered-spec">
+      {{ rendered_html.get(render_template_key)|safe }}
+    </div>
+  {% else %}
+    <div class="alert alert-warning">No pre-rendered HTML available for this draft.</div>
+  {% endif %}
+
+{% endblock %}

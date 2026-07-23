@@ -277,7 +277,12 @@ class ManualBuilderView(LoginRequiredMixin, View):
         )
 
         if draft:
-            spec_data = draft.data
+            # Drafts created by newer builder contain both 'resolver' and 'pdf_context'.
+            # The builder UI expects resolver-shaped data, so prefer that when present.
+            if isinstance(draft.data, dict) and draft.data.get("resolver"):
+                spec_data = draft.data.get("resolver")
+            else:
+                spec_data = draft.data
             draft_id = draft.pk
         else:
             svc = ManualSpecificationBuilderService()
@@ -361,6 +366,14 @@ class DraftPreviewView(LoginRequiredMixin, View):
 
         svc = PreviewService()
         ctx = svc.preview_context_for_draft(draft)
+        # If the preview service returned pre-rendered HTML, use the
+        # lightweight renderer that embeds the HTML directly to ensure
+        # preview == export.
+        if isinstance(ctx, dict) and ctx.get("rendered_html"):
+            # Allow selecting template key via ?template= in the URL
+            tpl_key = request.GET.get("template", "detailed_spec")
+            ctx["render_template_key"] = tpl_key
+            return render(request, "specifications/preview_rendered.html", ctx)
         return render(request, self.template_name, ctx)
 
 
@@ -386,4 +399,8 @@ class QuotationPreviewView(LoginRequiredMixin, View):
             return render(request, "specifications/preview_no_draft.html", {"quotation": quotation})
 
         ctx = svc.preview_context_for_draft(draft)
+        if isinstance(ctx, dict) and ctx.get("rendered_html"):
+            tpl_key = request.GET.get("template", "detailed_spec")
+            ctx["render_template_key"] = tpl_key
+            return render(request, "specifications/preview_rendered.html", ctx)
         return render(request, self.template_name, ctx)

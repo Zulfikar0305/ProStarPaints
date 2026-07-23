@@ -21,13 +21,81 @@ class ManualSpecificationBuilderService:
         """Return the resolver-produced specification dict for *quotation*."""
         return self.resolver.resolve(quotation)
 
-    def create_draft_from_resolver(self, quotation, created_by=None, title: str = ""):
+    def create_draft_from_resolver(self, quotation, created_by=None, title: str = "", template_key: str = "detailed_spec"):
         """Create and return a ManualSpecificationDraft populated from resolver output.
 
         The draft is saved and returned. Caller may further update the draft
         via `save_draft()`.
         """
-        data = self.prepare_spec(quotation)
+        # Resolver output (kept for builder/editor use)
+        resolved = self.prepare_spec(quotation)
+
+        # Build a PDF-ready enriched context from the quotation without
+        # invoking the resolver (we will merge resolved output below).
+        try:
+            from quotation.pdf_service import build_pdf_context
+            # compute enriched sections but do not run resolver here
+            pdf_ctx = build_pdf_context(quotation, use_resolver=False)
+        except Exception:
+            pdf_ctx = {}
+
+        # Merge resolver-provided clauses/product descriptions into the
+        # enriched sections so the draft contains the final document model.
+        try:
+            resolved_sections = (resolved or {}).get("sections", [])
+            resolver_by_key = {}
+            for rs in resolved_sections:
+                resolver_by_key.setdefault(rs.get("section_key"), []).append(rs)
+
+            for sec in (pdf_ctx.get("sections") or []):
+                try:
+                    section_obj = sec.get("section")
+                    sk = getattr(section_obj, "subsection_key", None)
+                    lst = resolver_by_key.get(sk) or []
+                    rs = lst.pop(0) if lst else None
+                    if rs:
+                        sec["resolved_clauses"] = rs.get("clauses", [])
+                        sec["resolved_product_descriptions"] = rs.get("product_descriptions", [])
+                        if rs.get("recommendation"):
+                            sec["recommendation"] = rs.get("recommendation")
+                except Exception:
+                    continue
+        except Exception:
+            pass
+
+        # Render HTML for the default template and store it on the draft so
+        # preview and export can use a single canonical document representation.
+        rendered_html_map = {}
+        try:
+            from django.template.loader import render_to_string
+            from quotation.pdf_templates import get_template_config
+
+            tpl_cfg = get_template_config(template_key)
+            tpl_path = tpl_cfg.get("template_path")
+            # Ensure the PDF context contains sections by enriching via
+            # generate_spec_for_sections if needed.
+            try:
+                if not (pdf_ctx and pdf_ctx.get("sections")):
+                    from quotation.spec_report import generate_spec_for_sections
+                    # build a minimal section_data from resolved output
+                    section_data = []
+                    for rsec in (resolved or {}).get("sections", []):
+                        section_data.append({
+                            "section": None,
+                            "description": "",
+                            "note_item": None,
+                            "line_items": [],
+                            "images": rsec.get("images", []),
+                        })
+                    pdf_ctx["sections"] = generate_spec_for_sections(section_data)
+            except Exception:
+                pass
+
+            rendered_html_map[template_key] = render_to_string(tpl_path, pdf_ctx)
+        except Exception:
+            rendered_html_map = {}
+
+        data = {"resolver": resolved, "rendered_html": rendered_html_map}
         # Import model lazily to avoid circular imports during app registry
         from specifications.models import ManualSpecificationDraft
 
