@@ -9,6 +9,9 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from .resolver import SpecificationResolver
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ManualSpecificationBuilderService:
@@ -36,7 +39,8 @@ class ManualSpecificationBuilderService:
             from quotation.pdf_service import build_pdf_context
             # compute enriched sections but do not run resolver here
             pdf_ctx = build_pdf_context(quotation, use_resolver=False)
-        except Exception:
+        except Exception as exc:
+            logger.exception("Failed to build pdf_ctx for quotation %s: %s", getattr(quotation, 'pk', None), exc)
             pdf_ctx = {}
 
         # Merge resolver-provided clauses/product descriptions into the
@@ -58,10 +62,11 @@ class ManualSpecificationBuilderService:
                         sec["resolved_product_descriptions"] = rs.get("product_descriptions", [])
                         if rs.get("recommendation"):
                             sec["recommendation"] = rs.get("recommendation")
-                except Exception:
+                except Exception as exc:
+                    logger.exception("Error merging resolver section for quotation %s: %s", getattr(quotation, 'pk', None), exc)
                     continue
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.exception("Failed to merge resolver output into pdf_ctx for quotation %s: %s", getattr(quotation, 'pk', None), exc)
 
         # Render HTML for the default template and store it on the draft so
         # preview and export can use a single canonical document representation.
@@ -88,11 +93,12 @@ class ManualSpecificationBuilderService:
                             "images": rsec.get("images", []),
                         })
                     pdf_ctx["sections"] = generate_spec_for_sections(section_data)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.exception("Failed to ensure pdf_ctx.sections for quotation %s: %s", getattr(quotation, 'pk', None), exc)
 
             rendered_html_map[template_key] = render_to_string(tpl_path, pdf_ctx)
-        except Exception:
+        except Exception as exc:
+            logger.exception("Pre-rendering HTML for quotation %s failed: %s", getattr(quotation, 'pk', None), exc)
             rendered_html_map = {}
 
         data = {"resolver": resolved, "rendered_html": rendered_html_map}
@@ -105,8 +111,30 @@ class ManualSpecificationBuilderService:
         return draft
 
     def save_draft(self, draft, data: Dict[str, Any]):
-        """Persist edited draft data (replace entire JSON blob)."""
-        draft.data = data
+        """Persist edited draft data (replace entire JSON blob).
+
+        Security: ignore any client-supplied `rendered_html` to ensure only
+        server-generated HTML is stored on drafts. Preserve any existing
+        server-generated `rendered_html` on the draft.
+        """
+        # Defensive copy
+        incoming = data if isinstance(data, dict) else {}
+
+        # Remove client-supplied rendered_html if present
+        if "rendered_html" in incoming:
+            logger.warning("Ignoring client-supplied rendered_html for draft save (draft=%s, quotation=%s)", getattr(draft, 'pk', None), getattr(draft, 'quotation', None) and getattr(draft.quotation, 'pk', None))
+            incoming = dict(incoming)
+            incoming.pop("rendered_html", None)
+
+        # Preserve existing server-generated rendered_html if present
+        existing = (draft.data or {}) if getattr(draft, 'data', None) else {}
+        existing_rendered = existing.get("rendered_html") if isinstance(existing, dict) else None
+        if existing_rendered and isinstance(existing_rendered, dict):
+            incoming = dict(incoming)
+            # Do not overwrite if client provided (we removed client values above)
+            incoming.setdefault("rendered_html", existing_rendered)
+
+        draft.data = incoming
         draft.save()
         return draft
 

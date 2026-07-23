@@ -10,6 +10,9 @@ from django.urls import reverse
 from django.contrib import messages
 from .forms import KnowledgeEntryForm, KnowledgeCategoryForm
 from .models import KnowledgeCategory
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ClausesIndexView(AdminRequiredMixin, View):
@@ -242,7 +245,7 @@ import json
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 
 class ManualBuilderView(LoginRequiredMixin, View):
@@ -254,6 +257,7 @@ class ManualBuilderView(LoginRequiredMixin, View):
 
     template_name = "specifications/builder.html"
 
+    @method_decorator(ensure_csrf_cookie)
     def get(self, request, quotation_pk):
         from django.shortcuts import get_object_or_404
 
@@ -302,14 +306,11 @@ class DraftSaveView(LoginRequiredMixin, View):
     and optional `title`. Returns JSON `{status: 'ok', draft_id: ...}`.
     """
 
-    @method_decorator(csrf_exempt)
-    def dispatch(self, *args, **kwargs):
-        return super().dispatch(*args, **kwargs)
-
     def post(self, request, quotation_pk=None):
         try:
             payload = json.loads(request.body.decode("utf-8") or "{}")
-        except Exception:
+        except Exception as exc:
+            logger.exception("Invalid JSON in DraftSaveView POST: %s", exc)
             return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
 
         spec = payload.get("spec") or payload

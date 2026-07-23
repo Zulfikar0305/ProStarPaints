@@ -9,6 +9,9 @@ from __future__ import annotations
 
 from typing import Any, Dict
 from django.utils import timezone
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class PreviewService:
@@ -40,7 +43,8 @@ class PreviewService:
 
             branding = get_branding()
             logo_data_uri = get_pdf_logo_data_uri()
-        except Exception:
+        except Exception as exc:
+            logger.exception("Failed to load branding for preview: %s", exc)
             branding = {
                 "company_name": "ProStar Paints",
                 "company_tagline": "",

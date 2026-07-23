@@ -154,7 +154,8 @@ def build_pdf_context(quotation, request=None, use_resolver: bool = True) -> dic
     try:
         from .spec_report import generate_spec_for_sections
         enriched_sections = generate_spec_for_sections(section_data)
-    except Exception:
+    except Exception as exc:
+        logger.exception("generate_spec_for_sections failed for quotation %s: %s", getattr(quotation, 'pk', None), exc)
         enriched_sections = section_data
 
     spec_template = {}
@@ -187,7 +188,8 @@ def build_pdf_context(quotation, request=None, use_resolver: bool = True) -> dic
                     continue
 
             spec_template = resolved.get("template") or {}
-        except Exception:
+        except Exception as exc:
+            logger.exception("Failed while merging resolver output for quotation %s: %s", getattr(quotation, 'pk', None), exc)
             spec_template = {}
 
     # ── Branding (admin-controlled) + logo data URI ───────────────────────
