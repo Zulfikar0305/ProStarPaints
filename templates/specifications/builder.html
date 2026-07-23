@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Manual Specification Builder — {{ quotation.reference }}</h1>
+
+<div id="builder-root"></div>
+
+<button id="save-draft" class="btn btn-primary">Save Draft</button>
+
+<script>
+// Initial spec data injected from view
+const INITIAL_SPEC = {{ spec_data_json|safe }};
+const QUOTATION_PK = {{ quotation.pk }};
+let DRAFT_ID = {{ draft_id|default:'null' }};
+
+function createTextInput(name, value){
+  const el = document.createElement('input');
+  el.type = 'text';
+  el.name = name;
+  el.value = value || '';
+  el.className = 'form-control';
+  return el;
+}
+
+function createTextArea(name, value){
+  const ta = document.createElement('textarea');
+  ta.name = name;
+  ta.className = 'form-control';
+  ta.rows = 3;
+  ta.value = value || '';
+  return ta;
+}
+
+function renderBuilder(spec){
+  const root = document.getElementById('builder-root');
+  root.innerHTML = '';
+  spec.sections.forEach((sec, sidx) => {
+    const secNode = document.createElement('div');
+    secNode.className = 'card mb-3 p-2';
+    const title = createTextInput('section_title', sec.section_name);
+    title.dataset.sidx = sidx;
+    secNode.appendChild(document.createElement('h3')).innerText = 'Section';
+    secNode.appendChild(title);
+
+    // Clauses
+    const clausesWrap = document.createElement('div');
+    clausesWrap.className = 'clauses mt-2';
+    (sec.clauses || []).forEach((cl, cidx) => {
+      const cdiv = document.createElement('div');
+      cdiv.className = 'clause p-2 border mb-2';
+      cdiv.dataset.cidx = cidx;
+      cdiv.dataset.sidx = sidx;
+      const enabled = document.createElement('input');
+      enabled.type = 'checkbox';
+      enabled.checked = true;
+      enabled.className = 'cl-enabled';
+      cdiv.appendChild(enabled);
+      const t = createTextInput('clause_title', cl.title || '');
+      t.className = 'mb-1';
+      cdiv.appendChild(t);
+      const b = createTextArea('clause_body', cl.body || '');
+      cdiv.appendChild(b);
+      clausesWrap.appendChild(cdiv);
+    });
+
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'btn btn-sm btn-outline-secondary';
+    addBtn.innerText = 'Add Clause';
+    addBtn.addEventListener('click', () => {
+      (sec.clauses = sec.clauses || []).push({title: '', body: ''});
+      renderBuilder(spec);
+    });
+    secNode.appendChild(clausesWrap);
+    secNode.appendChild(addBtn);
+
+    root.appendChild(secNode);
+  });
+}
+
+function collectSpec(){
+  const spec = JSON.parse(JSON.stringify(INITIAL_SPEC));
+  const root = document.getElementById('builder-root');
+  const sectionNodes = root.querySelectorAll('.card');
+  sectionNodes.forEach((snode, sidx) => {
+    const title = snode.querySelector('input[name=section_title]').value;
+    spec.sections[sidx].section_name = title;
+    const clauseNodes = snode.querySelectorAll('.clause');
+    const clauses = [];
+    clauseNodes.forEach((cnode, cidx) => {
+      const enabled = cnode.querySelector('.cl-enabled').checked;
+      const ct = cnode.querySelector('input[name=clause_title]').value;
+      const cb = cnode.querySelector('textarea[name=clause_body]').value;
+      clauses.push({enabled: enabled, title: ct, body: cb});
+    });
+    spec.sections[sidx].clauses = clauses;
+  });
+  return spec;
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  renderBuilder(INITIAL_SPEC);
+  document.getElementById('save-draft').addEventListener('click', function(){
+    const payload = { spec: collectSpec(), draft_id: DRAFT_ID, title: '' };
+    fetch(window.location.pathname + 'save/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).then(r => r.json()).then(js => {
+      if(js && js.draft_id){ DRAFT_ID = js.draft_id; alert('Draft saved'); }
+      else alert('Save failed');
+    }).catch(() => alert('Save failed'));
+  });
+});
+</script>
+
+{% endblock %}

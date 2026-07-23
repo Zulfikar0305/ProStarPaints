@@ -26,4 +26,10 @@ urlpatterns = [
     path("rules/<int:pk>/edit/", views.RuleEditView.as_view(), name="rule_edit"),
     path("rules/<int:pk>/delete/", views.RuleDeleteView.as_view(), name="rule_delete"),
     path("rules/<int:pk>/move/<str:direction>/", views.RuleMoveView.as_view(), name="rule_move"),
+    # Manual builder
+    path("builder/quotation/<int:quotation_pk>/", views.ManualBuilderView.as_view(), name="builder_quotation"),
+    path("builder/quotation/<int:quotation_pk>/save/", views.DraftSaveView.as_view(), name="builder_draft_save"),
+    # Preview
+    path("preview/draft/<int:draft_pk>/", views.DraftPreviewView.as_view(), name="preview_draft"),
+    path("preview/quotation/<int:quotation_pk>/", views.QuotationPreviewView.as_view(), name="preview_quotation"),
 ]

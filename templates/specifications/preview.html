@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+  .spec-cover { text-align: center; padding: 40px 20px; }
+  .spec-brand { display:flex; align-items:center; gap:20px; }
+  .spec-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+  .spec-section { margin-bottom:30px; }
+  .clause { margin-bottom:12px; padding:8px; border-left:3px solid #ddd; }
+  .clause .title { font-weight:700; }
+  .product { margin-top:8px; padding:8px; background:#f8f9fa; }
+  @media (max-width:600px) { .spec-header { flex-direction:column; align-items:flex-start; } }
+</style>
+
+<div class="spec-cover">
+  <div class="spec-brand">
+    {% if logo_data_uri %}
+      <img src="{{ logo_data_uri }}" alt="Logo" style="height:64px" />
+    {% endif %}
+    <div>
+      <h1>{{ branding.company_name }}</h1>
+      {% if branding.company_tagline %}<div>{{ branding.company_tagline }}</div>{% endif %}
+    </div>
+  </div>
+  <h2 style="margin-top:18px">Specification Preview</h2>
+  <div style="color:#666">Quotation: {{ quotation.reference }} — {{ quotation.customer_name }}</div>
+</div>
+
+<div class="container mt-4">
+  <div class="spec-header">
+    <div>Generated: {{ generated_at }}</div>
+    <div style="color:#666">{{ branding.website }}</div>
+  </div>
+
+  {% for sec in sections %}
+    <div class="spec-section">
+      <h3>{{ sec.section_name }}</h3>
+
+      {% if sec.images %}
+        <div class="spec-images">
+          {% for img in sec.images %}
+            <img src="{{ img.url }}" alt="Section image" style="max-height:120px;margin-right:8px;" />
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if sec.clauses %}
+        <div class="spec-clauses">
+          {% for cl in sec.clauses %}
+            <div class="clause">
+              <div class="title">{% if cl.title %}{{ cl.title }}{% elif cl.pk %}Clause #{{ cl.pk }}{% else %}Clause{% endif %}</div>
+              <div class="body">{{ cl.body }}</div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if sec.product_descriptions %}
+        <div class="product-list">
+          {% for pd in sec.product_descriptions %}
+            <div class="product">
+              <div style="font-weight:700">{{ pd.product_name }}</div>
+              <div style="color:#444">{{ pd.description }}</div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if sec.note %}
+        <div class="note">Note: {{ sec.note }}</div>
+      {% endif %}
+
+    </div>
+  {% endfor %}
+  
+</div>
+
+{% endblock %}

@@ -166,3 +166,37 @@ class SpecificationRule(TimeStampedModel):
         else:
             rng = f"{self.min_value}{self.unit or ''}–{self.max_value}{self.unit or ''}"
         return f"{self.name} ({self.get_rule_type_display()}) — {rng}"
+
+
+class ManualSpecificationDraft(TimeStampedModel):
+    """User-editable draft of a resolved specification.
+
+    Drafts are standalone JSON blobs derived from the
+    `SpecificationResolver.resolve()` output and belong to a single
+    `Quotation`. They do not modify the original quotation and are safe
+    to create and delete without affecting pricing or quotation data.
+    """
+
+    STATUS_DRAFT = "DRAFT"
+    STATUS_PUBLISHED = "PUBLISHED"
+    STATUS_CHOICES = [
+        (STATUS_DRAFT, "Draft"),
+        (STATUS_PUBLISHED, "Published"),
+    ]
+
+    quotation = models.ForeignKey(
+        "quotation.Quotation",
+        on_delete=models.CASCADE,
+        related_name="spec_drafts",
+    )
+    title = models.CharField(max_length=200, blank=True)
+    data = models.JSONField(default=dict, blank=True)
+    is_active = models.BooleanField(default=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_DRAFT)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        qref = getattr(self.quotation, "reference", "?")
+        return f"Draft {self.pk} for {qref}"

@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>No draft found</h1>
+  <p>No specification draft exists for quotation {{ quotation.reference }}.</p>
+  <p><a href="{% url 'specifications:builder_quotation' quotation.pk %}">Open Manual Builder to create a draft</a></p>
+{% endblock %}

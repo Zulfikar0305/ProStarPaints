@@ -231,3 +231,159 @@ class KnowledgeIndexView(AdminRequiredMixin, View):
     def get(self, request):
         entries = KnowledgeEntry.objects.select_related("category").order_by("title")
         return render(request, self.template_name, {"entries": entries})
+
+
+# ---------------------------------------------------------------------------
+# Manual Specification Builder
+# ---------------------------------------------------------------------------
+
+import json
+
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import JsonResponse
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+
+
+class ManualBuilderView(LoginRequiredMixin, View):
+    """Render the manual builder for a given `Quotation`.
+
+    Loads the latest user-owned draft if present; otherwise uses the
+    `SpecificationResolver` output as the editable starting point.
+    """
+
+    template_name = "specifications/builder.html"
+
+    def get(self, request, quotation_pk):
+        from django.shortcuts import get_object_or_404
+
+        from quotation.models import Quotation
+        from .services import ManualSpecificationBuilderService
+        from .models import ManualSpecificationDraft
+
+        # Restrict access: reps see only their own quotations, admins see all
+        is_admin = request.user.is_superuser or getattr(request.user, "role", None) == "ADMIN"
+        qs = Quotation.objects
+        if not is_admin:
+            qs = qs.filter(created_by=request.user)
+
+        quotation = get_object_or_404(qs, pk=quotation_pk)
+
+        # Load latest draft for this user if available
+        draft = (
+            ManualSpecificationDraft.objects.filter(quotation=quotation, created_by=request.user)
+            .order_by("-updated_at")
+            .first()
+        )
+
+        if draft:
+            spec_data = draft.data
+            draft_id = draft.pk
+        else:
+            svc = ManualSpecificationBuilderService()
+            spec_data = svc.prepare_spec(quotation)
+            draft_id = None
+
+        # Serialize safely for embedding in the page
+        spec_json = json.dumps(spec_data, ensure_ascii=False, default=str)
+
+        return render(request, self.template_name, {"quotation": quotation, "spec_data_json": spec_json, "draft_id": draft_id})
+
+
+class DraftSaveView(LoginRequiredMixin, View):
+    """Create or update a `ManualSpecificationDraft` via POSTed JSON.
+
+    Expects JSON body with `spec` (the edited spec), optional `draft_id`,
+    and optional `title`. Returns JSON `{status: 'ok', draft_id: ...}`.
+    """
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def post(self, request, quotation_pk=None):
+        try:
+            payload = json.loads(request.body.decode("utf-8") or "{}")
+        except Exception:
+            return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
+
+        spec = payload.get("spec") or payload
+        draft_id = payload.get("draft_id")
+        title = payload.get("title", "")
+
+        from django.shortcuts import get_object_or_404
+        from .models import ManualSpecificationDraft
+        from .services import ManualSpecificationBuilderService
+        from quotation.models import Quotation
+
+        is_admin = request.user.is_superuser or getattr(request.user, "role", None) == "ADMIN"
+        qs = Quotation.objects
+        if not is_admin:
+            qs = qs.filter(created_by=request.user)
+
+        if quotation_pk:
+            quotation = get_object_or_404(qs, pk=quotation_pk)
+        else:
+            qpk = payload.get("quotation_pk")
+            if not qpk:
+                return JsonResponse({"status": "error", "message": "quotation_pk required"}, status=400)
+            quotation = get_object_or_404(qs, pk=qpk)
+
+        svc = ManualSpecificationBuilderService()
+
+        if draft_id:
+            draft = get_object_or_404(ManualSpecificationDraft, pk=draft_id)
+            if draft.created_by != request.user and not is_admin:
+                return JsonResponse({"status": "error", "message": "permission denied"}, status=403)
+            draft = svc.save_draft(draft, spec)
+        else:
+            draft = svc.create_draft_from_resolver(quotation, created_by=request.user, title=title)
+            draft = svc.save_draft(draft, spec)
+
+        return JsonResponse({"status": "ok", "draft_id": draft.pk})
+
+
+class DraftPreviewView(LoginRequiredMixin, View):
+    """Read-only preview of a saved `ManualSpecificationDraft` by draft pk."""
+
+    template_name = "specifications/preview.html"
+
+    def get(self, request, draft_pk):
+        from .models import ManualSpecificationDraft
+        from .services import PreviewService
+
+        draft = get_object_or_404(ManualSpecificationDraft, pk=draft_pk)
+
+        # Permission: owner or admin
+        is_admin = request.user.is_superuser or getattr(request.user, "role", None) == "ADMIN"
+        if draft.created_by != request.user and not is_admin:
+            return render(request, "specifications/preview_no_access.html", status=403)
+
+        svc = PreviewService()
+        ctx = svc.preview_context_for_draft(draft)
+        return render(request, self.template_name, ctx)
+
+
+class QuotationPreviewView(LoginRequiredMixin, View):
+    """Preview the latest draft for a quotation (user-scoped)."""
+
+    template_name = "specifications/preview.html"
+
+    def get(self, request, quotation_pk):
+        from quotation.models import Quotation
+        from .services import PreviewService
+
+        is_admin = request.user.is_superuser or getattr(request.user, "role", None) == "ADMIN"
+        qs = Quotation.objects
+        if not is_admin:
+            qs = qs.filter(created_by=request.user)
+
+        quotation = get_object_or_404(qs, pk=quotation_pk)
+
+        svc = PreviewService()
+        draft = svc.latest_draft_for_quotation(quotation, user=request.user)
+        if not draft:
+            return render(request, "specifications/preview_no_draft.html", {"quotation": quotation})
+
+        ctx = svc.preview_context_for_draft(draft)
+        return render(request, self.template_name, ctx)
