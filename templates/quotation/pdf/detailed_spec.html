@@ -215,6 +215,38 @@
     </div>
 
     <div class="block">
+      <h3>Specification Clauses</h3>
+      {% if sec_data.resolved_clauses %}
+        <div class="clauses-list">
+          {% for cl in sec_data.resolved_clauses %}
+            <div style="margin-top:8px">
+              <div style="font-weight:700">{{ cl.title }}</div>
+              <div style="color:var(--muted);margin-top:4px">{{ cl.body }}</div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="observed-conditions"><p>No specification clauses resolved for this section.</p></div>
+      {% endif %}
+    </div>
+
+    <div class="block">
+      <h3>Product Specification Descriptions</h3>
+      {% if sec_data.resolved_product_descriptions %}
+        <div class="product-specs">
+          {% for pd in sec_data.resolved_product_descriptions %}
+            <div style="margin-top:8px">
+              <div style="font-weight:700">{{ pd.product_name }}</div>
+              <div style="color:var(--muted);margin-top:4px">{{ pd.description }}</div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="observed-conditions"><p>No product specification descriptions available.</p></div>
+      {% endif %}
+    </div>
+
+    <div class="block">
       <h3>Preparation Requirements</h3>
       <div class="instructions">
         {% if sec_data.prep_instructions %}

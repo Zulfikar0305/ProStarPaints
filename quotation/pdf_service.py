@@ -154,6 +154,41 @@ def build_pdf_context(quotation, request=None) -> dict:
     except Exception:
         enriched_sections = section_data
 
+    # Attempt to merge SpecificationResolver output into enriched sections.
+    # The resolver is the authoritative source for clauses and product
+    # descriptions; here we attach resolver-provided data to the existing
+    # enriched section dicts so templates remain compatible.
+    try:
+        from specifications.services import SpecificationResolver
+
+        resolver = SpecificationResolver()
+        resolved = resolver.resolve(quotation) or {}
+        resolved_sections = resolved.get("sections", [])
+
+        # Group resolver sections by subsection_key to support repeatable selections
+        resolver_by_key = {}
+        for rs in resolved_sections:
+            resolver_by_key.setdefault(rs.get("section_key"), []).append(rs)
+
+        for sec in enriched_sections:
+            try:
+                section_obj = sec.get("section")
+                sk = getattr(section_obj, "subsection_key", None)
+                lst = resolver_by_key.get(sk) or []
+                rs = lst.pop(0) if lst else None
+                if rs:
+                    # Attach resolver-supplied clauses and product descriptions
+                    sec["resolved_clauses"] = rs.get("clauses", [])
+                    sec["resolved_product_descriptions"] = rs.get("product_descriptions", [])
+                    if rs.get("recommendation"):
+                        sec["recommendation"] = rs.get("recommendation")
+            except Exception:
+                continue
+
+        spec_template = resolved.get("template") or {}
+    except Exception:
+        spec_template = {}
+
     # ── Branding (admin-controlled) + logo data URI ───────────────────────
     try:
         from system_tools.branding import get_branding, get_pdf_logo_data_uri

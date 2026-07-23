@@ -1,0 +1,15 @@
+"""Specification services package.
+
+Expose high-level classes for resolver usage.
+"""
+from .resolver import SpecificationResolver
+from .clause_service import ClauseService
+from .rule_service import RuleService
+from .template_service import TemplateService
+
+__all__ = [
+    "SpecificationResolver",
+    "ClauseService",
+    "RuleService",
+    "TemplateService",
+]
