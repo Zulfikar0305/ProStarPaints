@@ -204,7 +204,32 @@ class TemplatesIndexView(AdminRequiredMixin, View):
     template_name = "specifications/templates_index.html"
 
     def get(self, request):
-        templates = SpecificationTemplate.objects.all().order_by("name")
+        # Bootstrap: ensure a sensible default exists for automatic_specification
+        DEFAULT_KEY = "automatic_specification"
+        try:
+            if not SpecificationTemplate.objects.filter(key=DEFAULT_KEY).exists():
+                SpecificationTemplate.objects.create(
+                    name="Professional Specification",
+                    key=DEFAULT_KEY,
+                    content="Professional specification template. Edit to customise.",
+                    config={},
+                    is_active=True,
+                    created_by=request.user,
+                )
+        except Exception:
+            # Silently continue if bootstrap cannot run (e.g. during migrations)
+            pass
+
+        templates_qs = SpecificationTemplate.objects.all().order_by("name")
+        templates = []
+        for t in templates_qs:
+            can_deactivate = False
+            if t.is_active:
+                # Allow deactivation only when another active template exists
+                other_active = SpecificationTemplate.objects.filter(key=t.key, is_active=True).exclude(pk=t.pk).exists()
+                can_deactivate = bool(other_active)
+            templates.append({"obj": t, "can_deactivate": can_deactivate})
+
         return render(request, self.template_name, {"templates": templates})
 
 
@@ -214,11 +239,21 @@ class TemplateEditView(AdminRequiredMixin, View):
     def get(self, request, pk):
         obj = get_object_or_404(SpecificationTemplate, pk=pk)
         form = SpecificationTemplateForm(instance=obj)
+        # Prevent changing the key for existing templates
+        try:
+            form.fields["key"].disabled = True
+        except Exception:
+            pass
         return render(request, self.template_name, {"form": form, "obj": obj})
 
     def post(self, request, pk):
         obj = get_object_or_404(SpecificationTemplate, pk=pk)
         form = SpecificationTemplateForm(request.POST, instance=obj)
+        # Keep key read-only for existing templates
+        try:
+            form.fields["key"].disabled = True
+        except Exception:
+            pass
         if form.is_valid():
             saved = form.save()
             saved.created_by = saved.created_by or request.user
@@ -226,6 +261,126 @@ class TemplateEditView(AdminRequiredMixin, View):
             messages.success(request, "Template saved.")
             return redirect(reverse("specifications:templates_index"))
         return render(request, self.template_name, {"form": form, "obj": obj})
+
+
+class TemplateDuplicateView(AdminRequiredMixin, View):
+    """Create a non-active copy of a template and open it for editing."""
+
+    def post(self, request, pk):
+        orig = get_object_or_404(SpecificationTemplate, pk=pk)
+        base_key = f"{orig.key}-copy"
+        new_key = base_key
+        i = 1
+        while SpecificationTemplate.objects.filter(key=new_key).exists():
+            new_key = f"{base_key}-{i}"
+            i += 1
+        new_name = f"{orig.name} (copy)"
+        new = SpecificationTemplate.objects.create(
+            name=new_name,
+            key=new_key,
+            content=orig.content,
+            config=orig.config or {},
+            is_active=False,
+            created_by=request.user,
+        )
+        messages.success(request, "Template duplicated.")
+        return redirect(reverse("specifications:template_edit", args=[new.pk]))
+
+
+class TemplateDeactivateView(AdminRequiredMixin, View):
+    """Deactivate a template unless it is the only active template for its key."""
+
+    def post(self, request, pk):
+        obj = get_object_or_404(SpecificationTemplate, pk=pk)
+        if obj.is_active:
+            active_count = SpecificationTemplate.objects.filter(key=obj.key, is_active=True).count()
+            if active_count <= 1:
+                messages.error(request, "Cannot deactivate the only active template for this key.")
+                return redirect(reverse("specifications:templates_index"))
+            obj.is_active = False
+            obj.save()
+            messages.success(request, "Template deactivated.")
+        return redirect(reverse("specifications:templates_index"))
+
+
+class AutomaticSpecificationView(AdminRequiredMixin, View):
+    """Admin-facing page to configure the Automatic Specification defaults.
+
+    This view focuses exclusively on section visibility and heading
+    overrides for the active `automatic_specification` template key.
+    """
+
+    template_name = "specifications/automatic_spec.html"
+    DEFAULT_KEY = "automatic_specification"
+
+    def get(self, request):
+        # Ensure an active template exists for the automatic specification
+        try:
+            tmpl = SpecificationTemplate.objects.filter(key=self.DEFAULT_KEY, is_active=True).first()
+            if not tmpl:
+                tmpl = SpecificationTemplate.objects.create(
+                    name="Professional Specification",
+                    key=self.DEFAULT_KEY,
+                    content="Professional specification template. Edit section defaults below.",
+                    config={},
+                    is_active=True,
+                    created_by=request.user,
+                )
+        except Exception:
+            tmpl = SpecificationTemplate.objects.filter(key=self.DEFAULT_KEY).first()
+
+        # Use the existing form to construct a UI-friendly sections list
+        form = SpecificationTemplateForm(instance=tmpl)
+        return render(request, self.template_name, {"template": tmpl, "sections_ui": form.sections_ui})
+
+    def post(self, request):
+        tmpl = SpecificationTemplate.objects.filter(key=self.DEFAULT_KEY, is_active=True).first()
+        if not tmpl:
+            messages.error(request, "Automatic Specification template not found.")
+            return redirect(reverse("specifications:landing"))
+
+        form = SpecificationTemplateForm(instance=tmpl)
+        action = request.POST.get("action")
+
+        # Restore defaults: remove per-template section overrides
+        if action == "restore":
+            cfg = tmpl.config or {}
+            if "sections" in cfg:
+                try:
+                    del cfg["sections"]
+                except Exception:
+                    cfg["sections"] = []
+            tmpl.config = cfg
+            tmpl.save()
+            messages.success(request, "Automatic Specification defaults restored.")
+            return redirect(reverse("specifications:automatic_spec"))
+
+        # Otherwise, save posted visibility/heading values
+        try:
+            sections = []
+            for blk in getattr(form, "BLOCK_DEFINITIONS", []):
+                key = blk.get("section_key")
+                if not key:
+                    continue
+                raw_vis = request.POST.get(f"section_{key}_visible")
+                visible = True if raw_vis in ("on", "true", "1") else False
+                heading = request.POST.get(f"section_{key}_heading")
+                heading = heading if heading is not None and heading != "" else None
+                sections.append({
+                    "section_key": key,
+                    "name": blk.get("display_name"),
+                    "visible": visible,
+                    "heading": heading,
+                })
+            cfg = tmpl.config or {}
+            cfg["sections"] = sections
+            tmpl.config = cfg
+            tmpl.save()
+            messages.success(request, "Automatic Specification defaults updated.")
+        except Exception as exc:
+            messages.error(request, f"Failed to save defaults: {exc}")
+
+        return redirect(reverse("specifications:automatic_spec"))
 
 
 class KnowledgeIndexView(AdminRequiredMixin, View):

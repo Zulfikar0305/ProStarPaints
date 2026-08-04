@@ -34,4 +34,9 @@ class TemplateService:
             "typography": cfg.get("typography", ""),
             "colours": cfg.get("colours", ""),
             "spacing": cfg.get("spacing", ""),
+            # Optional per-template section definitions. This may be an
+            # array of section metadata objects describing default order,
+            # headings and visibility. Keep optional for backwards
+            # compatibility.
+            "sections": cfg.get("sections", []),
         }

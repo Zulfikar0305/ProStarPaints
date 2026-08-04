@@ -60,6 +60,10 @@ class ManualSpecificationBuilderService:
                     if rs:
                         sec["resolved_clauses"] = rs.get("clauses", [])
                         sec["resolved_product_descriptions"] = rs.get("product_descriptions", [])
+                        # Preserve the resolver's stable identifier on the
+                        # enriched section so drafts can reference sections
+                        # reliably in future operations.
+                        sec["resolved_id"] = rs.get("resolved_id")
                         if rs.get("recommendation"):
                             sec["recommendation"] = rs.get("recommendation")
                 except Exception as exc:
@@ -101,7 +105,51 @@ class ManualSpecificationBuilderService:
             logger.exception("Pre-rendering HTML for quotation %s failed: %s", getattr(quotation, 'pk', None), exc)
             rendered_html_map = {}
 
-        data = {"resolver": resolved, "rendered_html": rendered_html_map}
+        # Apply composition to the pdf_ctx.sections using any available
+        # template defaults and the instance sections_metadata we built
+        # earlier. This ensures pre-rendered HTML reflects composition.
+        try:
+            from specifications.services.composer import compose_sections
+            from specifications.services.template_service import TemplateService
+
+            tmpl = TemplateService.get_active_template(template_key)
+            tmpl_defaults = TemplateService.as_dict(tmpl)
+            template_sections = tmpl_defaults.get("sections") or []
+            pdf_ctx_sections = pdf_ctx.get("sections") if isinstance(pdf_ctx, dict) else None
+            if pdf_ctx_sections:
+                composed_sections = compose_sections(pdf_ctx_sections, template_sections=template_sections, instance_metadata=sections_metadata)
+                pdf_ctx["sections"] = composed_sections
+        except Exception:
+            # Composition is best-effort for builder pre-rendering; do not fail
+            # draft creation if composition errors occur.
+            pass
+
+        # Build optional per-section metadata to store in the draft. This
+        # is intentionally minimal and non-prescriptive: future packs may
+        # extend these entries. Keep keys stable and optional so existing
+        # drafts remain compatible.
+        sections_metadata = []
+        try:
+            for sec in (pdf_ctx.get("sections") or []):
+                section_obj = sec.get("section")
+                sk = getattr(section_obj, "subsection_key", None) if section_obj is not None else sec.get("section_key")
+                meta = {
+                    "resolved_id": sec.get("resolved_id"),
+                    "section_key": sk,
+                    "type": "section",
+                    "order": getattr(section_obj, "sort_order", None) if section_obj is not None else None,
+                    "visible": True,
+                    "heading": None,
+                    "bindings": {},
+                    "notes": None,
+                    "images": sec.get("images") or [],
+                    "metadata": {},
+                }
+                sections_metadata.append(meta)
+        except Exception:
+            sections_metadata = []
+
+        data = {"resolver": resolved, "rendered_html": rendered_html_map, "sections_metadata": sections_metadata}
         # Import model lazily to avoid circular imports during app registry
         from specifications.models import ManualSpecificationDraft
 

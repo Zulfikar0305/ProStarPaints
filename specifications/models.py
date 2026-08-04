@@ -28,6 +28,22 @@ class SpecificationTemplate(TimeStampedModel):
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        """
+        Persist the template and ensure there is at most one active template
+        for a given `key`. After saving this instance, any other templates
+        with the same key will be marked inactive when this instance is
+        active. This keeps the "one active per key" invariant simple and
+        database-driven without adding schema fields.
+        """
+        super().save(*args, **kwargs)
+        try:
+            if self.is_active:
+                SpecificationTemplate.objects.filter(key=self.key).exclude(pk=self.pk).update(is_active=False)
+        except Exception:
+            # Do not raise from save() to avoid breaking admin/save flows
+            pass
+
 
 class KnowledgeCategory(models.Model):
     name = models.CharField(max_length=200)

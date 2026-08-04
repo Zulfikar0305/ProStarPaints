@@ -32,6 +32,11 @@ class PreviewService:
         if isinstance(data, dict) and data.get("rendered_html"):
             rendered_html_map = data.get("rendered_html")
 
+        # Optional per-section metadata persisted by the builder
+        sections_metadata = None
+        if isinstance(data, dict) and data.get("sections_metadata"):
+            sections_metadata = data.get("sections_metadata")
+
         # If the draft contains a PDF-ready context, use it directly
         pdf_ctx = None
         if isinstance(data, dict) and data.get("pdf_context"):
@@ -66,6 +71,7 @@ class PreviewService:
                 "branding": branding,
                 "logo_data_uri": logo_data_uri,
                 "generated_at": timezone.now(),
+                "sections_metadata": sections_metadata,
             }
             return ctx
 
@@ -76,6 +82,28 @@ class PreviewService:
             ctx.setdefault("logo_data_uri", logo_data_uri)
             ctx.setdefault("generated_at", timezone.now())
             ctx["draft"] = draft
+            # propagate any sections metadata into the preview context
+            if sections_metadata is not None:
+                ctx.setdefault("sections_metadata", sections_metadata)
+            # Apply composition if any metadata defaults or instance
+            # overrides are available. Composition is conservative and
+            # will leave sections unchanged if no metadata exists.
+            try:
+                from specifications.services.composer import compose_sections
+                from specifications.services.template_service import TemplateService
+
+                tmpl = TemplateService.get_active_template()
+                tmpl_defaults = TemplateService.as_dict(tmpl)
+                template_sections = tmpl_defaults.get("sections") or []
+                # instance metadata comes from sections_metadata variable
+                inst_meta = sections_metadata
+                sections = ctx.get("sections") or []
+                composed = compose_sections(sections, template_sections=template_sections, instance_metadata=inst_meta)
+                ctx["sections"] = composed
+            except Exception:
+                # Keep context unchanged on composition errors
+                pass
+
             return ctx
 
         # Fallback: construct a minimal preview context from resolver-shaped data
@@ -89,7 +117,23 @@ class PreviewService:
             "branding": branding,
             "logo_data_uri": logo_data_uri,
             "generated_at": timezone.now(),
+            "sections_metadata": sections_metadata,
         }
+
+        # If any metadata exists, attempt to compose the sections before
+        # returning the fallback context.
+        try:
+            if sections_metadata:
+                from specifications.services.composer import compose_sections
+                from specifications.services.template_service import TemplateService
+
+                tmpl = TemplateService.get_active_template()
+                tmpl_defaults = TemplateService.as_dict(tmpl)
+                template_sections = tmpl_defaults.get("sections") or []
+                composed = compose_sections(context.get("sections") or [], template_sections=template_sections, instance_metadata=sections_metadata)
+                context["sections"] = composed
+        except Exception:
+            pass
 
         return context
 

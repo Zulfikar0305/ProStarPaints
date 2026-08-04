@@ -37,6 +37,41 @@ class SpecificationTemplateForm(forms.ModelForm):
         self.fields["colours"].initial = cfg.get("colours", "")
         self.fields["spacing"].initial = cfg.get("spacing", "")
 
+        # Canonical document blocks that administrators may configure.
+        # Keep this list conservative and stable; future packs may expand it.
+        self.BLOCK_DEFINITIONS = [
+            {"section_key": "cover", "display_name": "Cover"},
+            {"section_key": "project_overview", "display_name": "Project Overview"},
+            {"section_key": "general_notes", "display_name": "General Notes"},
+            {"section_key": "surface_sections", "display_name": "Surface Sections"},
+            {"section_key": "material_schedule", "display_name": "Material Schedule"},
+            {"section_key": "recommendations", "display_name": "Recommendations"},
+            {"section_key": "summary", "display_name": "Summary"},
+            {"section_key": "disclaimer", "display_name": "Disclaimer"},
+        ]
+
+        # Build a lookup of existing section defaults from template config
+        self.sections_initial = {}
+        for s in cfg.get("sections", []) if isinstance(cfg.get("sections", []), list) else []:
+            k = s.get("section_key")
+            if k:
+                self.sections_initial[str(k)] = s
+
+        # UI-friendly list for template rendering: preserve display order
+        self.sections_ui = []
+        for blk in self.BLOCK_DEFINITIONS:
+            key = blk.get("section_key")
+            display = blk.get("display_name")
+            init = self.sections_initial.get(str(key), {})
+            visible = True if init.get("visible") is None else bool(init.get("visible"))
+            heading = init.get("heading") or ""
+            self.sections_ui.append({
+                "section_key": key,
+                "display_name": display,
+                "visible": visible,
+                "heading": heading,
+            })
+
     def save(self, commit=True):
         inst = super().save(commit=False)
         inst.config = {
@@ -52,6 +87,30 @@ class SpecificationTemplateForm(forms.ModelForm):
             "colours": self.cleaned_data.get("colours", ""),
             "spacing": self.cleaned_data.get("spacing", ""),
         }
+        # Persist section defaults from POSTed form fields. The edit
+        # template posts fields named `section_<key>_visible` and
+        # `section_<key>_heading` for each canonical block.
+        try:
+            sections = []
+            for blk in getattr(self, "BLOCK_DEFINITIONS", []):
+                key = blk.get("section_key")
+                if not key:
+                    continue
+                # Checkbox presence means visible; absence means False
+                raw_vis = self.data.get(f"section_{key}_visible")
+                visible = True if raw_vis in ("on", "true", "1") else False
+                heading = self.data.get(f"section_{key}_heading")
+                heading = heading if heading is not None and heading != "" else None
+                sections.append({
+                    "section_key": key,
+                    "name": blk.get("display_name"),
+                    "visible": visible,
+                    "heading": heading,
+                })
+            inst.config["sections"] = sections
+        except Exception:
+            # Non-fatal: do not stop saving template if sections parsing fails
+            pass
         if commit:
             inst.save()
         return inst

@@ -7,20 +7,53 @@
 <div class="d-flex align-items-center justify-content-between mb-3 psp-ws-header">
   <div>
     <h4 class="fw-bold mb-0">{% trans "Document Templates" %}</h4>
-    <p class="text-muted mb-0 mt-1" style="font-size:.9rem;">{% trans "Configure document templates and layouts (coming soon)." %}</p>
+    <p class="text-muted mb-0 mt-1" style="font-size:.9rem;">{% trans "Manage document templates and defaults for specifications." %}</p>
   </div>
 </div>
 
 <div class="card">
   <div class="card-body">
     {% if templates %}
-      <ul class="list-group">
-        {% for t in templates %}
-          <li class="list-group-item">
-            {{ t.name }}
-          </li>
-        {% endfor %}
-      </ul>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover">
+          <thead>
+            <tr>
+              <th>{% trans "Name" %}</th>
+              <th>{% trans "Key" %}</th>
+              <th>{% trans "Status" %}</th>
+              <th>{% trans "Created" %}</th>
+              <th style="width:240px">{% trans "Actions" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in templates %}
+              {% with t=row.obj %}
+              <tr>
+                <td><a href="{% url 'specifications:template_edit' t.pk %}">{{ t.name }}</a></td>
+                <td>{{ t.key }}</td>
+                <td>{% if t.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
+                <td>{{ t.created_at|date:"SHORT_DATETIME_FORMAT" }}</td>
+                <td>
+                  <a class="btn btn-sm btn-outline-primary" href="{% url 'specifications:template_edit' t.pk %}">{% trans "Edit" %}</a>
+
+                  <form method="post" action="{% url 'specifications:template_duplicate' t.pk %}" style="display:inline">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-outline-secondary">{% trans "Duplicate" %}</button>
+                  </form>
+
+                  {% if t.is_active and row.can_deactivate %}
+                    <form method="post" action="{% url 'specifications:template_deactivate' t.pk %}" style="display:inline;margin-left:6px">
+                      {% csrf_token %}
+                      <button class="btn btn-sm btn-outline-danger">{% trans "Deactivate" %}</button>
+                    </form>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endwith %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     {% else %}
       <div class="psp-empty p-4 text-center">
         <div class="psp-empty-icon">📄</div>

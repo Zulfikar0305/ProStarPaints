@@ -182,12 +182,38 @@ def build_pdf_context(quotation, request=None, use_resolver: bool = True) -> dic
                         # Attach resolver-supplied clauses and product descriptions
                         sec["resolved_clauses"] = rs.get("clauses", [])
                         sec["resolved_product_descriptions"] = rs.get("product_descriptions", [])
+                        # Preserve resolver stable identifier on the enriched
+                        # section so downstream components (drafts/preview)
+                        # can reference sections reliably.
+                        sec["resolved_id"] = rs.get("resolved_id")
                         if rs.get("recommendation"):
                             sec["recommendation"] = rs.get("recommendation")
                 except Exception:
                     continue
 
             spec_template = resolved.get("template") or {}
+
+            # Compose sections using template defaults and any draft-level
+            # metadata if present. This composition is intentionally
+            # non-destructive when no metadata is present.
+            try:
+                from specifications.services.composer import compose_sections
+                from specifications.services.template_service import TemplateService
+
+                # Template defaults (may include optional 'sections' array)
+                tmpl = TemplateService.get_active_template()
+                tmpl_defaults = TemplateService.as_dict(tmpl)
+                template_sections = tmpl_defaults.get("sections") or []
+
+                # No per-draft metadata available at this stage (we are
+                # producing a live PDF from a quotation), so only apply
+                # template defaults.
+                composed = compose_sections(enriched_sections, template_sections=template_sections, instance_metadata=None)
+                enriched_sections = composed
+            except Exception:
+                # Do not fail PDF generation on composition errors; keep
+                # original enriched_sections behaviour.
+                pass
         except Exception as exc:
             logger.exception("Failed while merging resolver output for quotation %s: %s", getattr(quotation, 'pk', None), exc)
             spec_template = {}
@@ -205,6 +231,23 @@ def build_pdf_context(quotation, request=None, use_resolver: bool = True) -> dic
         }
         logo_data_uri = _load_logo_data_uri()
 
+    # Template defaults: expose the active SpecificationTemplate.config to
+    # templates so admin-configured default headings/visibility are available.
+    try:
+        from specifications.services.template_service import TemplateService
+
+        tmpl = TemplateService.get_active_template()
+        tmpl_defaults = TemplateService.as_dict(tmpl)
+        template_sections = tmpl_defaults.get("sections") or []
+        template_section_map = {}
+        for s in template_sections:
+            sk = s.get("section_key")
+            if sk:
+                template_section_map[str(sk)] = s
+    except Exception:
+        tmpl_defaults = {}
+        template_section_map = {}
+
     return {
         "quotation":          quotation,
         "customer_name":      quotation.customer_name,
@@ -220,8 +263,11 @@ def build_pdf_context(quotation, request=None, use_resolver: bool = True) -> dic
         "logo_data_uri":      logo_data_uri,
         "branding":           branding,
         "generated_at":       timezone.now(),
+        "template":           tmpl_defaults,
+        "template_section_map": template_section_map,
         "notes":              quotation.notes,
     }
+
 
 
 # Cache the logo data URI for the lifetime of the process — the logo is a

@@ -7,7 +7,10 @@ app_name = "specifications"
 urlpatterns = [
     path("", views.LandingView.as_view(), name="landing"),
     path("templates/", views.TemplatesIndexView.as_view(), name="templates_index"),
+    path("automatic/", views.AutomaticSpecificationView.as_view(), name="automatic_spec"),
     path("templates/<int:pk>/edit/", views.TemplateEditView.as_view(), name="template_edit"),
+    path("templates/<int:pk>/duplicate/", views.TemplateDuplicateView.as_view(), name="template_duplicate"),
+    path("templates/<int:pk>/deactivate/", views.TemplateDeactivateView.as_view(), name="template_deactivate"),
     path("knowledge/", views.KnowledgeIndexView.as_view(), name="knowledge_index"),
     # Clauses CRUD
     path("knowledge/clauses/", views.ClausesIndexView.as_view(), name="clauses_index"),

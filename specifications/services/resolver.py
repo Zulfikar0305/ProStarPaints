@@ -1,5 +1,6 @@
 from typing import Any, Dict, List
 from decimal import Decimal
+import hashlib
 
 from django.db.models import Prefetch
 
@@ -124,6 +125,23 @@ class SpecificationResolver:
                     seen.add(cid)
                     deduped.append(c)
             sec["clauses"] = deduped
+
+            # Stable resolved section identifier: deterministic hash of
+            # section key + clause pks + product pks + image urls. This
+            # allows downstream components to match resolved sections
+            # without relying on positional ordering.
+            try:
+                sk = str(sec.get("section_key") or "")
+                clause_ids = [str(c.get("pk")) for c in sec.get("clauses") or []]
+                product_ids = [str(p.get("product_pk")) for p in sec.get("product_descriptions") or []]
+                image_urls = [str(i.get("url")) for i in sec.get("images") or []]
+                key_parts = [sk, "|".join(sorted(clause_ids)), "|".join(sorted(product_ids)), "|".join(sorted(image_urls))]
+                key_str = "::".join(key_parts)
+                resolved_id = hashlib.sha1(key_str.encode("utf-8")).hexdigest()[:16]
+                sec["resolved_id"] = resolved_id
+            except Exception:
+                # Non-fatal: if hashing fails, proceed without resolved_id
+                sec["resolved_id"] = None
 
             sections.append(sec)
 
