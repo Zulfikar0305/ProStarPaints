@@ -16,19 +16,62 @@
 
 <div class="card">
   <div class="card-body">
+    <form method="get" class="row g-2 mb-3">
+      <div class="col-auto">
+        <input type="search" name="q" value="{{ q }}" class="form-control" placeholder="Search by title">
+      </div>
+      <div class="col-auto">
+        <select name="category" class="form-select">
+          <option value="">All categories</option>
+          {% for c in categories %}
+            <option value="{{ c.slug }}" {% if c.slug == cat %}selected{% endif %}>{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="id_only_active" name="active" value="1" {% if only_active %}checked{% endif %}>
+          <label class="form-check-label" for="id_only_active">Active only</label>
+        </div>
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-outline-secondary">Filter</button>
+      </div>
+      <div class="col text-end">
+        <a href="{% url 'specifications:knowledge_add' %}" class="btn btn-primary">Add Knowledge</a>
+      </div>
+    </form>
+
     {% if entries %}
-      <ul class="list-group">
+      <div class="list-group">
         {% for e in entries %}
-          <li class="list-group-item">
-            {{ e.title }} {% if e.category %}<small class="text-muted">· {{ e.category.name }}</small>{% endif %}
-          </li>
+          <div class="list-group-item d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">{{ e.title }}</div>
+              <div class="text-muted small">
+                {% if e.category %}{{ e.category.name }} · {% endif %}
+                Priority: {{ e.priority }}
+                {% if e.tags %}· Tags: {{ e.tags|join:", " }}{% endif %}
+              </div>
+            </div>
+            <div class="text-end">
+              {% if not e.is_active %}<span class="badge bg-secondary me-2">Inactive</span>{% endif %}
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'specifications:knowledge_edit' e.pk %}">Edit</a>
+              {% if e.is_active %}
+                <form method="post" action="{% url 'specifications:knowledge_deactivate' e.pk %}" style="display:inline">
+                  {% csrf_token %}
+                  <button class="btn btn-sm btn-outline-danger">Deactivate</button>
+                </form>
+              {% endif %}
+            </div>
+          </div>
         {% endfor %}
-      </ul>
+      </div>
     {% else %}
       <div class="psp-empty p-4 text-center">
         <div class="psp-empty-icon">📚</div>
         <div class="psp-empty-title">{% trans "No knowledge entries yet" %}</div>
-        <div class="psp-empty-text">{% trans "Create rules and notes to be reused across quotations and reports." %}</div>
+        <div class="psp-empty-text">{% trans "Create reusable knowledge items to be applied to specifications." %}</div>
       </div>
     {% endif %}
   </div>

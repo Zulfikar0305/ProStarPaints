@@ -12,6 +12,7 @@ falling back to empty lists when metadata is missing or malformed.
 """
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from .description_engine import generate_line_item_description
@@ -50,8 +51,146 @@ def _format_reference_areas(line_items: list) -> str:
     return ", ".join(parts)
 
 
+def _format_dft_range(min_value=None, max_value=None):
+    try:
+        if min_value is None and max_value is None:
+            return None
+        if min_value is not None and max_value is not None and min_value != max_value:
+            return f"{min_value}-{max_value}"
+        return str(min_value if min_value is not None else max_value)
+    except Exception:
+        return None
+
+
+def _normalise_method_key(value) -> str:
+    if value is None:
+        return ""
+    return re.sub(r"[^a-z0-9]+", "", str(value).lower())
+
+
+def _selected_application_method(item) -> str | None:
+    paint = getattr(item, "paint", None)
+    if paint is not None:
+        product_method = getattr(paint, "application_method", None)
+        if product_method:
+            return str(product_method)
+
+    metadata = getattr(item, "metadata", {}) or {}
+    for key in ("application_method", "application_method_label", "method"):
+        value = metadata.get(key)
+        if value not in (None, ""):
+            return str(value)
+
+    if paint is None:
+        return None
+
+    methods = getattr(paint, "application_methods", None) or []
+    if isinstance(methods, list):
+        for entry in methods:
+            if isinstance(entry, dict):
+                method = entry.get("method") or entry.get("label") or entry.get("name")
+                if method:
+                    return str(method)
+
+    return None
+
+
+def _paint_application_method(item) -> str | None:
+    selected = _selected_application_method(item)
+    if selected:
+        return selected
+
+    paint = getattr(item, "paint", None)
+    if paint is None:
+        return None
+
+    methods = getattr(paint, "application_methods", None) or []
+    if isinstance(methods, list):
+        for entry in methods:
+            if isinstance(entry, dict):
+                method = entry.get("method") or entry.get("label") or entry.get("name")
+                if method:
+                    return str(method)
+
+    method = getattr(paint, "application_method", None)
+    if method:
+        return str(method)
+
+    return None
+
+
+def _matching_application_method_entry(paint, selected_method: str | None = None) -> dict:
+    if paint is None:
+        return {}
+
+    methods = getattr(paint, "application_methods", None) or []
+    if not isinstance(methods, list):
+        return {}
+
+    selected_key = _normalise_method_key(selected_method)
+    if selected_key:
+        for entry in methods:
+            if not isinstance(entry, dict):
+                continue
+            method_name = entry.get("method") or entry.get("label") or entry.get("name")
+            if _normalise_method_key(method_name) == selected_key:
+                return entry
+
+    product_method = getattr(paint, "application_method", None)
+    if product_method:
+        product_key = _normalise_method_key(product_method)
+        for entry in methods:
+            if not isinstance(entry, dict):
+                continue
+            method_name = entry.get("method") or entry.get("label") or entry.get("name")
+            if _normalise_method_key(method_name) == product_key:
+                return entry
+
+    if methods and isinstance(methods[0], dict):
+        return methods[0]
+    return {}
+
+
 def _gather_technical_for_item(item) -> dict:
     md = getattr(item, "metadata", {}) or {}
+    info = {}
+
+    try:
+        paint = getattr(item, "paint", None)
+        if paint is not None:
+            method_entry = _matching_application_method_entry(paint, _selected_application_method(item))
+            selected_method = _paint_application_method(item)
+            if selected_method:
+                info["application_method"] = selected_method
+
+            for name in ("spread_rate_per_litre", "dft_min", "dft_max", "drying_time", "recoat_time", "tds_reference", "tds_revision", "tds_url"):
+                value = method_entry.get(name)
+                if value not in (None, ""):
+                    info[name] = value
+
+            if getattr(paint, "spread_rate_per_litre", None) is not None:
+                info.setdefault("spread_rate_per_litre", paint.spread_rate_per_litre)
+            if getattr(paint, "dft_min", None) is not None:
+                info.setdefault("dft_min", paint.dft_min)
+            if getattr(paint, "dft_max", None) is not None:
+                info.setdefault("dft_max", paint.dft_max)
+            if getattr(paint, "drying_time", None) not in (None, ""):
+                info.setdefault("drying_time", paint.drying_time)
+            if getattr(paint, "recoat_time", None) not in (None, ""):
+                info.setdefault("recoat_time", paint.recoat_time)
+            if getattr(paint, "tds_reference", None) not in (None, ""):
+                info.setdefault("tds_reference", paint.tds_reference)
+            if getattr(paint, "tds_revision", None) not in (None, ""):
+                info.setdefault("tds_revision", paint.tds_revision)
+            if getattr(paint, "tds_url", None) not in (None, ""):
+                info.setdefault("tds_url", paint.tds_url)
+
+            dft_range = _format_dft_range(info.get("dft_min"), info.get("dft_max"))
+            if dft_range:
+                info["dft"] = dft_range
+    except Exception:
+        pass
+
     fields = [
         "spread_rate_per_litre",
         "required_litres",
@@ -60,12 +199,35 @@ def _gather_technical_for_item(item) -> dict:
         "package_unit",
         "rate_per_sqm_selected_coats_excl_vat",
         "price_per_litre_excl_vat",
+        "coverage",
+        "application_method",
+        "application_method_label",
+        "dft",
+        "dft_min",
+        "dft_max",
+        "drying_time",
+        "recoat_time",
+        "tds_reference",
+        "tds_revision",
+        "tds_url",
     ]
-    info = {}
     for f in fields:
         v = md.get(f)
-        if v is not None:
+        if v not in (None, "") and f not in info:
             info[f] = v
+
+    if "dft" not in info:
+        dft_metadata = md.get("dft")
+        if dft_metadata not in (None, ""):
+            info["dft"] = dft_metadata
+    if "dft_min" not in info and "dft_max" not in info:
+        md_min = md.get("dft_min")
+        md_max = md.get("dft_max")
+        if md_min is not None or md_max is not None:
+            info["dft_min"] = md_min
+            info["dft_max"] = md_max
+            info["dft"] = _format_dft_range(md_min, md_max) or info.get("dft")
+
     return info
 
 
@@ -243,6 +405,9 @@ def generate_spec_for_sections(section_data: list[dict]) -> list[dict]:
                         except Exception:
                             base = None
 
+                        meta = getattr(it, "metadata", {}) or {}
+                        app_method = _paint_application_method(it) or meta.get("application_method") or meta.get("application_method_label") or "Brush / Roller / Spray"
+                        tech_info = _gather_technical_for_item(it)
                         coating_system.append({
                             "stage": stage,
                             "product": product,
@@ -251,6 +416,16 @@ def generate_spec_for_sections(section_data: list[dict]) -> list[dict]:
                             "coats": getattr(it, "coats", None),
                             "area": getattr(it, "area_sqm", None) or getattr(it, "quantity", None),
                             "line_item_pk": getattr(it, "pk", None),
+                            "application_method": app_method,
+                            "coverage": tech_info.get("coverage") or meta.get("coverage"),
+                            "dft": tech_info.get("dft") or meta.get("dft"),
+                            "dft_min": tech_info.get("dft_min") or meta.get("dft_min"),
+                            "dft_max": tech_info.get("dft_max") or meta.get("dft_max"),
+                            "drying_time": tech_info.get("drying_time") or meta.get("drying_time"),
+                            "recoat_time": tech_info.get("recoat_time") or meta.get("recoat_time"),
+                            "tds_reference": tech_info.get("tds_reference") or meta.get("tds_reference"),
+                            "spread_rate_per_litre": tech_info.get("spread_rate_per_litre") or meta.get("spread_rate_per_litre"),
+                            "required_litres": tech_info.get("required_litres") or meta.get("required_litres"),
                         })
                 except Exception:
                     continue

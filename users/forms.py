@@ -290,7 +290,7 @@ class UserAppSettingsForm(forms.ModelForm):
 
     VALID_ROWS = {10, 25, 50}
     # Safe keys for the PDF template choice; mirrors quotation.pdf_templates
-    VALID_PDF_TEMPLATES = {"professional", "detailed_spec", "compact"}
+    VALID_PDF_TEMPLATES = {"professional", "detailed_spec", "manual_specification", "compact"}
     VALID_LANDING_PAGES = {"dashboard", "quotations", "new_quotation", "profile"}
 
     class Meta:

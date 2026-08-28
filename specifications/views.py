@@ -3,7 +3,7 @@ from django.views.generic import View
 
 from users.mixins import AdminRequiredMixin
 
-from .models import SpecificationTemplate, KnowledgeEntry, KnowledgeCategory, SpecificationRule
+from .models import SpecificationTemplate, KnowledgeEntry, KnowledgeCategory, SpecificationRule, KNOWLEDGE_CATEGORIES
 from .forms import SpecificationTemplateForm, SpecificationRuleForm
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -306,8 +306,9 @@ class TemplateDeactivateView(AdminRequiredMixin, View):
 class AutomaticSpecificationView(AdminRequiredMixin, View):
     """Admin-facing page to configure the Automatic Specification defaults.
 
-    This view focuses exclusively on section visibility and heading
-    overrides for the active `automatic_specification` template key.
+    This view focuses on section visibility, heading overrides and the
+    canonical report-control flags for the active `automatic_specification`
+    template key.
     """
 
     template_name = "specifications/automatic_spec.html"
@@ -329,9 +330,16 @@ class AutomaticSpecificationView(AdminRequiredMixin, View):
         except Exception:
             tmpl = SpecificationTemplate.objects.filter(key=self.DEFAULT_KEY).first()
 
-        # Use the existing form to construct a UI-friendly sections list
         form = SpecificationTemplateForm(instance=tmpl)
-        return render(request, self.template_name, {"template": tmpl, "sections_ui": form.sections_ui})
+        return render(
+            request,
+            self.template_name,
+            {
+                "template": tmpl,
+                "sections_ui": form.sections_ui,
+                "report_controls_ui": getattr(form, "report_controls_ui", []),
+            },
+        )
 
     def post(self, request):
         tmpl = SpecificationTemplate.objects.filter(key=self.DEFAULT_KEY, is_active=True).first()
@@ -339,47 +347,23 @@ class AutomaticSpecificationView(AdminRequiredMixin, View):
             messages.error(request, "Automatic Specification template not found.")
             return redirect(reverse("specifications:landing"))
 
-        form = SpecificationTemplateForm(instance=tmpl)
         action = request.POST.get("action")
-
-        # Restore defaults: remove per-template section overrides
         if action == "restore":
-            cfg = tmpl.config or {}
-            if "sections" in cfg:
-                try:
-                    del cfg["sections"]
-                except Exception:
-                    cfg["sections"] = []
+            cfg = dict(tmpl.config or {})
+            cfg.pop("sections", None)
+            cfg.pop("report_controls", None)
             tmpl.config = cfg
             tmpl.save()
             messages.success(request, "Automatic Specification defaults restored.")
             return redirect(reverse("specifications:automatic_spec"))
 
-        # Otherwise, save posted visibility/heading values
-        try:
-            sections = []
-            for blk in getattr(form, "BLOCK_DEFINITIONS", []):
-                key = blk.get("section_key")
-                if not key:
-                    continue
-                raw_vis = request.POST.get(f"section_{key}_visible")
-                visible = True if raw_vis in ("on", "true", "1") else False
-                heading = request.POST.get(f"section_{key}_heading")
-                heading = heading if heading is not None and heading != "" else None
-                sections.append({
-                    "section_key": key,
-                    "name": blk.get("display_name"),
-                    "visible": visible,
-                    "heading": heading,
-                })
-            cfg = tmpl.config or {}
-            cfg["sections"] = sections
-            tmpl.config = cfg
-            tmpl.save()
+        form = SpecificationTemplateForm(request.POST, instance=tmpl)
+        if form.is_valid():
+            form.save()
             messages.success(request, "Automatic Specification defaults updated.")
-        except Exception as exc:
-            messages.error(request, f"Failed to save defaults: {exc}")
+            return redirect(reverse("specifications:automatic_spec"))
 
+        messages.error(request, "Failed to save automatic specification defaults.")
         return redirect(reverse("specifications:automatic_spec"))
 
 
@@ -387,8 +371,77 @@ class KnowledgeIndexView(AdminRequiredMixin, View):
     template_name = "specifications/knowledge_index.html"
 
     def get(self, request):
-        entries = KnowledgeEntry.objects.select_related("category").order_by("title")
-        return render(request, self.template_name, {"entries": entries})
+        # Ensure canonical categories exist for easy onboarding
+        try:
+            for slug, name in KNOWLEDGE_CATEGORIES:
+                KnowledgeCategory.objects.get_or_create(slug=slug, defaults={"name": name})
+        except Exception:
+            # Non-fatal: continue if categories cannot be created
+            pass
+
+        q = request.GET.get("q", "").strip()
+        cat = request.GET.get("category")
+        only_active = request.GET.get("active")
+
+        qs = KnowledgeEntry.objects.select_related("category").all()
+        if q:
+            qs = qs.filter(title__icontains=q)
+        if cat:
+            qs = qs.filter(category__slug=cat)
+        if only_active in ("1", "true", "on"):
+            qs = qs.filter(is_active=True)
+
+        # Order by priority descending, then title
+        qs = qs.order_by("-priority", "title")
+
+        categories = KnowledgeCategory.objects.order_by("name")
+
+        return render(request, self.template_name, {"entries": qs, "categories": categories, "q": q, "cat": cat, "only_active": only_active})
+
+
+class KnowledgeCreateView(AdminRequiredMixin, View):
+    template_name = "specifications/clause_edit.html"
+
+    def get(self, request):
+        form = KnowledgeEntryForm()
+        return render(request, self.template_name, {"form": form, "obj": None})
+
+    def post(self, request):
+        form = KnowledgeEntryForm(request.POST)
+        if form.is_valid():
+            saved = form.save(commit=False)
+            saved.created_by = request.user
+            saved.save()
+            messages.success(request, "Knowledge item created.")
+            return redirect(reverse("specifications:knowledge_index"))
+        return render(request, self.template_name, {"form": form, "obj": None})
+
+
+class KnowledgeEditView(AdminRequiredMixin, View):
+    template_name = "specifications/clause_edit.html"
+
+    def get(self, request, pk):
+        obj = get_object_or_404(KnowledgeEntry, pk=pk)
+        form = KnowledgeEntryForm(instance=obj)
+        return render(request, self.template_name, {"form": form, "obj": obj})
+
+    def post(self, request, pk):
+        obj = get_object_or_404(KnowledgeEntry, pk=pk)
+        form = KnowledgeEntryForm(request.POST, instance=obj)
+        if form.is_valid():
+            saved = form.save()
+            messages.success(request, "Knowledge item saved.")
+            return redirect(reverse("specifications:knowledge_index"))
+        return render(request, self.template_name, {"form": form, "obj": obj})
+
+
+class KnowledgeDeactivateView(AdminRequiredMixin, View):
+    def post(self, request, pk):
+        obj = get_object_or_404(KnowledgeEntry, pk=pk)
+        obj.is_active = False
+        obj.save()
+        messages.success(request, "Knowledge item deactivated.")
+        return redirect(reverse("specifications:knowledge_index"))
 
 
 # ---------------------------------------------------------------------------
@@ -436,10 +489,13 @@ class ManualBuilderView(LoginRequiredMixin, View):
         )
 
         if draft:
-            # Drafts created by newer builder contain both 'resolver' and 'pdf_context'.
-            # The builder UI expects resolver-shaped data, so prefer that when present.
+            # Drafts created by newer builder contain both 'resolver' and 'draft_overrides'.
+            # Apply any stored overrides so the UI reflects the saved draft state.
             if isinstance(draft.data, dict) and draft.data.get("resolver"):
                 spec_data = draft.data.get("resolver")
+                draft_overrides = draft.data.get("draft_overrides") if isinstance(draft.data.get("draft_overrides"), dict) else {}
+                if draft_overrides:
+                    spec_data = ManualSpecificationBuilderService().apply_draft_overrides(spec_data, draft_overrides)
             else:
                 spec_data = draft.data
             draft_id = draft.pk
@@ -448,10 +504,23 @@ class ManualBuilderView(LoginRequiredMixin, View):
             spec_data = svc.prepare_spec(quotation)
             draft_id = None
 
+        draft_preview_url = reverse("specifications:preview_draft", args=[draft.pk]) if draft else reverse("specifications:preview_quotation", args=[quotation_pk])
+        pdf_selection_url = reverse("quotation:pdf_select", args=[quotation_pk])
+
         # Serialize safely for embedding in the page
         spec_json = json.dumps(spec_data, ensure_ascii=False, default=str)
 
-        return render(request, self.template_name, {"quotation": quotation, "spec_data_json": spec_json, "draft_id": draft_id})
+        return render(
+            request,
+            self.template_name,
+            {
+                "quotation": quotation,
+                "spec_data_json": spec_json,
+                "draft_id": draft_id,
+                "draft_preview_url": draft_preview_url,
+                "pdf_selection_url": pdf_selection_url,
+            },
+        )
 
 
 class DraftSaveView(LoginRequiredMixin, View):
@@ -501,7 +570,49 @@ class DraftSaveView(LoginRequiredMixin, View):
             draft = svc.create_draft_from_resolver(quotation, created_by=request.user, title=title)
             draft = svc.save_draft(draft, spec)
 
-        return JsonResponse({"status": "ok", "draft_id": draft.pk})
+        preview_url = reverse("specifications:preview_draft", args=[draft.pk])
+        return JsonResponse({"status": "ok", "draft_id": draft.pk, "preview_url": preview_url})
+
+
+class ManualBuilderExportView(LoginRequiredMixin, View):
+    """Generate the manual specification PDF from the saved draft state."""
+
+    def _get_latest_draft(self, request, quotation):
+        from .models import ManualSpecificationDraft
+
+        qs = ManualSpecificationDraft.objects.filter(quotation=quotation, created_by=request.user)
+        if request.user.is_superuser or getattr(request.user, "role", None) == "ADMIN":
+            qs = ManualSpecificationDraft.objects.filter(quotation=quotation)
+        return qs.order_by("-updated_at").first()
+
+    def get(self, request, quotation_pk):
+        from django.shortcuts import get_object_or_404
+        from quotation.models import Quotation
+
+        is_admin = request.user.is_superuser or getattr(request.user, "role", None) == "ADMIN"
+        qs = Quotation.objects
+        if not is_admin:
+            qs = qs.filter(created_by=request.user)
+        quotation = get_object_or_404(qs, pk=quotation_pk)
+
+        draft = self._get_latest_draft(request, quotation)
+        if draft is None:
+            from .services import ManualSpecificationBuilderService
+            draft = ManualSpecificationBuilderService().create_draft_from_resolver(
+                quotation,
+                created_by=request.user,
+                title=f"Manual specification for {quotation.reference}",
+            )
+
+        from specifications.services.export_service import ExportService
+        export = ExportService().export_pdf_from_draft(draft, "manual_specification", generated_by=request.user, request=request)
+
+        if export.status == "GENERATED":
+            messages.success(request, "Manual specification PDF generated from the saved draft.")
+            return redirect(f"/quotations/pdf/{export.pk}/")
+
+        messages.error(request, f"Manual specification PDF generation failed: {export.error_message[:200]}")
+        return redirect("specifications:builder_quotation", quotation_pk=quotation_pk)
 
 
 class DraftPreviewView(LoginRequiredMixin, View):
@@ -527,7 +638,7 @@ class DraftPreviewView(LoginRequiredMixin, View):
         # preview == export.
         if isinstance(ctx, dict) and ctx.get("rendered_html"):
             # Allow selecting template key via ?template= in the URL
-            tpl_key = request.GET.get("template", "detailed_spec")
+            tpl_key = request.GET.get("template", "manual_specification")
             ctx["render_template_key"] = tpl_key
             return render(request, "specifications/preview_rendered.html", ctx)
         return render(request, self.template_name, ctx)
@@ -556,7 +667,7 @@ class QuotationPreviewView(LoginRequiredMixin, View):
 
         ctx = svc.preview_context_for_draft(draft)
         if isinstance(ctx, dict) and ctx.get("rendered_html"):
-            tpl_key = request.GET.get("template", "detailed_spec")
+            tpl_key = request.GET.get("template", "manual_specification")
             ctx["render_template_key"] = tpl_key
             return render(request, "specifications/preview_rendered.html", ctx)
         return render(request, self.template_name, ctx)

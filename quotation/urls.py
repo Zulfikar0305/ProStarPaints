@@ -30,6 +30,7 @@ urlpatterns = [
     path("<int:pk>/",                           QuotationDetailView.as_view(),             name="quotation_detail"),
     path("<int:pk>/pdf/",                       QuotationPdfTemplateSelectView.as_view(),  name="pdf_select"),
     path("<int:pk>/pdf/generate/",              QuotationPdfGenerateView.as_view(),        name="pdf_generate"),
+    path("pdf/<int:export_id>/",                QuotationPdfDownloadView.as_view(),        name="pdf_download_direct"),
     path("pdf/<int:export_id>/download/",       QuotationPdfDownloadView.as_view(),        name="pdf_download"),
     # Section-specific save endpoints
     path("<int:pk>/sections/<int:section_pk>/interior-walls/save/",

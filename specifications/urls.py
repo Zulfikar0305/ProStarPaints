@@ -12,6 +12,9 @@ urlpatterns = [
     path("templates/<int:pk>/duplicate/", views.TemplateDuplicateView.as_view(), name="template_duplicate"),
     path("templates/<int:pk>/deactivate/", views.TemplateDeactivateView.as_view(), name="template_deactivate"),
     path("knowledge/", views.KnowledgeIndexView.as_view(), name="knowledge_index"),
+    path("knowledge/add/", views.KnowledgeCreateView.as_view(), name="knowledge_add"),
+    path("knowledge/<int:pk>/edit/", views.KnowledgeEditView.as_view(), name="knowledge_edit"),
+    path("knowledge/<int:pk>/deactivate/", views.KnowledgeDeactivateView.as_view(), name="knowledge_deactivate"),
     # Clauses CRUD
     path("knowledge/clauses/", views.ClausesIndexView.as_view(), name="clauses_index"),
     path("knowledge/clauses/add/", views.ClauseCreateView.as_view(), name="clause_add"),
@@ -32,6 +35,7 @@ urlpatterns = [
     # Manual builder
     path("builder/quotation/<int:quotation_pk>/", views.ManualBuilderView.as_view(), name="builder_quotation"),
     path("builder/quotation/<int:quotation_pk>/save/", views.DraftSaveView.as_view(), name="builder_draft_save"),
+    path("builder/quotation/<int:quotation_pk>/export/", views.ManualBuilderExportView.as_view(), name="builder_quotation_export"),
     # Preview
     path("preview/draft/<int:draft_pk>/", views.DraftPreviewView.as_view(), name="preview_draft"),
     path("preview/quotation/<int:quotation_pk>/", views.QuotationPreviewView.as_view(), name="preview_quotation"),

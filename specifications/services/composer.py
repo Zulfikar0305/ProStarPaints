@@ -151,4 +151,36 @@ def compose_sections(
         if meta.get("visible", True):
             final_sections.append(sec)
 
+    # Backwards-compatibility: if sections expose `blocks` but do not
+    # include legacy arrays (`clauses`, `product_descriptions`, `images`),
+    # derive them from blocks so older consumers keep working.
+    try:
+        for sec in final_sections:
+            blocks = sec.get("blocks") or []
+            if blocks and not sec.get("clauses"):
+                sec["clauses"] = [
+                    {"pk": b.get("pk"), "title": b.get("title"), "body": b.get("content"), "category": (b.get("metadata") or {}).get("category")}
+                    for b in blocks if b.get("block_type") == "clause"
+                ]
+            if blocks and not sec.get("product_descriptions"):
+                sec["product_descriptions"] = [
+                    {
+                        "item_type": (b.get("metadata") or {}).get("item_type"),
+                        "product_name": b.get("title"),
+                        "description": b.get("content"),
+                        "product_pk": b.get("pk"),
+                        "product_group": (b.get("metadata") or {}).get("product_group"),
+                    }
+                    for b in blocks if b.get("block_type") == "product_description"
+                ]
+            if blocks and not sec.get("images"):
+                sec["images"] = [
+                    {"url": b.get("content"), "sort_order": (b.get("metadata") or {}).get("sort_order")}
+                    for b in blocks if b.get("block_type") == "image"
+                ]
+    except Exception:
+        # Keep composition resilient: if derivation fails, return composed
+        # sections as-is.
+        pass
+
     return final_sections

@@ -21,6 +21,12 @@ class PaintAdmin(admin.ModelAdmin):
         ("Pricing", {
             "fields": ("price_excl_vat", "price_incl_vat", "priced_volume_litres", "spread_rate_per_litre", "package_size", "package_unit", "variant_label", "standard_coats"),
         }),
+        ("Application & Technical", {
+            "fields": ("application_method", "application_methods", "dft_min", "dft_max", "drying_time", "recoat_time"),
+        }),
+        ("Documentation", {
+            "fields": ("tds_reference", "tds_revision", "tds_url"),
+        }),
         ("Notes & Packaging", {
             "fields": ("predetermined_note",),
         }),

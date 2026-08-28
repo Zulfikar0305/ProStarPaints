@@ -174,6 +174,96 @@
             </div>
           </div>
 
+          <!-- Section: Application & Technical -->
+          <h6 class="fw-semibold text-muted text-uppercase small mb-3 border-bottom pb-2 mt-4">
+            {% trans "Application & Technical" %}
+          </h6>
+
+          <div class="row g-3 mb-3">
+            <div class="col-sm-4" data-field="application_method">
+              <label for="{{ form.application_method.id_for_label }}" class="form-label fw-semibold">
+                {% trans "Default Application Method" %}
+              </label>
+              {{ form.application_method }}
+              {% if form.application_method.help_text %}<div class="form-text">{{ form.application_method.help_text }}</div>{% endif %}
+              {% if form.application_method.errors %}<div class="invalid-feedback d-block">{{ form.application_method.errors|join:", " }}</div>{% endif %}
+            </div>
+            <div class="col-sm-4" data-field="dft_min">
+              <label for="{{ form.dft_min.id_for_label }}" class="form-label fw-semibold">
+                {% trans "DFT Min (µm)" %}
+              </label>
+              {{ form.dft_min }}
+              {% if form.dft_min.errors %}<div class="invalid-feedback d-block">{{ form.dft_min.errors|join:", " }}</div>{% endif %}
+            </div>
+            <div class="col-sm-4" data-field="dft_max">
+              <label for="{{ form.dft_max.id_for_label }}" class="form-label fw-semibold">
+                {% trans "DFT Max (µm)" %}
+              </label>
+              {{ form.dft_max }}
+              {% if form.dft_max.errors %}<div class="invalid-feedback d-block">{{ form.dft_max.errors|join:", " }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-sm-6" data-field="drying_time">
+              <label for="{{ form.drying_time.id_for_label }}" class="form-label fw-semibold">
+                {% trans "Drying Time" %}
+              </label>
+              {{ form.drying_time }}
+              {% if form.drying_time.help_text %}<div class="form-text">{{ form.drying_time.help_text }}</div>{% endif %}
+              {% if form.drying_time.errors %}<div class="invalid-feedback d-block">{{ form.drying_time.errors|join:", " }}</div>{% endif %}
+            </div>
+            <div class="col-sm-6" data-field="recoat_time">
+              <label for="{{ form.recoat_time.id_for_label }}" class="form-label fw-semibold">
+                {% trans "Recoat Time" %}
+              </label>
+              {{ form.recoat_time }}
+              {% if form.recoat_time.help_text %}<div class="form-text">{{ form.recoat_time.help_text }}</div>{% endif %}
+              {% if form.recoat_time.errors %}<div class="invalid-feedback d-block">{{ form.recoat_time.errors|join:", " }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="mb-3" data-field="application_methods">
+            <label for="{{ form.application_methods.id_for_label }}" class="form-label fw-semibold">
+              {% trans "Method-specific Technical Notes" %}
+            </label>
+            {{ form.application_methods }}
+            {% if form.application_methods.help_text %}<div class="form-text">{{ form.application_methods.help_text }}</div>{% endif %}
+            {% if form.application_methods.errors %}<div class="invalid-feedback d-block">{{ form.application_methods.errors|join:", " }}</div>{% endif %}
+          </div>
+
+          <!-- Section: Documentation -->
+          <h6 class="fw-semibold text-muted text-uppercase small mb-3 border-bottom pb-2 mt-4">
+            {% trans "Documentation" %}
+          </h6>
+
+          <div class="row g-3 mb-3">
+            <div class="col-sm-4" data-field="tds_reference">
+              <label for="{{ form.tds_reference.id_for_label }}" class="form-label fw-semibold">
+                {% trans "TDS Reference" %}
+              </label>
+              {{ form.tds_reference }}
+              {% if form.tds_reference.help_text %}<div class="form-text">{{ form.tds_reference.help_text }}</div>{% endif %}
+              {% if form.tds_reference.errors %}<div class="invalid-feedback d-block">{{ form.tds_reference.errors|join:", " }}</div>{% endif %}
+            </div>
+            <div class="col-sm-4" data-field="tds_revision">
+              <label for="{{ form.tds_revision.id_for_label }}" class="form-label fw-semibold">
+                {% trans "TDS Revision" %}
+              </label>
+              {{ form.tds_revision }}
+              {% if form.tds_revision.help_text %}<div class="form-text">{{ form.tds_revision.help_text }}</div>{% endif %}
+              {% if form.tds_revision.errors %}<div class="invalid-feedback d-block">{{ form.tds_revision.errors|join:", " }}</div>{% endif %}
+            </div>
+            <div class="col-sm-4" data-field="tds_url">
+              <label for="{{ form.tds_url.id_for_label }}" class="form-label fw-semibold">
+                {% trans "TDS URL" %}
+              </label>
+              {{ form.tds_url }}
+              {% if form.tds_url.help_text %}<div class="form-text">{{ form.tds_url.help_text }}</div>{% endif %}
+              {% if form.tds_url.errors %}<div class="invalid-feedback d-block">{{ form.tds_url.errors|join:", " }}</div>{% endif %}
+            </div>
+          </div>
+
           <!-- Section: Media & Status -->
           <h6 class="fw-semibold text-muted text-uppercase small mb-3 border-bottom pb-2 mt-4">
             {% trans "Image & Status" %}

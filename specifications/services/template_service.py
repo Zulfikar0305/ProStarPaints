@@ -1,6 +1,19 @@
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from specifications.models import SpecificationTemplate
+
+DEFAULT_REPORT_CONTROLS: Dict[str, bool] = {
+    "show_photos": True,
+    "show_moisture_reading": True,
+    "show_preparation_requirements": True,
+    "show_coating_system": True,
+    "show_tds": True,
+    "show_product_table": True,
+    "show_pricing": True,
+    "show_warranty": True,
+    "show_recommendations": True,
+    "show_notes": True,
+}
 
 
 class TemplateService:
@@ -10,18 +23,43 @@ class TemplateService:
     """
 
     @staticmethod
+    def normalize_report_controls(raw: Any = None) -> Dict[str, bool]:
+        """Normalise the canonical report-control schema for all templates."""
+        defaults = dict(DEFAULT_REPORT_CONTROLS)
+        source = raw if isinstance(raw, dict) else {}
+        for key, default_value in DEFAULT_REPORT_CONTROLS.items():
+            if key not in source:
+                defaults[key] = bool(default_value)
+                continue
+            try:
+                defaults[key] = bool(source.get(key))
+            except Exception:
+                defaults[key] = bool(default_value)
+        return defaults
+
+    @staticmethod
     def get_active_template(key: Optional[str] = None) -> SpecificationTemplate | None:
         if key:
             t = SpecificationTemplate.objects.filter(key=key, is_active=True).first()
             if t:
                 return t
+
+        # The automatic specification template is the canonical report source.
+        # When present, prefer it over any newer but unrelated template so the
+        # resolver, preview and export paths all read the same active defaults.
+        auto_key = "automatic_specification"
+        auto_template = SpecificationTemplate.objects.filter(key=auto_key, is_active=True).first()
+        if auto_template:
+            return auto_template
+
         return SpecificationTemplate.objects.filter(is_active=True).order_by("-created_at").first()
 
     @staticmethod
     def as_dict(template: SpecificationTemplate | None) -> dict:
         if not template:
-            return {}
+            return {"report_controls": TemplateService.normalize_report_controls()}
         cfg = getattr(template, "config", None) or {}
+        report_controls = TemplateService.normalize_report_controls(cfg.get("report_controls"))
         return {
             "cover_page": cfg.get("cover_page", ""),
             "document_title": cfg.get("document_title", ""),
@@ -39,4 +77,5 @@ class TemplateService:
             # headings and visibility. Keep optional for backwards
             # compatibility.
             "sections": cfg.get("sections", []),
+            "report_controls": report_controls,
         }

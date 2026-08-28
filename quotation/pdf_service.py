@@ -53,7 +53,7 @@ def get_pdf_template(template_key: str) -> dict:
 # Context builder
 # ---------------------------------------------------------------------------
 
-def build_pdf_context(quotation, request=None, use_resolver: bool = True) -> dict:
+def build_pdf_context(quotation, request=None, use_resolver: bool = True, pricing_enabled: bool = True) -> dict:
     """
     Assemble all data needed to render any of the PDF templates.
 
@@ -186,6 +186,10 @@ def build_pdf_context(quotation, request=None, use_resolver: bool = True) -> dic
                         # section so downstream components (drafts/preview)
                         # can reference sections reliably.
                         sec["resolved_id"] = rs.get("resolved_id")
+                        # Attach any resolved knowledge matches
+                        sec["resolved_knowledge"] = rs.get("knowledge_matches", [])
+                        # Attach canonical blocks for consumers that support them
+                        sec["resolved_blocks"] = rs.get("blocks", [])
                         if rs.get("recommendation"):
                             sec["recommendation"] = rs.get("recommendation")
                 except Exception:
@@ -244,9 +248,14 @@ def build_pdf_context(quotation, request=None, use_resolver: bool = True) -> dic
             sk = s.get("section_key")
             if sk:
                 template_section_map[str(sk)] = s
+        report_controls = TemplateService.normalize_report_controls(tmpl_defaults.get("report_controls"))
+        if not pricing_enabled:
+            report_controls["show_pricing"] = False
+        pricing_enabled = bool(report_controls.get("show_pricing", pricing_enabled))
     except Exception:
         tmpl_defaults = {}
         template_section_map = {}
+        report_controls = {"show_photos": True, "show_moisture_reading": True, "show_preparation_requirements": True, "show_coating_system": True, "show_tds": True, "show_product_table": True, "show_pricing": pricing_enabled, "show_warranty": True, "show_recommendations": True, "show_notes": True}
 
     return {
         "quotation":          quotation,
@@ -260,12 +269,16 @@ def build_pdf_context(quotation, request=None, use_resolver: bool = True) -> dic
         "sections":           enriched_sections,
         "quotation_summary":  summary,
         "pricing_status":     "pending",
+        "pricing_enabled":    pricing_enabled,
+        "report_controls":    report_controls,
+        "report_options":     {"pricing_enabled": pricing_enabled, **report_controls},
         "logo_data_uri":      logo_data_uri,
         "branding":           branding,
         "generated_at":       timezone.now(),
         "template":           tmpl_defaults,
         "template_section_map": template_section_map,
         "notes":              quotation.notes,
+        "has_warranty_content": False,
     }
 
 
@@ -332,6 +345,24 @@ def render_quotation_pdf(
         template_key=template_key,
         status=QuotationPdfExport.Status.GENERATED,
     )
+
+    if template_key == "manual_specification":
+        from specifications.models import ManualSpecificationDraft
+        from specifications.services.builder_service import ManualSpecificationBuilderService
+        from specifications.services.export_service import ExportService
+
+        draft = (
+            ManualSpecificationDraft.objects.filter(quotation=quotation, created_by=generated_by)
+            .order_by("-updated_at")
+            .first()
+        )
+        if draft is None:
+            draft = ManualSpecificationBuilderService().create_draft_from_resolver(
+                quotation,
+                created_by=generated_by,
+                title=f"Manual spec for {quotation.reference}",
+            )
+        return ExportService().export_pdf_from_draft(draft, template_key, generated_by=generated_by, request=request)
 
     try:
         # 1. Validate template key — raises KeyError on unknown key

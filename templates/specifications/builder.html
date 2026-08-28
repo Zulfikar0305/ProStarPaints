@@ -1,128 +1,291 @@
 {% extends "base.html" %}
 
 {% block content %}
+<style>
+  .spec-builder { display: grid; gap: 1rem; }
+  .spec-section-card { border: 1px solid #e5e7eb; border-radius: 12px; background: white; padding: 1rem; }
+  .spec-section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+  .spec-blocks { display: grid; gap: 0.75rem; }
+  .spec-block { border: 1px solid #e5e7eb; border-left: 4px solid #0d6efd; border-radius: 8px; padding: 0.75rem; background: #f8fafc; }
+  .spec-block-header { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+  .spec-block-row { display: flex; align-items: center; gap: 0.5rem; }
+  .spec-block-row input[type="checkbox"] { margin-right: 0.25rem; }
+  .small-muted { font-size: 0.85rem; color: #5b6471; }
+  .spec-edit { display: grid; gap: 0.5rem; }
+  .spec-edit textarea, .spec-edit input { width: 100%; }
+</style>
+
 <h1>Manual Specification Builder — {{ quotation.reference }}</h1>
 
-<div id="builder-root"></div>
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+  <button id="save-draft" class="btn btn-primary">Save Draft</button>
+  <a id="preview-draft" class="btn btn-outline-primary" href="{{ draft_preview_url }}" target="_blank" rel="noopener">Preview Draft</a>
+  <button id="generate-manual-pdf" class="btn btn-success">Generate Manual Specification PDF</button>
+  <a class="btn btn-outline-secondary" href="{{ pdf_selection_url }}" target="_blank" rel="noopener">Open PDF Options</a>
+</div>
 
-<button id="save-draft" class="btn btn-primary">Save Draft</button>
+<div class="mb-3">
+  <label class="form-check-label">
+    <input id="pricing-visible-toggle" type="checkbox" checked> Show pricing in this draft
+  </label>
+</div>
+
+<div id="draft-status" class="small text-muted mb-2">Draft ready for editing.</div>
+
+<div id="builder-root" class="spec-builder"></div>
 
 <script>
-// Initial spec data injected from view
 const INITIAL_SPEC = {{ spec_data_json|safe }};
 const QUOTATION_PK = {{ quotation.pk }};
+const EXPORT_URL = "{{ request.path }}export/";
+const INITIAL_PREVIEW_URL = "{{ draft_preview_url|default:'/specifications/preview/quotation/'|add:quotation.pk|add:'/'|escapejs }}";
+const PDF_OPTIONS_URL = "{{ pdf_selection_url|default:'/quotations/'|add:quotation.pk|add:'/pdf/'|escapejs }}";
 let DRAFT_ID = {{ draft_id|default:'null' }};
 
-function createTextInput(name, value){
-  const el = document.createElement('input');
-  el.type = 'text';
-  el.name = name;
-  el.value = value || '';
-  el.className = 'form-control';
-  return el;
+function getCookie(name){
+  const match = document.cookie.match(new RegExp('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)'));
+  return match ? decodeURIComponent(match.pop()) : null;
 }
 
-function createTextArea(name, value){
-  const ta = document.createElement('textarea');
-  ta.name = name;
-  ta.className = 'form-control';
-  ta.rows = 3;
-  ta.value = value || '';
-  return ta;
+function sectionKey(section, fallbackIndex){
+  return section?.section_key || section?.section_name || `section_${fallbackIndex}`;
+}
+
+function blockKey(block){
+  return block?.resolved_id || `${block?.block_type || 'block'}:${block?.pk || block?.title || block?.content || Math.random()}`;
 }
 
 function renderBuilder(spec){
   const root = document.getElementById('builder-root');
   root.innerHTML = '';
-  spec.sections.forEach((sec, sidx) => {
+
+  const pricingToggle = document.getElementById('pricing-visible-toggle');
+  pricingToggle.checked = Boolean(spec.pricing_visible !== false);
+
+  (spec.sections || []).forEach((sec, sidx) => {
     const secNode = document.createElement('div');
-    secNode.className = 'card mb-3 p-2';
-    const title = createTextInput('section_title', sec.section_name);
-    title.dataset.sidx = sidx;
-    secNode.appendChild(document.createElement('h3')).innerText = 'Section';
-    secNode.appendChild(title);
+    secNode.className = 'spec-section-card';
 
-    // Clauses
-    const clausesWrap = document.createElement('div');
-    clausesWrap.className = 'clauses mt-2';
-    (sec.clauses || []).forEach((cl, cidx) => {
-      const cdiv = document.createElement('div');
-      cdiv.className = 'clause p-2 border mb-2';
-      cdiv.dataset.cidx = cidx;
-      cdiv.dataset.sidx = sidx;
-      const enabled = document.createElement('input');
-      enabled.type = 'checkbox';
-      enabled.checked = true;
-      enabled.className = 'cl-enabled';
-      cdiv.appendChild(enabled);
-      const t = createTextInput('clause_title', cl.title || '');
-      t.className = 'mb-1';
-      cdiv.appendChild(t);
-      const b = createTextArea('clause_body', cl.body || '');
-      cdiv.appendChild(b);
-      clausesWrap.appendChild(cdiv);
+    const header = document.createElement('div');
+    header.className = 'spec-section-header';
+    const heading = document.createElement('h3');
+    heading.textContent = sec.section_name || `Section ${sidx + 1}`;
+    const sectionLabel = document.createElement('span');
+    sectionLabel.className = 'small-muted';
+    sectionLabel.textContent = sectionKey(sec, sidx);
+    header.appendChild(heading);
+    header.appendChild(sectionLabel);
+    secNode.appendChild(header);
+
+    const blockWrap = document.createElement('div');
+    blockWrap.className = 'spec-blocks';
+
+    (sec.blocks || []).forEach((block, bidx) => {
+      const blockNode = document.createElement('div');
+      blockNode.className = 'spec-block';
+      blockNode.dataset.blockKey = blockKey(block);
+
+      const blockHeader = document.createElement('div');
+      blockHeader.className = 'spec-block-header';
+
+      const visibleRow = document.createElement('label');
+      visibleRow.className = 'spec-block-row';
+      const visibility = document.createElement('input');
+      visibility.type = 'checkbox';
+      visibility.checked = block.visible !== false;
+      visibility.dataset.kind = 'visible';
+      visibility.dataset.blockKey = blockKey(block);
+      const visibleLabel = document.createElement('span');
+      visibleLabel.textContent = 'Include this block';
+      visibleRow.appendChild(visibility);
+      visibleRow.appendChild(visibleLabel);
+
+      const meta = document.createElement('span');
+      meta.className = 'small-muted';
+      const blockType = block.block_type || 'block';
+      const readableType = {
+        heading: 'Section heading',
+        clause: 'Specification statement',
+        product_description: 'Product / finish',
+        knowledge: 'Knowledge note',
+        image: 'Image',
+      }[blockType] || blockType;
+      meta.textContent = readableType;
+
+      blockHeader.appendChild(visibleRow);
+      blockHeader.appendChild(meta);
+      blockNode.appendChild(blockHeader);
+
+      const editWrap = document.createElement('div');
+      editWrap.className = 'spec-edit';
+
+      if (block.block_type === 'heading' || block.editable || block.block_type === 'product_description') {
+        const titleLabel = document.createElement('label');
+        titleLabel.className = 'small-muted';
+        titleLabel.textContent = block.block_type === 'heading' ? 'Section title' : 'Title';
+        const title = document.createElement('input');
+        title.type = 'text';
+        title.value = block.title || '';
+        title.dataset.kind = 'title';
+        title.dataset.blockKey = blockKey(block);
+        title.placeholder = 'Block title';
+        editWrap.appendChild(titleLabel);
+        editWrap.appendChild(title);
+      }
+
+      if (block.editable || block.block_type === 'heading' || block.block_type === 'product_description' || block.block_type === 'knowledge' || block.block_type === 'image') {
+        const contentLabel = document.createElement('label');
+        contentLabel.className = 'small-muted';
+        contentLabel.textContent = block.block_type === 'image' ? 'Image URL / source' : 'Content';
+        const content = document.createElement(block.block_type === 'image' ? 'input' : 'textarea');
+        if (block.block_type === 'image') {
+          content.type = 'text';
+        } else {
+          content.rows = 3;
+        }
+        content.value = block.content || '';
+        content.dataset.kind = 'content';
+        content.dataset.blockKey = blockKey(block);
+        content.placeholder = block.block_type === 'image' ? 'Image URL' : 'Block content';
+        editWrap.appendChild(contentLabel);
+        editWrap.appendChild(content);
+      }
+
+      if (block.block_type === 'heading') {
+        const headingLabel = document.createElement('label');
+        headingLabel.className = 'small-muted';
+        headingLabel.textContent = 'Section heading override';
+        const headingTitle = document.createElement('input');
+        headingTitle.type = 'text';
+        headingTitle.value = sec.section_name || '';
+        headingTitle.dataset.kind = 'section_heading';
+        headingTitle.dataset.sectionKey = sectionKey(sec, sidx);
+        headingTitle.placeholder = 'Heading override';
+        editWrap.appendChild(headingLabel);
+        editWrap.appendChild(headingTitle);
+      }
+
+      blockNode.appendChild(editWrap);
+      blockWrap.appendChild(blockNode);
     });
 
-    const addBtn = document.createElement('button');
-    addBtn.type = 'button';
-    addBtn.className = 'btn btn-sm btn-outline-secondary';
-    addBtn.innerText = 'Add Clause';
-    addBtn.addEventListener('click', () => {
-      (sec.clauses = sec.clauses || []).push({title: '', body: ''});
-      renderBuilder(spec);
-    });
-    secNode.appendChild(clausesWrap);
-    secNode.appendChild(addBtn);
-
+    secNode.appendChild(blockWrap);
     root.appendChild(secNode);
   });
 }
 
 function collectSpec(){
   const spec = JSON.parse(JSON.stringify(INITIAL_SPEC));
+  spec.pricing_visible = document.getElementById('pricing-visible-toggle').checked;
+
+  const sections = spec.sections || [];
   const root = document.getElementById('builder-root');
-  const sectionNodes = root.querySelectorAll('.card');
-  sectionNodes.forEach((snode, sidx) => {
-    const title = snode.querySelector('input[name=section_title]').value;
-    spec.sections[sidx].section_name = title;
-    const clauseNodes = snode.querySelectorAll('.clause');
-    const clauses = [];
-    clauseNodes.forEach((cnode, cidx) => {
-      const enabled = cnode.querySelector('.cl-enabled').checked;
-      const ct = cnode.querySelector('input[name=clause_title]').value;
-      const cb = cnode.querySelector('textarea[name=clause_body]').value;
-      clauses.push({enabled: enabled, title: ct, body: cb});
+  const secCards = root.querySelectorAll('.spec-section-card');
+
+  secCards.forEach((secCard, sidx) => {
+    const section = sections[sidx] || {};
+    const headingOverride = secCard.querySelector('input[data-kind="section_heading"]');
+    if (headingOverride && headingOverride.value) {
+      section.section_name = headingOverride.value;
+    }
+
+    const blockEls = secCard.querySelectorAll('.spec-block');
+    const blocks = [];
+    blockEls.forEach((blockEl) => {
+      const blockKeyValue = blockEl.dataset.blockKey;
+      let block = (section.blocks || []).find((item) => (item?.resolved_id || `${item?.block_type || 'block'}:${item?.pk || item?.title || item?.content || ''}`) === blockKeyValue) || {};
+      const visible = blockEl.querySelector('input[data-kind="visible"]');
+      if (visible) block.visible = visible.checked;
+
+      const titleEl = blockEl.querySelector('input[data-kind="title"]');
+      if (titleEl) block.title = titleEl.value;
+
+      const contentEl = blockEl.querySelector('input[data-kind="content"], textarea[data-kind="content"]');
+      if (contentEl) block.content = contentEl.value;
+
+      blocks.push(block);
     });
-    spec.sections[sidx].clauses = clauses;
+    section.blocks = blocks;
+    sections[sidx] = section;
   });
+
+  spec.sections = sections;
   return spec;
+}
+
+function saveDraft() {
+  const payload = { spec: collectSpec(), draft_id: DRAFT_ID, title: '' };
+  const csrftoken = getCookie('csrftoken');
+  return fetch(window.location.pathname + 'save/', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': csrftoken,
+      'X-Requested-With': 'XMLHttpRequest'
+    },
+    body: JSON.stringify(payload),
+  }).then(r => r.json()).then(js => {
+    if (!js || !js.draft_id) {
+      throw new Error('Save failed');
+    }
+    DRAFT_ID = js.draft_id;
+    return js;
+  });
 }
 
 document.addEventListener('DOMContentLoaded', function(){
   renderBuilder(INITIAL_SPEC);
-  function getCookie(name){
-    const match = document.cookie.match(new RegExp('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)'));
-    return match ? decodeURIComponent(match.pop()) : null;
+
+  const previewLink = document.getElementById('preview-draft');
+  const draftStatus = document.getElementById('draft-status');
+  const saveButton = document.getElementById('save-draft');
+  const generateButton = document.getElementById('generate-manual-pdf');
+
+  if (previewLink && !previewLink.href) {
+    previewLink.href = INITIAL_PREVIEW_URL;
   }
 
-  document.getElementById('save-draft').addEventListener('click', function(){
-    const payload = { spec: collectSpec(), draft_id: DRAFT_ID, title: '' };
-    const csrftoken = getCookie('csrftoken');
-    fetch(window.location.pathname + 'save/', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': csrftoken,
-        'X-Requested-With': 'XMLHttpRequest'
-      },
-      body: JSON.stringify(payload),
-    }).then(r => r.json()).then(js => {
-      if(js && js.draft_id){ DRAFT_ID = js.draft_id; alert('Draft saved'); }
-      else alert('Save failed');
-    }).catch(() => alert('Save failed'));
+  saveButton.addEventListener('click', function(){
+    saveButton.disabled = true;
+    saveButton.textContent = 'Saving...';
+    if (draftStatus) draftStatus.textContent = 'Saving draft...';
+
+    saveDraft().then(js => {
+      if (previewLink && js.preview_url) {
+        previewLink.href = js.preview_url;
+      }
+      if (draftStatus) draftStatus.textContent = 'Draft saved successfully.';
+      saveButton.textContent = 'Save Draft';
+      saveButton.disabled = false;
+    }).catch(() => {
+      if (draftStatus) draftStatus.textContent = 'Save failed. Please try again.';
+      saveButton.textContent = 'Save Draft';
+      saveButton.disabled = false;
+      alert('Save failed');
+    });
   });
+
+  if (generateButton) {
+    generateButton.addEventListener('click', function(){
+      generateButton.disabled = true;
+      generateButton.textContent = 'Generating...';
+      if (draftStatus) draftStatus.textContent = 'Saving before generating PDF...';
+
+      saveDraft().then(js => {
+        if (previewLink && js.preview_url) {
+          previewLink.href = js.preview_url;
+        }
+        if (draftStatus) draftStatus.textContent = 'Generating manual PDF...';
+        window.location.href = EXPORT_URL;
+      }).catch(() => {
+        if (draftStatus) draftStatus.textContent = 'Could not save before pdf generation.';
+        generateButton.textContent = 'Generate Manual Specification PDF';
+        generateButton.disabled = false;
+        alert('Please save the draft before generating the manual PDF.');
+      });
+    });
+  }
 });
 </script>
-
 {% endblock %}

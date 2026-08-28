@@ -205,9 +205,10 @@ class UserAppSettings(models.Model):
         CUSTOMER_ASC = "customer_asc", _("Customer (A → Z)")
 
     class PdfTemplateChoice(models.TextChoices):
-        PROFESSIONAL  = "professional",  _("Professional")
-        DETAILED_SPEC = "detailed_spec", _("Detailed Specification")
-        COMPACT       = "compact",       _("Compact Estimate")
+        PROFESSIONAL        = "professional",        _("Professional")
+        DETAILED_SPEC       = "detailed_spec",       _("Detailed Specification")
+        MANUAL_SPECIFICATION = "manual_specification", _("Manual Specification")
+        COMPACT             = "compact",             _("Compact Estimate")
 
     ROWS_CHOICES = [(10, "10"), (25, "25"), (50, "50")]
 

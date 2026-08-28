@@ -30,6 +30,15 @@ class PaintForm(forms.ModelForm):
             "category",
             "base_type",
             "colour",
+            "application_method",
+            "application_methods",
+            "dft_min",
+            "dft_max",
+            "drying_time",
+            "recoat_time",
+            "tds_reference",
+            "tds_revision",
+            "tds_url",
             "finish",
             "pricing_method",
             "package_size",
@@ -51,6 +60,15 @@ class PaintForm(forms.ModelForm):
             "base_type": forms.Select(attrs={"class": "form-select"}),
             "finish": forms.Select(attrs={"class": "form-select"}),
             "colour": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Bright White, Tinted"}),
+            "application_method": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Spray, Roller, Brush"}),
+            "application_methods": forms.Textarea(attrs={"class": "form-control", "rows": 4, "placeholder": "[{\"method\": \"Spray\", \"spread_rate_per_litre\": \"8.00\", \"dft_min\": \"80.00\", \"dft_max\": \"120.00\"}]"}),
+            "dft_min": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0", "placeholder": "e.g. 80.00"}),
+            "dft_max": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0", "placeholder": "e.g. 120.00"}),
+            "drying_time": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. 2-4 hours"}),
+            "recoat_time": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. 4-6 hours"}),
+            "tds_reference": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. TDS-INT-100"}),
+            "tds_revision": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. B"}),
+            "tds_url": forms.URLInput(attrs={"class": "form-control", "placeholder": "https://..."}),
             "spread_rate_per_litre": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0.01", "placeholder": "e.g. 10.00"}),
             "priced_volume_litres": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0.01", "placeholder": "1.00"}),
             "pricing_method": forms.Select(attrs={"class": "form-select"}),
@@ -66,6 +84,33 @@ class PaintForm(forms.ModelForm):
         }
 
         help_texts = {
+            "application_method": _(
+                "Primary application method used in the specification report."
+            ),
+            "application_methods": _(
+                "Optional JSON list of method-specific values such as spray, roller, and brush details."
+            ),
+            "dft_min": _(
+                "Minimum dry film thickness in microns."
+            ),
+            "dft_max": _(
+                "Maximum dry film thickness in microns."
+            ),
+            "drying_time": _(
+                "Typical drying time guidance for the selected product."
+            ),
+            "recoat_time": _(
+                "Typical recoat guidance for the selected product."
+            ),
+            "tds_reference": _(
+                "Reference number or code for the product TDS."
+            ),
+            "tds_revision": _(
+                "Optional revision or issue number for the TDS."
+            ),
+            "tds_url": _(
+                "Optional link to the product TDS or document."
+            ),
             "spread_rate_per_litre": _(
                 "Coverage in square metres per litre for one coat."
             ),
@@ -136,6 +181,16 @@ class PaintForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
+        if cleaned_data.get("application_method") in (None, ""):
+            methods = cleaned_data.get("application_methods") or []
+            if isinstance(methods, list):
+                for item in methods:
+                    if isinstance(item, dict):
+                        method = item.get("method") or item.get("label") or item.get("name")
+                        if method:
+                            cleaned_data["application_method"] = str(method)
+                            break
+
         excl = cleaned_data.get("price_excl_vat")
         incl = cleaned_data.get("price_incl_vat")
 

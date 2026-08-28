@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}Edit Clause — ProStar Paints{% endblock %}
+{% block title %}Knowledge Item — ProStar Paints{% endblock %}
 
 {% block content %}
 <div class="d-flex align-items-center justify-content-between mb-3 psp-ws-header">
   <div>
-    <h4 class="fw-bold mb-0">{% trans "Specification Clause" %}</h4>
-    <p class="text-muted mb-0 mt-1" style="font-size:.9rem;">{% trans "Create or edit a reusable specification clause." %}</p>
+    <h4 class="fw-bold mb-0">{% trans "Knowledge Item" %}</h4>
+    <p class="text-muted mb-0 mt-1" style="font-size:.9rem;">{% trans "Create or edit reusable technical knowledge used by specifications." %}</p>
   </div>
   <div>
-    <a href="{% url 'specifications:clauses_index' %}" class="btn btn-outline-secondary btn-sm">&larr; {% trans "Back" %}</a>
+    <a href="{% url 'specifications:knowledge_index' %}" class="btn btn-outline-secondary btn-sm">&larr; {% trans "Back" %}</a>
   </div>
 </div>
 
@@ -23,6 +23,8 @@
           <div class="mb-2">{{ form.title.label_tag }} {{ form.title }}</div>
           <div class="mb-2">{{ form.category.label_tag }} {{ form.category }}</div>
           <div class="mb-2">{{ form.body.label_tag }} {{ form.body }}</div>
+          <div class="mb-2">{{ form.tags.label_tag }} {{ form.tags }}</div>
+          <div class="mb-2">{{ form.metadata.label_tag }} {{ form.metadata }}</div>
         </div>
       </div>
     </div>
@@ -33,6 +35,7 @@
           <div class="mb-2">{{ form.is_default.label_tag }} {{ form.is_default }}</div>
           <div class="mb-2">{{ form.is_active.label_tag }} {{ form.is_active }}</div>
           <div class="mb-2">{{ form.sort_order.label_tag }} {{ form.sort_order }}</div>
+          <div class="mb-2">{{ form.priority.label_tag }} {{ form.priority }}</div>
         </div>
       </div>
     </div>

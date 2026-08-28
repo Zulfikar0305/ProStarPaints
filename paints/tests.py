@@ -257,6 +257,38 @@ class PaintModelFieldTests(TestCase):
             p.full_clean()
 
 
+class PaintTechnicalFieldTests(TestCase):
+    def test_paint_accepts_technical_fields(self):
+        paint = Paint.objects.create(
+            name="Technical Paint",
+            category=Paint.Category.INTERIOR,
+            base_type=Paint.BaseType.WHITE,
+            finish=Paint.Finish.SMOOTH_MATTE,
+            price_excl_vat=Decimal("80.00"),
+            price_incl_vat=Decimal("92.00"),
+            spread_rate_per_litre=Decimal("9.00"),
+            priced_volume_litres=Decimal("1.00"),
+            pricing_method=Paint.PricingMethod.AREA_COATING,
+            package_unit=Paint.PackageUnit.NOT_APPLICABLE,
+            application_method="Roller",
+            application_methods=[{"method": "Roller", "spread_rate_per_litre": "9.00"}],
+            dft_min=Decimal("80.00"),
+            dft_max=Decimal("120.00"),
+            drying_time="2-4 hours",
+            recoat_time="4-6 hours",
+            tds_reference="TDS-TECH-100",
+            tds_revision="B",
+            tds_url="https://example.test/tds/TECH-100.pdf",
+        )
+
+        self.assertEqual(paint.application_method, "Roller")
+        self.assertEqual(paint.dft_min, Decimal("80.00"))
+        self.assertEqual(paint.dft_max, Decimal("120.00"))
+        self.assertEqual(paint.drying_time, "2-4 hours")
+        self.assertEqual(paint.recoat_time, "4-6 hours")
+        self.assertEqual(paint.tds_reference, "TDS-TECH-100")
+
+
 class PaintFormVatTests(TestCase):
     def test_paintform_vat_autocalculate_from_excl(self):
         form = PaintForm(data={

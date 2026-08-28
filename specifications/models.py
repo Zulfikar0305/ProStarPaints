@@ -56,6 +56,22 @@ class KnowledgeCategory(models.Model):
         return self.name
 
 
+# Canonical knowledge categories used by the specification engine.
+# These are created on-demand by admin views to simplify initial setup.
+KNOWLEDGE_CATEGORIES = [
+    ("surface_preparation", "Surface Preparation"),
+    ("general_notes", "General Notes"),
+    ("safety", "Safety"),
+    ("application", "Application"),
+    ("drying", "Drying"),
+    ("cleaning", "Cleaning"),
+    ("environmental", "Environmental"),
+    ("recommendations", "Recommendations"),
+    ("warranty", "Warranty"),
+    ("custom", "Custom"),
+]
+
+
 class KnowledgeEntry(TimeStampedModel):
     title = models.CharField(max_length=200)
     category = models.ForeignKey(
@@ -80,6 +96,14 @@ class KnowledgeEntry(TimeStampedModel):
     is_default = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     sort_order = models.PositiveIntegerField(default=0)
+    # Administrator-visible priority used when composing lists of knowledge
+    # (higher priority items may be applied before lower priority ones).
+    priority = models.IntegerField(default=0)
+    # Lightweight tags for filtering/searching; stored as a JSON array of strings.
+    tags = models.JSONField(default=list, blank=True)
+    # Optional arbitrary metadata stored as JSON. Consumers may use this
+    # for resolver hints in future packs.
+    metadata = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
         return self.title

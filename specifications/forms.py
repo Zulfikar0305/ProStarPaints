@@ -2,6 +2,7 @@ from django import forms
 
 from .models import SpecificationTemplate
 from .models import KnowledgeEntry, KnowledgeCategory, SpecificationRule
+from .services.template_service import TemplateService
 
 
 class SpecificationTemplateForm(forms.ModelForm):
@@ -36,6 +37,28 @@ class SpecificationTemplateForm(forms.ModelForm):
         self.fields["typography"].initial = cfg.get("typography", "")
         self.fields["colours"].initial = cfg.get("colours", "")
         self.fields["spacing"].initial = cfg.get("spacing", "")
+
+        self.report_control_definitions = [
+            {"key": "show_photos", "label": "Photos"},
+            {"key": "show_moisture_reading", "label": "Moisture Reading"},
+            {"key": "show_preparation_requirements", "label": "Preparation Requirements"},
+            {"key": "show_coating_system", "label": "Coating System"},
+            {"key": "show_tds", "label": "Technical Data / TDS"},
+            {"key": "show_product_table", "label": "Product Table"},
+            {"key": "show_pricing", "label": "Pricing"},
+            {"key": "show_warranty", "label": "Warranty"},
+            {"key": "show_recommendations", "label": "Recommendations"},
+            {"key": "show_notes", "label": "Notes"},
+        ]
+        report_controls = TemplateService.normalize_report_controls(cfg.get("report_controls"))
+        self.report_controls_ui = []
+        for ctrl in self.report_control_definitions:
+            key = ctrl["key"]
+            self.report_controls_ui.append({
+                "key": key,
+                "label": ctrl["label"],
+                "enabled": bool(report_controls.get(key, True)),
+            })
 
         # Canonical document blocks that administrators may configure.
         # Keep this list conservative and stable; future packs may expand it.
@@ -72,6 +95,14 @@ class SpecificationTemplateForm(forms.ModelForm):
                 "heading": heading,
             })
 
+    def _report_controls_from_post(self):
+        settings = {}
+        for ctrl in getattr(self, "report_control_definitions", []):
+            key = ctrl["key"]
+            raw = self.data.get(f"report_control_{key}")
+            settings[key] = raw in ("on", "true", "1", "yes", "True")
+        return TemplateService.normalize_report_controls(settings)
+
     def save(self, commit=True):
         inst = super().save(commit=False)
         inst.config = {
@@ -87,6 +118,10 @@ class SpecificationTemplateForm(forms.ModelForm):
             "colours": self.cleaned_data.get("colours", ""),
             "spacing": self.cleaned_data.get("spacing", ""),
         }
+        try:
+            inst.config["report_controls"] = self._report_controls_from_post()
+        except Exception:
+            pass
         # Persist section defaults from POSTed form fields. The edit
         # template posts fields named `section_<key>_visible` and
         # `section_<key>_heading` for each canonical block.
@@ -120,10 +155,29 @@ class SpecificationTemplateForm(forms.ModelForm):
 class KnowledgeEntryForm(forms.ModelForm):
     class Meta:
         model = KnowledgeEntry
-        fields = ["title", "body", "category", "kind", "is_default", "is_active", "sort_order"]
+        fields = ["title", "body", "category", "kind", "is_default", "is_active", "sort_order", "priority"]
         widgets = {
             "body": forms.Textarea(attrs={"rows": 6}),
         }
+    # Friendly tag input (comma-separated) and metadata JSON
+    tags = forms.CharField(required=False, help_text="Comma-separated tags for filtering")
+    metadata = forms.CharField(widget=forms.Textarea(attrs={"rows": 3}), required=False, help_text="Optional JSON metadata (advanced)")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        data = getattr(self.instance, "tags", []) or []
+        if isinstance(data, (list, tuple)):
+            self.fields["tags"].initial = ", ".join([str(t) for t in data])
+        else:
+            self.fields["tags"].initial = str(data)
+
+        meta = getattr(self.instance, "metadata", None) or {}
+        try:
+            import json
+
+            self.fields["metadata"].initial = json.dumps(meta, ensure_ascii=False, indent=2)
+        except Exception:
+            self.fields["metadata"].initial = str(meta)
 
     def clean(self):
         data = super().clean()
@@ -131,7 +185,35 @@ class KnowledgeEntryForm(forms.ModelForm):
         so = data.get("sort_order")
         if so is None:
             data["sort_order"] = 0
+
+        # Validate metadata JSON if provided
+        raw_meta = self.cleaned_data.get("metadata")
+        if raw_meta:
+            try:
+                import json
+
+                parsed = json.loads(raw_meta)
+                data["_parsed_metadata"] = parsed
+            except Exception as exc:
+                self.add_error("metadata", "Invalid JSON: %s" % exc)
+        else:
+            data["_parsed_metadata"] = {}
+
         return data
+
+    def save(self, commit=True):
+        inst = super().save(commit=False)
+        # Parse tags
+        raw_tags = self.cleaned_data.get("tags") or ""
+        tags_list = [t.strip() for t in raw_tags.split(",") if t.strip()]
+        inst.tags = tags_list
+
+        # Attach parsed metadata
+        inst.metadata = self.cleaned_data.get("_parsed_metadata", {}) or {}
+
+        if commit:
+            inst.save()
+        return inst
 
 
 class KnowledgeCategoryForm(forms.ModelForm):

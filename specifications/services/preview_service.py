@@ -27,9 +27,25 @@ class PreviewService:
 
         data = draft.data or {}
 
+        resolver = data.get("resolver") if isinstance(data, dict) else None
+        draft_overrides = data.get("draft_overrides") if isinstance(data, dict) else None
+        if isinstance(resolver, dict) and isinstance(draft_overrides, dict):
+            try:
+                from specifications.services.builder_service import ManualSpecificationBuilderService
+                resolver = ManualSpecificationBuilderService().apply_draft_overrides(resolver, draft_overrides)
+            except Exception:
+                logger.exception("Failed to apply draft overrides for preview")
+
+        from specifications.services.template_service import TemplateService
+        report_controls = TemplateService.normalize_report_controls(
+            (resolver or {}).get("report_controls") if isinstance(resolver, dict) else None
+        )
+        if isinstance(draft_overrides, dict) and isinstance(draft_overrides.get("report_controls"), dict):
+            report_controls = TemplateService.normalize_report_controls(draft_overrides.get("report_controls"))
+
         # If the draft contains pre-rendered HTML for templates, prefer that
         rendered_html_map = None
-        if isinstance(data, dict) and data.get("rendered_html"):
+        if isinstance(data, dict) and data.get("rendered_html") and not (resolver and isinstance(draft_overrides, dict) and draft_overrides):
             rendered_html_map = data.get("rendered_html")
 
         # Optional per-section metadata persisted by the builder
@@ -72,6 +88,8 @@ class PreviewService:
                 "logo_data_uri": logo_data_uri,
                 "generated_at": timezone.now(),
                 "sections_metadata": sections_metadata,
+                "report_controls": report_controls,
+                "report_options": {"pricing_enabled": bool(report_controls.get("show_pricing", True))},
             }
             return ctx
 
@@ -82,6 +100,8 @@ class PreviewService:
             ctx.setdefault("logo_data_uri", logo_data_uri)
             ctx.setdefault("generated_at", timezone.now())
             ctx["draft"] = draft
+            ctx["report_controls"] = report_controls
+            ctx["report_options"] = {"pricing_enabled": bool(report_controls.get("show_pricing", True))}
             # propagate any sections metadata into the preview context
             if sections_metadata is not None:
                 ctx.setdefault("sections_metadata", sections_metadata)
@@ -107,17 +127,24 @@ class PreviewService:
             return ctx
 
         # Fallback: construct a minimal preview context from resolver-shaped data
-        sections = data.get("sections", []) if isinstance(data, dict) else []
+        if isinstance(resolver, dict):
+            sections = resolver.get("sections", [])
+            template = resolver.get("template", {})
+        else:
+            sections = data.get("sections", []) if isinstance(data, dict) else []
+            template = data.get("template", {})
 
         context = {
             "draft": draft,
             "quotation": getattr(draft, "quotation", None),
-            "template": data.get("template", {}),
+            "template": template,
             "sections": sections,
             "branding": branding,
             "logo_data_uri": logo_data_uri,
             "generated_at": timezone.now(),
             "sections_metadata": sections_metadata,
+            "report_controls": report_controls,
+            "report_options": {"pricing_enabled": bool(report_controls.get("show_pricing", True))},
         }
 
         # If any metadata exists, attempt to compose the sections before

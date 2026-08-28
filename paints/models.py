@@ -55,6 +55,71 @@ class Paint(models.Model):
     )
     colour = models.CharField(_("colour"), max_length=100, blank=True, default="")
 
+    application_method = models.CharField(
+        _("default application method"),
+        max_length=80,
+        blank=True,
+        default="",
+        help_text="Primary application method used by this product in the specification report.",
+    )
+    application_methods = models.JSONField(
+        _("application methods"),
+        default=list,
+        blank=True,
+        help_text="Optional structured list of method-specific notes and technical values such as spray, roller or brush.",
+    )
+    dft_min = models.DecimalField(
+        _("DFT minimum"),
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Minimum dry film thickness in microns.",
+    )
+    dft_max = models.DecimalField(
+        _("DFT maximum"),
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Maximum dry film thickness in microns.",
+    )
+    drying_time = models.CharField(
+        _("drying time"),
+        max_length=120,
+        blank=True,
+        default="",
+        help_text="Typical drying time guidance for the selected product.",
+    )
+    recoat_time = models.CharField(
+        _("recoat time"),
+        max_length=120,
+        blank=True,
+        default="",
+        help_text="Typical recoat window guidance for the selected product.",
+    )
+    tds_reference = models.CharField(
+        _("TDS reference"),
+        max_length=200,
+        blank=True,
+        default="",
+        help_text="Reference code or document number for the product technical data sheet.",
+    )
+    tds_revision = models.CharField(
+        _("TDS revision"),
+        max_length=50,
+        blank=True,
+        default="",
+        help_text="Optional revision number or issue code for the TDS.",
+    )
+    tds_url = models.URLField(
+        _("TDS URL"),
+        max_length=500,
+        blank=True,
+        default="",
+        help_text="Optional web link or document URL for the product technical data sheet.",
+    )
+
     class PricingMethod(models.TextChoices):
         AREA_COATING = "AREA_COATING", _("Area-based coating")
         FIXED_PACK = "FIXED_PACK", _("Fixed package")
@@ -191,6 +256,10 @@ class Paint(models.Model):
 
     def clean(self) -> None:
         errors = {}
+
+        if self.dft_min is not None and self.dft_max is not None and self.dft_min > self.dft_max:
+            errors["dft_min"] = _("DFT minimum cannot exceed DFT maximum.")
+            errors["dft_max"] = _("DFT maximum cannot be lower than DFT minimum.")
 
         if self.price_excl_vat is not None and self.price_excl_vat < 0:
             errors["price_excl_vat"] = _("Price (excl. VAT) cannot be negative.")

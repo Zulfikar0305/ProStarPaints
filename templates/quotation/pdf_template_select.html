@@ -112,12 +112,9 @@
   <!-- ── Template cards ── -->
   {% for tpl in pdf_templates %}
   <div class="col-12 col-md-6 col-xl-4">
-    <form method="post" action="{% url 'quotation:pdf_generate' quotation.pk %}" class="h-100" data-psp-loading="true" target="pspPdfDownloadFrame">
-      {% csrf_token %}
-      <input type="hidden" name="template_key" value="{{ tpl.key }}">
+    {% if tpl.key == 'manual_specification' %}
       <div class="card h-100 psp-pdf-tpl-card{% if tpl.key == preferred_pdf_template_key %} is-preferred{% endif %}{% if preflight and not preflight.can_generate_pdf %} is-disabled{% endif %}"
-           style="border: 2px solid var(--psp-border); border-radius: var(--psp-radius,16px); cursor: {% if preflight and not preflight.can_generate_pdf %}not-allowed{% else %}pointer{% endif %}; overflow: hidden; position: relative;"
-           {% if not preflight or preflight.can_generate_pdf %}onclick="this.closest('form').querySelector('button[type=submit]').click();"{% endif %}>
+           style="border: 2px solid var(--psp-border); border-radius: var(--psp-radius,16px); overflow: hidden; position: relative;">
 
         {% if tpl.key == preferred_pdf_template_key %}
         <span class="psp-pdf-default-pill" title="{% trans 'Your saved default template' %}">
@@ -125,10 +122,8 @@
         </span>
         {% endif %}
 
-        <!-- Coloured top bar -->
         <div style="height: 5px; background: {{ tpl.preview_color }};"></div>
 
-        <!-- Mock document preview area -->
         <div class="psp-pdf-mock" style="--_tpl: {{ tpl.preview_color }};">
           <div class="psp-pdf-mock-page">
             <div class="psp-pdf-mock-header">
@@ -178,16 +173,88 @@
         </div>
 
         <div class="card-footer bg-transparent border-0 pt-0 pb-3 px-4">
-          <button type="submit" class="btn w-100 fw-semibold"
-                  style="background:{{ tpl.preview_color }};color:#fff;border:none;border-radius:10px;"
-                  data-loading-text="{% trans 'Generating PDF…' %}"
-                  {% if preflight and not preflight.can_generate_pdf %}disabled aria-disabled="true"{% endif %}>
-            <i class="bi bi-file-earmark-pdf-fill me-1"></i>{% trans "Generate this PDF" %}
-          </button>
+          <a href="{% url 'specifications:builder_quotation' quotation.pk %}" class="btn w-100 fw-semibold"
+             style="background:{{ tpl.preview_color }};color:#fff;border:none;border-radius:10px;">
+            <i class="bi bi-pencil-square me-1"></i>{% trans "Open Manual Builder" %}
+          </a>
         </div>
-
       </div>
-    </form>
+    {% else %}
+      <form method="post" action="{% url 'quotation:pdf_generate' quotation.pk %}" class="h-100" data-psp-loading="true" target="pspPdfDownloadFrame">
+        {% csrf_token %}
+        <input type="hidden" name="template_key" value="{{ tpl.key }}">
+        <div class="card h-100 psp-pdf-tpl-card{% if tpl.key == preferred_pdf_template_key %} is-preferred{% endif %}{% if preflight and not preflight.can_generate_pdf %} is-disabled{% endif %}"
+             style="border: 2px solid var(--psp-border); border-radius: var(--psp-radius,16px); cursor: {% if preflight and not preflight.can_generate_pdf %}not-allowed{% else %}pointer{% endif %}; overflow: hidden; position: relative;"
+             {% if not preflight or preflight.can_generate_pdf %}onclick="this.closest('form').querySelector('button[type=submit]').click();"{% endif %}>
+
+          {% if tpl.key == preferred_pdf_template_key %}
+          <span class="psp-pdf-default-pill" title="{% trans 'Your saved default template' %}">
+            <i class="bi bi-star-fill me-1"></i>{% trans "Your default" %}
+          </span>
+          {% endif %}
+
+          <div style="height: 5px; background: {{ tpl.preview_color }};"></div>
+
+          <div class="psp-pdf-mock" style="--_tpl: {{ tpl.preview_color }};">
+            <div class="psp-pdf-mock-page">
+              <div class="psp-pdf-mock-header">
+                <div class="psp-pdf-mock-logo"></div>
+                <div class="psp-pdf-mock-meta">
+                  <span></span><span></span>
+                </div>
+              </div>
+              <div class="psp-pdf-mock-title"></div>
+              <div class="psp-pdf-mock-rows">
+                <span></span><span></span><span></span><span></span><span></span>
+              </div>
+              <div class="psp-pdf-mock-footer"></div>
+            </div>
+          </div>
+
+          <div class="card-body p-4 pb-3">
+            <div class="d-flex align-items-start gap-3 mb-2">
+              <div class="d-flex align-items-center justify-content-center flex-shrink-0"
+                   style="width:44px;height:44px;border-radius:12px;background:{{ tpl.preview_color }}1a;">
+                <i class="bi {{ tpl.preview_icon }} fs-4" style="color:{{ tpl.preview_color }};"></i>
+              </div>
+              <div class="flex-grow-1 min-width-0">
+                <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                  <h6 class="fw-bold mb-0" style="letter-spacing:-.01em;">{{ tpl.name }}</h6>
+                  <span class="badge rounded-pill px-2"
+                        style="font-size:.68rem;background:{{ tpl.preview_color }}22;color:{{ tpl.preview_color }};">
+                    {{ tpl.preview_label }}
+                  </span>
+                </div>
+                <p class="mb-0 small" style="color:var(--psp-text-soft);line-height:1.45;">{{ tpl.description }}</p>
+              </div>
+            </div>
+
+            <div class="psp-pdf-bestfor">
+              <span class="psp-pdf-bestfor-label">{% trans "Best for" %}</span>
+              <span class="psp-pdf-bestfor-text">{{ tpl.best_for }}</span>
+            </div>
+
+            {% if tpl.highlights %}
+              <ul class="psp-pdf-highlights">
+                {% for h in tpl.highlights %}
+                  <li><i class="bi bi-check2" style="color:{{ tpl.preview_color }};"></i>{{ h }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </div>
+
+          <div class="card-footer bg-transparent border-0 pt-0 pb-3 px-4">
+            <button type="submit" class="btn w-100 fw-semibold"
+                    style="background:{{ tpl.preview_color }};color:#fff;border:none;border-radius:10px;"
+                    data-loading-text="{% trans 'Generating PDF…' %}"
+                    {% if preflight and not preflight.can_generate_pdf %}disabled aria-disabled="true"{% endif %}>
+              <i class="bi bi-file-earmark-pdf-fill me-1"></i>{% trans "Generate this PDF" %}
+            </button>
+          </div>
+
+        </div>
+      </form>
+    {% endif %}
   </div>
   {% empty %}
   <div class="col-12">

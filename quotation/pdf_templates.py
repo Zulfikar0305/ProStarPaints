@@ -48,6 +48,20 @@ PDF_TEMPLATES: dict[str, dict] = {
         "preview_icon": "bi-list-columns-reverse",
         "preview_color": "#0f172a",
     },
+    "manual_specification": {
+        "name": "Manual Specification",
+        "description": "Sales-rep draft specification generated from the saved manual specification state, with any overrides already applied. This is separate from the automatic detailed specification report.",
+        "best_for": "Sales representatives who need to publish a custom specification from their saved manual draft.",
+        "highlights": [
+            "Uses the saved manual draft state",
+            "Includes rep edits and overrides",
+            "Distinct from the automatic detailed spec",
+        ],
+        "template_path": "quotation/pdf/manual_specification.html",
+        "preview_label": "Draft",
+        "preview_icon": "bi-pencil-square",
+        "preview_color": "#f59e0b",
+    },
     "compact": {
         "name": "Compact Estimate",
         "description": "Shorter one-page layout for fast quoting and overview presentations. Uses the persisted quotation totals for pricing.",
