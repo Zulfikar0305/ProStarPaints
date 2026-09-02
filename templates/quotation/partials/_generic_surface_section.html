@@ -103,25 +103,50 @@
       {% csrf_token %}
       <div class="card-body">
 
-        {# ── Step 1: Surface type ── #}
+        {# ── Step 1: Section Information ── #}
         <h6 class="fw-bold text-uppercase text-muted small mb-3">
           <span class="psp-step-badge">1</span>
-          {{ section_config.type_label }} <span class="text-danger">*</span>
-          <span class="text-muted fw-normal">(all that apply)</span>
+          {{ section_config.display_name }} Information
         </h6>
-        <div class="row g-2 mb-4">
-          {% for val, label in section_config.types %}
-            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-              <label class="psp-substrate-check {% if meta.types and val in meta.types %}checked{% endif %}"
-                     for="gstype_{{ section.pk }}_{{ val }}">
-                <input type="checkbox"
-                       id="gstype_{{ section.pk }}_{{ val }}"
-                       name="types" value="{{ val }}"
-                       {% if meta.types and val in meta.types %}checked{% endif %}>
-                <i class="bi bi-check2 psp-substrate-tick"></i>{{ label }}
-              </label>
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-sm-6 col-md-4">
+            <label class="form-label fw-semibold small">
+              {{ section_config.type_label }} <span class="text-danger">*</span>
+            </label>
+            <select name="types" class="form-select form-select-sm" required>
+              <option value="">-- Select --</option>
+              {% for val, label in section_config.types %}
+                <option value="{{ val }}"
+                  {% if meta.types and val in meta.types %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12 col-sm-6 col-md-4">
+            <label class="form-label fw-semibold small">Area (m&sup2;)</label>
+            <input type="number" name="area_sqm" class="form-control form-control-sm"
+                   step="0.01" min="0" placeholder="e.g. 45.5"
+                   value="{{ area_sqm|default:'' }}">
+          </div>
+          <div class="col-12 col-sm-6 col-md-4">
+            <label class="form-label fw-semibold small">
+              Moisture Level (%)
+              {% if section_config.substrate_type != 'EXTERIOR' %}
+                <i class="bi bi-info-circle text-muted psp-help-tip" style="font-size:.8rem;" role="img" aria-label="Warning shown above {{ moisture_threshold }}%"></i>
+              {% endif %}
+            </label>
+            <input type="number" name="moisture_level"
+                   id="gsMoistureInput_{{ section.pk }}"
+                   class="form-control form-control-sm"
+                   min="0" max="100" step="1" placeholder="0"
+                   value="{{ meta.moisture_level|default:'' }}"
+                   oninput="window['gsMoistureWarn_{{ section.pk }}'](this.value)">
+            <div id="gsMoistureWarnDiv_{{ section.pk }}"
+                 class="alert alert-warning py-1 px-2 mt-1 small mb-0"
+                 style="display:{% if meta.moisture_level and meta.moisture_level > moisture_threshold %}block{% else %}none{% endif %};">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              High moisture detected. Consider adding waterproofing.
             </div>
-          {% endfor %}
+          </div>
         </div>
 
         {# ── Step 2: Surface Conditions ── #}
@@ -151,9 +176,6 @@
           Finish Selection <span class="text-danger">*</span>
           <span class="text-muted fw-normal">(one or more)</span>
         </h6>
-        {% if user_app_settings.show_builder_help_tips and section_config.substrate_type != 'EXTERIOR' %}
-        <p class="psp-help-tip"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>{% trans "Choosing a finish reveals matching paint options below." %}</p>
-        {% endif %}
         <div class="row g-2 mb-4">
           {% for val, label in section_config.finishes %}
             <div class="col-12 col-sm-6 col-md-4 col-lg-3">
@@ -306,42 +328,7 @@
         </div>
         {# Paint Options removed — per-row paint rows now contain all configuration. #}
 
-        {# ── Step 5: Measurements ── #}
-        <h6 class="fw-bold text-uppercase text-muted small mb-3">
-          <span class="psp-step-badge">5</span> Measurements
-        </h6>
-        {% if user_app_settings.show_builder_help_tips and section_config.substrate_type != 'EXTERIOR' %}
-        <p class="psp-help-tip"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>{% trans "Area in square metres helps reps quote accurately. Moisture above" %} {{ moisture_threshold }}% {% trans "triggers a waterproofing reminder." %}</p>
-        {% endif %}
-        <div class="row g-3 mb-4">
-          <div class="col-12 col-sm-6 col-md-4">
-            <label class="form-label fw-semibold small">Area (m&sup2;)</label>
-                 <input type="number" name="area_sqm" class="form-control form-control-sm"
-                   step="0.01" min="0" placeholder="e.g. 45.5"
-                   value="{{ area_sqm|default:'' }}">
-          </div>
-          <div class="col-12 col-sm-6 col-md-4">
-            <label class="form-label fw-semibold small">
-              Moisture Level (%)
-              {% if section_config.substrate_type != 'EXTERIOR' %}
-                <i class="bi bi-info-circle text-muted psp-help-tip" style="font-size:.8rem;" role="img" aria-label="Warning shown above {{ moisture_threshold }}%"></i>
-              {% endif %}
-            </label>
-            <input type="number" name="moisture_level"
-                   class="form-control form-control-sm"
-                   min="0" max="100" step="1" placeholder="0"
-                   value="{{ meta.moisture_level|default:'' }}"
-                   oninput="window['gsMoistureWarn_{{ section.pk }}'](this.value)">
-            <div id="gsMoistureWarnDiv_{{ section.pk }}"
-                 class="alert alert-warning py-1 px-2 mt-1 small mb-0"
-                 style="display:{% if meta.moisture_level and meta.moisture_level > moisture_threshold %}block{% else %}none{% endif %};">
-              <i class="bi bi-exclamation-triangle-fill me-1"></i>
-              High moisture detected. Consider adding waterproofing.
-            </div>
-          </div>
-        </div>
-
-        {# ── Step 6: Waterproofing ── #}
+        {# ── Step 5: Waterproofing ── #}
         <h6 class="fw-bold text-uppercase text-muted small mb-3">
           <span class="psp-step-badge psp-step-badge--blue">6</span>
           Waterproofing <span class="text-muted fw-normal">(optional)</span>
@@ -558,9 +545,6 @@
           <span class="psp-step-badge psp-step-badge--blue">8</span>
           Other Prep Work <span class="text-muted fw-normal">(optional)</span>
         </h6>
-        {% if user_app_settings.show_builder_help_tips and section_config.substrate_type != 'EXTERIOR' %}
-        <p class="psp-help-tip"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>{% trans "Prep work is added as separate line items so the customer sees scope clearly." %}</p>
-        {% endif %}
         <div class="row g-2 mb-4">
           {% for val, label in other_prep_options %}
             <div class="col-12 col-sm-6 col-md-4 col-lg-3">
@@ -646,20 +630,12 @@
                 <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1" onclick="submitSectionImageDelete({{ quotation.pk }}, {{ section.pk }}, {{ img.pk }})" aria-label="Delete image"><i class="bi bi-trash"></i></button>
               </div>
             {% endfor %}
-                </div>
-              </div>
-              <div class="col-auto">
-              <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('sectionImageInput_{{ section.pk }}').click();">Upload Images</button>
-              <small class="text-muted ms-2">Max 3 images. JPG/PNG/WebP/GIF. Max 3MB each.</small>
-            </div>
-        </div>
-
-        {# ── Notes ── #}
-        <div class="mb-4">
-          <label class="form-label fw-semibold small">Additional Notes (optional)</label>
-          <textarea name="notes" class="form-control form-control-sm"
-                    rows="2"
-                    placeholder="Any special notes...">{{ meta.notes|default:'' }}</textarea>
+          </div>
+          <div>
+            <input type="file" name="section_images" accept="image/*" multiple id="sectionImageInput_{{ section.pk }}" style="display:none;">
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('sectionImageInput_{{ section.pk }}').click();">Upload Images</button>
+            <small class="text-muted ms-2">Max 3 images. JPG/PNG/WebP/GIF. Max 3MB each.</small>
+          </div>
         </div>
 
         {# ── Actions (sticky save bar) ── #}

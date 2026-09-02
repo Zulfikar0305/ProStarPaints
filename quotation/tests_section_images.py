@@ -6,6 +6,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.files.storage import default_storage
 from django.contrib.auth import get_user_model
 
+from .config import ALL_GENERIC_SECTION_CONFIGS
+
 
 class ReviewImageContextTest(TestCase):
     def setUp(self):
@@ -39,6 +41,91 @@ class ReviewImageContextTest(TestCase):
         self.assertIsNotNone(sec_entry)
         # images in review context should be a list (of data URIs)
         self.assertTrue(isinstance(sec_entry.get("images"), list))
+
+
+class GenericSectionImageLifecycleTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username="generic_img", password="pass")
+        self.client.force_login(self.user)
+        from .models import Quotation
+        self.quotation = Quotation.objects.create(created_by=self.user, customer_name="Generic Builder")
+
+    def _make_png(self, name="img.png", size=(10, 10)):
+        try:
+            from PIL import Image
+
+            buf = BytesIO()
+            img = Image.new("RGB", size, color=(255, 255, 255))
+            img.save(buf, format="PNG")
+            buf.seek(0)
+            return SimpleUploadedFile(name, buf.read(), content_type="image/png")
+        except Exception:
+            PNG_1X1 = (
+                b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
+                b"\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
+                b"\x00\x00\x00\nIDATx\x9cc\xf8\x0f\x00\x01\x01\x01\x00"
+                b"\x18\xdd\x03\xc5\x00\x00\x00\x00IEND\xaeB`\x82"
+            )
+            return SimpleUploadedFile(name, PNG_1X1, content_type="image/png")
+
+    def test_generic_sections_persist_uploads_after_save_reload_and_delete(self):
+        from .models import QuotationSection
+
+        keys = [
+            "ceilings",
+            "floors",
+            "doors_trims_skirtings",
+            "window_frames",
+            "exterior_walls",
+            "exterior_doors_trims_skirtings",
+            "roof",
+            "soffits_fascia",
+            "gutter",
+            "deck_patio",
+            "fencing",
+            "garage_door",
+            "pavings",
+            "exterior_window_frames",
+        ]
+
+        for key in keys:
+            section = None
+            try:
+                cfg = ALL_GENERIC_SECTION_CONFIGS[key]
+                section = QuotationSection.objects.create(
+                    quotation=self.quotation,
+                    subsection_key=key,
+                    display_name=cfg.display_name,
+                    sort_order=1,
+                    selection_order=1,
+                )
+                post = {
+                    "types": [cfg.types[0][0]],
+                    "surface_conditions": [cfg.surface_conditions[0][0]] if cfg.surface_conditions else [],
+                    "finishes": [cfg.finishes[0][0]],
+                    "area_sqm": "12.5",
+                    "moisture_level": "8",
+                    "section_images": self._make_png(f"{key}.png"),
+                }
+                save_url = reverse("quotation:section_save", kwargs={"pk": self.quotation.pk, "section_pk": section.pk})
+                resp = self.client.post(save_url, post, follow=True)
+                self.assertEqual(resp.status_code, 200, f"Save failed for {key}")
+                self.assertTrue(section.images.exists(), f"Upload did not persist for {key}")
+
+                img = section.images.first()
+                builder_url = reverse("quotation:quotation_builder", kwargs={"pk": self.quotation.pk}) + f"?leaflet={key}"
+                builder_resp = self.client.get(builder_url)
+                self.assertEqual(builder_resp.status_code, 200, f"Builder failed for {key}")
+                self.assertContains(builder_resp, img.image.url, msg_prefix=f"Builder did not render persisted image for {key}")
+
+                delete_url = reverse("quotation:section_image_delete", kwargs={"pk": self.quotation.pk, "section_pk": section.pk, "image_pk": img.pk})
+                delete_resp = self.client.post(delete_url, follow=True)
+                self.assertEqual(delete_resp.status_code, 200, f"Delete failed for {key}")
+                self.assertFalse(section.images.exists(), f"Image remained after delete for {key}")
+            finally:
+                if section is not None:
+                    section.delete()
 
 
 class SectionImageTests(TestCase):

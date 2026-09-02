@@ -488,19 +488,23 @@ class ManualBuilderView(LoginRequiredMixin, View):
             .first()
         )
 
-        if draft:
-            # Drafts created by newer builder contain both 'resolver' and 'draft_overrides'.
-            # Apply any stored overrides so the UI reflects the saved draft state.
-            if isinstance(draft.data, dict) and draft.data.get("resolver"):
-                spec_data = draft.data.get("resolver")
+        svc = ManualSpecificationBuilderService()
+        if draft and isinstance(draft.data, dict):
+            resolver = draft.data.get("resolver")
+            if isinstance(resolver, dict) and (resolver.get("sections") or []):
+                spec_data = resolver
                 draft_overrides = draft.data.get("draft_overrides") if isinstance(draft.data.get("draft_overrides"), dict) else {}
                 if draft_overrides:
-                    spec_data = ManualSpecificationBuilderService().apply_draft_overrides(spec_data, draft_overrides)
+                    spec_data = svc.apply_draft_overrides(spec_data, draft_overrides)
+                draft_id = draft.pk
             else:
-                spec_data = draft.data
-            draft_id = draft.pk
+                spec_data = svc.prepare_spec(quotation)
+                draft_id = None
         else:
-            svc = ManualSpecificationBuilderService()
+            spec_data = svc.prepare_spec(quotation)
+            draft_id = None
+
+        if not isinstance(spec_data, dict) or not spec_data.get("sections"):
             spec_data = svc.prepare_spec(quotation)
             draft_id = None
 

@@ -852,6 +852,33 @@ def _find_catalogue_paint_by_label(label: str, category: str | None = None) -> P
     return None
 
 
+def _persist_section_images(request, section):
+    """Persist uploaded section images for the section with the same rules used by Interior Walls."""
+    try:
+        files = request.FILES.getlist('section_images') if getattr(request, 'FILES', None) else []
+    except Exception:
+        files = []
+
+    if not files:
+        return
+
+    MAX_IMAGE_BYTES = 4 * 1024 * 1024
+    existing = section.images.count()
+    for uploaded in files:
+        if existing >= 3:
+            break
+        try:
+            ctype = getattr(uploaded, 'content_type', '')
+            if not ctype or not ctype.startswith('image/'):
+                continue
+            if hasattr(uploaded, 'size') and uploaded.size and uploaded.size > MAX_IMAGE_BYTES:
+                continue
+            QuotationSectionImage.objects.create(section=section, image=uploaded, uploaded_by=getattr(request, 'user', None))
+            existing += 1
+        except Exception:
+            continue
+
+
 class InteriorWallsSaveView(QuotationAccessMixin, View):
     """
     POST-only view that saves the Interior Walls configuration for a section.
@@ -1440,31 +1467,7 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
         except Exception:
             pass
 
-        # Handle optional section image uploads (single-file posts or multi-file)
-        MAX_IMAGE_BYTES = 4 * 1024 * 1024
-        try:
-            files = request.FILES.getlist('section_images') if getattr(request, 'FILES', None) else []
-        except Exception:
-            files = []
-
-        if files:
-            existing = section.images.count()
-            for f in files:
-                if existing >= 3:
-                    break
-                try:
-                    ctype = getattr(f, 'content_type', '')
-                    if not ctype or not ctype.startswith('image/'):
-                        continue
-                    if hasattr(f, 'size') and f.size and f.size > MAX_IMAGE_BYTES:
-                        continue
-                    QuotationSectionImage.objects.create(section=section, image=f, uploaded_by=request.user)
-                    existing += 1
-                except Exception:
-                    # Swallow per-file errors so one bad file doesn't abort the rest
-                    continue
-
-        
+        _persist_section_images(request, section)
 
         return redirect(f"{reverse('quotation:quotation_builder', kwargs={'pk': pk})}?leaflet=interior_walls#section-{section.pk}")
 
@@ -2103,6 +2106,9 @@ class GenericSectionSaveView(QuotationAccessMixin, View):
         except Exception:
             # Fail silently — totals can be recalculated later
             pass
+
+        _persist_section_images(request, section)
+
         # Preserve active leaflet state: return to the same leaflet
         return redirect(f"{reverse('quotation:quotation_builder', kwargs={'pk': pk})}?leaflet={section.subsection_key}#section-{section.pk}")
 

@@ -44,14 +44,21 @@ _WALL_TYPE_LABELS: dict[str, str] = {
 }
 
 _SURFACE_CONDITION_LABELS: dict[str, str] = {
-    "new":               "new surface",
+    # Canonical Interior Walls keys
+    "prev_painted_good":   "previously painted – good condition",
+    "prev_painted_poor":   "previously painted – poor condition",
+    "prev_painted_chalky": "previously painted – chalky surface",
+    "prev_painted_mouldy": "previously painted – mouldy surface",
+    "unpainted":           "unpainted",
+    # Legacy aliases kept for older saved metadata and historical records
+    "new":                "new surface",
     "previously_painted": "previously painted",
-    "peeling":           "peeling / flaking",
-    "stained":           "stained",
-    "mould":             "mould / mildew present",
-    "efflorescence":     "efflorescence",
-    "cracks":            "cracks or holes",
-    "rough":             "rough / uneven surface",
+    "peeling":            "peeling / flaking",
+    "stained":            "stained",
+    "mould":              "mould / mildew present",
+    "efflorescence":      "efflorescence",
+    "cracks":             "cracks or holes",
+    "rough":              "rough / uneven surface",
 }
 
 _FINISH_LABELS: dict[str, str] = {

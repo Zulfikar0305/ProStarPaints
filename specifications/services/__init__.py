@@ -9,6 +9,7 @@ from .template_service import TemplateService
 from .builder_service import ManualSpecificationBuilderService
 from .preview_service import PreviewService
 from .export_service import ExportService
+from .knowledge_seed import seed_default_specification_knowledge
 
 __all__ = [
     "SpecificationResolver",
@@ -18,4 +19,5 @@ __all__ = [
     "ManualSpecificationBuilderService",
     "PreviewService",
     "ExportService",
+    "seed_default_specification_knowledge",
 ]

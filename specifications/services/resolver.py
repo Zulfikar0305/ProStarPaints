@@ -155,14 +155,72 @@ class SpecificationResolver:
             try:
                 product_pks = [p.get("product_pk") for p in sec.get("product_descriptions") or []]
                 product_groups = [p.get("product_group") for p in sec.get("product_descriptions") or [] if p.get("product_group")]
+                section_meta = (note_item.metadata if note_item and note_item.metadata else {})
                 section_context = {
                     "section_key": sec.get("section_key"),
                     "product_pks": product_pks,
                     "product_groups": product_groups,
                     "moisture": moisture_val,
                     "surface_condition": surface_cond,
+                    "surface_conditions": section_meta.get("surface_conditions") or [],
+                    "substrate_type": getattr(section, "substrate_type", None) or section_meta.get("substrate_type"),
+                    "types": section_meta.get("types") or section_meta.get("type") or [],
+                    "finish": None,
+                    "finishes": [],
+                    "preparation": None,
+                    "preparations": section_meta.get("preparations") or section_meta.get("preparation") or [],
+                    "primer": None,
+                    "primers": [],
+                    "waterproofing": None,
+                    "waterproofing_options": [],
+                    "application": None,
+                    "applications": [],
                     "location": getattr(quotation, "project_location", None),
                 }
+
+                for li in _li_iter:
+                    if li.item_type == QuotationLineItem.ItemType.PAINT and li.paint:
+                        finish_value = (li.metadata or {}).get("finish") or getattr(li.paint, "finish", None)
+                        if finish_value:
+                            section_context.setdefault("finishes", [])
+                            section_context["finishes"].append(str(finish_value))
+                            section_context["finish"] = str(finish_value)
+                    elif li.item_type == QuotationLineItem.ItemType.PRIMER and li.paint:
+                        section_context.setdefault("primers", [])
+                        section_context["primers"].append(str(li.paint.name))
+                        section_context["primer"] = str(li.paint.name)
+                    elif li.item_type == QuotationLineItem.ItemType.WATERPROOFING and li.paint:
+                        section_context.setdefault("waterproofing_options", [])
+                        section_context["waterproofing_options"].append(str(li.paint.name))
+                        section_context["waterproofing"] = str(li.paint.name)
+
+                    prep_values = (li.metadata or {}).get("preparation") or (li.metadata or {}).get("preparations") or []
+                    if prep_values:
+                        section_context.setdefault("preparations", [])
+                        if isinstance(prep_values, (list, tuple, set)):
+                            section_context["preparations"].extend([str(p) for p in prep_values])
+                        else:
+                            section_context["preparations"].append(str(prep_values))
+                        if section_context.get("preparation") is None:
+                            section_context["preparation"] = str(prep_values) if not isinstance(prep_values, (list, tuple, set)) else str(list(prep_values)[0])
+
+                    app_values = (li.metadata or {}).get("application") or (li.metadata or {}).get("applications") or []
+                    if app_values:
+                        section_context.setdefault("applications", [])
+                        if isinstance(app_values, (list, tuple, set)):
+                            section_context["applications"].extend([str(a) for a in app_values])
+                        else:
+                            section_context["applications"].append(str(app_values))
+                        if section_context.get("application") is None:
+                            section_context["application"] = str(app_values) if not isinstance(app_values, (list, tuple, set)) else str(list(app_values)[0])
+
+                section_context["types"] = list(dict.fromkeys(section_context.get("types") or []))
+                section_context["surface_conditions"] = list(dict.fromkeys(section_context.get("surface_conditions") or []))
+                section_context["finishes"] = list(dict.fromkeys(section_context.get("finishes") or []))
+                section_context["preparations"] = list(dict.fromkeys(section_context.get("preparations") or []))
+                section_context["primers"] = list(dict.fromkeys(section_context.get("primers") or []))
+                section_context["waterproofing_options"] = list(dict.fromkeys(section_context.get("waterproofing_options") or []))
+                section_context["applications"] = list(dict.fromkeys(section_context.get("applications") or []))
 
                 kmatches = []
                 try:

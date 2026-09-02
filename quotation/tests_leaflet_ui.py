@@ -142,11 +142,67 @@ class LeafletUITests(TestCase):
         html = resp.content.decode('utf-8')
         self.assertIn('Save Interior Walls', html)
 
+    def test_interior_walls_surface_conditions_use_required_values(self):
+        s1 = QuotationSection.objects.create(quotation=self.q, subsection_key="interior_walls", display_name="I1", sort_order=0, selection_order=1)
+        resp = self.client.get(reverse('quotation:quotation_builder', kwargs={'pk': self.q.pk}) + '?leaflet=interior_walls')
+        html = resp.content.decode('utf-8')
+        expected = [
+            'value="prev_painted_good"',
+            'value="prev_painted_poor"',
+            'value="prev_painted_chalky"',
+            'value="prev_painted_mouldy"',
+            'value="unpainted"',
+        ]
+        for value in expected:
+            self.assertIn(value, html)
+        self.assertNotIn('value="new"', html)
+        self.assertNotIn('value="peeling"', html)
+        self.assertNotIn('value="mould"', html)
+
+    def test_generic_section_does_not_render_notes_or_debug_help_fragments(self):
+        s1 = QuotationSection.objects.create(quotation=self.q, subsection_key="ceilings", display_name="C1", sort_order=1, selection_order=1)
+        resp = self.client.get(reverse('quotation:quotation_builder', kwargs={'pk': self.q.pk}) + '?leaflet=ceilings')
+        html = resp.content.decode('utf-8')
+        self.assertNotIn('Additional Notes', html)
+        self.assertNotIn('name="notes"', html)
+        self.assertNotIn('Any special notes', html)
+        self.assertNotIn('Choosing a finish reveals matching paint options below.', html)
+        self.assertNotIn('Area in square metres helps reps quote accurately.', html)
+        self.assertNotIn('Prep work is added as separate line items so the customer sees scope clearly.', html)
+
+    def test_generic_sections_put_area_and_moisture_in_first_section(self):
+        s1 = QuotationSection.objects.create(quotation=self.q, subsection_key="ceilings", display_name="C1", sort_order=1, selection_order=1)
+        resp = self.client.get(reverse('quotation:quotation_builder', kwargs={'pk': self.q.pk}) + '?leaflet=ceilings')
+        html = resp.content.decode('utf-8')
+        self.assertIn('name="types"', html)
+        self.assertIn('name="area_sqm"', html)
+        self.assertIn('name="moisture_level"', html)
+        self.assertLess(html.index('name="types"'), html.index('name="area_sqm"'))
+        self.assertLess(html.index('name="area_sqm"'), html.index('name="moisture_level"'))
+        self.assertNotIn('> Measurements</h6>', html)
+
+    def test_generic_section_uses_single_select_for_type_field(self):
+        s1 = QuotationSection.objects.create(quotation=self.q, subsection_key="ceilings", display_name="C1", sort_order=1, selection_order=1)
+        resp = self.client.get(reverse('quotation:quotation_builder', kwargs={'pk': self.q.pk}) + '?leaflet=ceilings')
+        html = resp.content.decode('utf-8')
+        self.assertIn('<select name="types"', html)
+        self.assertIn('value="concrete_socket"', html)
+        self.assertIn('value="gypsum_boards"', html)
+        self.assertNotIn('type="checkbox" id="gstype_', html)
+
     def test_generic_section_uses_generic_partial(self):
         s = QuotationSection.objects.create(quotation=self.q, subsection_key="ceilings", display_name="C1", sort_order=1, selection_order=1)
         resp = self.client.get(reverse('quotation:quotation_builder', kwargs={'pk': self.q.pk}) + '?leaflet=ceilings')
         html = resp.content.decode('utf-8')
         self.assertIn('Save Ceilings', html)
+
+    def test_generic_section_has_image_upload_input_like_interior_walls(self):
+        s = QuotationSection.objects.create(quotation=self.q, subsection_key="ceilings", display_name="C1", sort_order=1, selection_order=1)
+        resp = self.client.get(reverse('quotation:quotation_builder', kwargs={'pk': self.q.pk}) + '?leaflet=ceilings')
+        html = resp.content.decode('utf-8')
+        self.assertIn(f'id="sectionImageInput_{s.pk}"', html)
+        self.assertIn('type="file"', html)
+        self.assertIn('name="section_images"', html)
 
     def test_form_actions_and_fields_present(self):
         s = QuotationSection.objects.create(quotation=self.q, subsection_key="ceilings", display_name="C1", sort_order=1, selection_order=1)

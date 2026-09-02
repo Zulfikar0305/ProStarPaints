@@ -34,14 +34,11 @@ WALL_TYPES: list[tuple[str, str]] = [
 # ---------------------------------------------------------------------------
 
 SURFACE_CONDITIONS: list[tuple[str, str]] = [
-    ("new",           "New surface"),
-    ("previously_painted", "Previously painted"),
-    ("peeling",       "Peeling / flaking"),
-    ("stained",       "Stained"),
-    ("mould",         "Mould / mildew present"),
-    ("efflorescence", "Efflorescence"),
-    ("cracks",        "Cracks or holes"),
-    ("rough",         "Rough / uneven surface"),
+    ("prev_painted_good",   "Previously painted \u2013 good condition"),
+    ("prev_painted_poor",   "Previously painted \u2013 poor condition"),
+    ("prev_painted_chalky", "Previously painted \u2013 chalky surface"),
+    ("prev_painted_mouldy", "Previously painted \u2013 mouldy surface"),
+    ("unpainted",           "Unpainted"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -458,6 +455,19 @@ EXTERIOR_SECTION_CONFIGS: dict[str, "InteriorSectionConfig"] = {
         ],
         surface_conditions=GENERIC_SURFACE_CONDITIONS_FULL,
         finishes=_ALL_FIVE_FINISHES,
+        substrate_type="EXTERIOR",
+    ),
+    "exterior_doors_trims_skirtings": InteriorSectionConfig(
+        key="exterior_doors_trims_skirtings",
+        display_name="Exterior Doors, Trims & Skirtings",
+        type_label="Surface type",
+        types=[
+            ("hardwood",  "Hardwood"),
+            ("soft_wood", "Soft wood"),
+            ("metal",     "Metal"),
+        ],
+        surface_conditions=GENERIC_SURFACE_CONDITIONS_FULL,
+        finishes=_FOUR_NO_DECO_FINISHES,
         substrate_type="EXTERIOR",
     ),
     "roof": InteriorSectionConfig(

@@ -8,11 +8,14 @@ from django.urls import reverse
 from quotation.models import Quotation, QuotationSection, QuotationLineItem
 from quotation.pdf_templates import PDF_TEMPLATES
 from paints.models import Paint
-from specifications.models import SpecificationTemplate
-from specifications.services import ManualSpecificationBuilderService
+from specifications.models import SpecificationTemplate, KnowledgeEntry
+from specifications.services import ManualSpecificationBuilderService, seed_default_specification_knowledge
 from specifications.services.export_service import ExportService
+from specifications.services.knowledge_service import KnowledgeService
 from specifications.services.preview_service import PreviewService
 from specifications.services.template_service import TemplateService
+from quotation.config import ALL_GENERIC_SECTION_CONFIGS
+from quotation.services import ALL_SUBSECTIONS
 
 
 class Pack6BBuilderBlockOverrideTests(TestCase):
@@ -208,6 +211,259 @@ class Pack6BBuilderBlockOverrideTests(TestCase):
         self.assertFalse(default_template.config['report_controls']['show_pricing'])
         self.assertFalse(default_template.config['report_controls']['show_notes'])
 
+    def test_all_generic_exterior_sections_are_configured(self):
+        self.assertIn('exterior_doors_trims_skirtings', ALL_GENERIC_SECTION_CONFIGS)
+        cfg = ALL_GENERIC_SECTION_CONFIGS['exterior_doors_trims_skirtings']
+        self.assertEqual(cfg.substrate_type, 'EXTERIOR')
+        self.assertIn('hardwood', {k for k, _ in cfg.types})
+        self.assertIn('smooth_matte', {k for k, _ in cfg.finishes})
+
+    def test_selection_context_distinguishes_brick_vs_drywall_and_finish(self):
+        KnowledgeEntry.objects.filter(title__in=['Brick matte primer system', 'Drywall sheen system']).delete()
+        brick = KnowledgeEntry.objects.create(
+            title='Brick matte primer system',
+            body='Use brick-appropriate masonry prep with a matte finish.',
+            kind=KnowledgeEntry.KIND_CLAUSE,
+            is_active=True,
+            priority=20,
+            metadata={
+                'section_key': 'exterior_doors_trims_skirtings',
+                'substrate_type': 'EXTERIOR',
+                'types': ['brick'],
+                'surface_conditions': ['new'],
+                'finishes': ['smooth_matte'],
+            },
+        )
+        drywall = KnowledgeEntry.objects.create(
+            title='Drywall sheen system',
+            body='Use a sheen finish where the substrate is drywall/plasterboard.',
+            kind=KnowledgeEntry.KIND_CLAUSE,
+            is_active=True,
+            priority=20,
+            metadata={
+                'section_key': 'exterior_doors_trims_skirtings',
+                'substrate_type': 'EXTERIOR',
+                'types': ['drywall'],
+                'surface_conditions': ['previously_painted'],
+                'finishes': ['smooth_sheen'],
+            },
+        )
+
+        brick_context = {
+            'section_key': 'exterior_doors_trims_skirtings',
+            'substrate_type': 'EXTERIOR',
+            'types': ['brick'],
+            'surface_conditions': ['new'],
+            'finishes': ['smooth_matte'],
+            'moisture': 8,
+        }
+        drywall_context = {
+            'section_key': 'exterior_doors_trims_skirtings',
+            'substrate_type': 'EXTERIOR',
+            'types': ['drywall'],
+            'surface_conditions': ['previously_painted'],
+            'finishes': ['smooth_sheen'],
+            'moisture': 12,
+        }
+
+        brick_matches = KnowledgeService.find_matches_for_section(None, brick_context)
+        drywall_matches = KnowledgeService.find_matches_for_section(None, drywall_context)
+
+        self.assertTrue(any(m.pk == brick.pk for m in brick_matches))
+        self.assertTrue(any(m.pk == drywall.pk for m in drywall_matches))
+        self.assertNotEqual(
+            [m.title for m in brick_matches if m.pk == brick.pk],
+            [m.title for m in drywall_matches if m.pk == drywall.pk],
+        )
+
+    def test_app_startup_seeds_default_knowledge_when_empty(self):
+        KnowledgeEntry.objects.filter(is_active=True).delete()
+
+        from specifications.apps import ensure_default_specification_knowledge
+
+        ensure_default_specification_knowledge()
+
+        self.assertTrue(KnowledgeEntry.objects.filter(is_active=True).exists())
+        self.assertTrue(
+            KnowledgeEntry.objects.filter(is_active=True, metadata__section_key='exterior_walls').exists()
+        )
+
+    def test_seed_default_specification_knowledge_populates_all_generic_sections(self):
+        KnowledgeEntry.objects.filter(is_active=True).delete()
+        seed_default_specification_knowledge()
+
+        covered = set(
+            KnowledgeEntry.objects.filter(is_active=True, metadata__section_key__isnull=False)
+            .values_list('metadata__section_key', flat=True)
+            .distinct()
+        )
+
+        self.assertTrue(covered)
+        self.assertSetEqual(covered, set(ALL_GENERIC_SECTION_CONFIGS) | {'interior_walls'})
+
+    def test_every_configured_section_resolves_a_meaningful_default_match(self):
+        KnowledgeEntry.objects.filter(is_active=True).delete()
+        seed_default_specification_knowledge()
+
+        contexts = {
+            'interior_walls': {
+                'section_key': 'interior_walls',
+                'substrate_type': 'INTERIOR',
+                'types': ['brick'],
+                'surface_conditions': ['cracks'],
+                'finishes': ['smooth_matte'],
+                'product_groups': ['pure_matte'],
+                'moisture': 9,
+            },
+        }
+
+        for key, cfg in ALL_GENERIC_SECTION_CONFIGS.items():
+            if key in contexts:
+                continue
+            first_type = cfg.types[0][0] if cfg.types else 'generic'
+            first_finish = cfg.finishes[0][0] if cfg.finishes else 'smooth_matte'
+            first_condition = cfg.surface_conditions[0][0] if cfg.surface_conditions else 'new'
+            if first_finish == 'smooth_matte':
+                product_group = 'pure_matte'
+            elif first_finish == 'smooth_sheen':
+                product_group = 'pro_sheen'
+            elif first_finish == 'fine_texture':
+                product_group = 'texture_pro_fine'
+            elif first_finish == 'coarse_texture':
+                product_group = 'texture_pro_medium_coarse'
+            elif first_finish == 'deco_plast':
+                product_group = 'deco_plast_1mm'
+            else:
+                product_group = 'pure_matte'
+            contexts[key] = {
+                'section_key': key,
+                'substrate_type': cfg.substrate_type,
+                'types': [first_type],
+                'surface_conditions': [first_condition],
+                'finishes': [first_finish],
+                'product_groups': [product_group],
+                'moisture': 8,
+            }
+
+        for key, context in contexts.items():
+            matches = KnowledgeService.find_matches_for_section(None, context)
+            self.assertTrue(matches, f'No default matches for section {key} with context {context}')
+            self.assertTrue(any(m.title.lower() for m in matches), f'No usable title for section {key}')
+
+    def test_seeded_entries_distinguish_materials_and_finish_preferences(self):
+        KnowledgeEntry.objects.filter(is_active=True).delete()
+        seed_default_specification_knowledge()
+
+        brick_context = {
+            'section_key': 'exterior_walls',
+            'substrate_type': 'EXTERIOR',
+            'types': ['brick'],
+            'surface_conditions': ['new'],
+            'finishes': ['smooth_matte'],
+            'product_groups': ['pure_matte'],
+            'moisture': 8,
+        }
+        drywall_context = {
+            'section_key': 'interior_walls',
+            'substrate_type': 'INTERIOR',
+            'types': ['drywall'],
+            'surface_conditions': ['previously_painted'],
+            'finishes': ['smooth_sheen'],
+            'product_groups': ['pro_sheen'],
+            'moisture': 12,
+        }
+
+        brick_matches = KnowledgeService.find_matches_for_section(None, brick_context)
+        drywall_matches = KnowledgeService.find_matches_for_section(None, drywall_context)
+
+        self.assertTrue(any('brick' in m.reason.lower() for m in brick_matches))
+        self.assertTrue(any('drywall' in m.reason.lower() for m in drywall_matches))
+        self.assertNotEqual(
+            {m.title for m in brick_matches if 'brick' in m.reason.lower()},
+            {m.title for m in drywall_matches if 'drywall' in m.reason.lower()},
+        )
+
+    def test_all_15_live_sections_resolve_meaningful_default_matches(self):
+        KnowledgeEntry.objects.filter(is_active=True).delete()
+        seed_default_specification_knowledge()
+
+        fallback_product_groups = {
+            'smooth_matte': 'pure_matte',
+            'smooth_sheen': 'pro_sheen',
+            'deco_plast': 'deco_plast_1mm',
+            'fine_texture': 'texture_pro_fine',
+            'coarse_texture': 'texture_pro_medium_coarse',
+        }
+        failures = []
+
+        for section_key in sorted(ALL_SUBSECTIONS):
+            if section_key == 'interior_walls':
+                type_value = 'brick'
+                finish_value = 'smooth_matte'
+                condition_value = 'cracks'
+                product_group = 'pure_matte'
+                substrate_type = 'INTERIOR'
+            else:
+                cfg = ALL_GENERIC_SECTION_CONFIGS[section_key]
+                type_value = cfg.types[0][0]
+                finish_value = cfg.finishes[0][0]
+                condition_value = cfg.surface_conditions[0][0] if cfg.surface_conditions else 'new'
+                product_group = fallback_product_groups.get(finish_value, 'pure_matte')
+                substrate_type = cfg.substrate_type
+
+            context = {
+                'section_key': section_key,
+                'substrate_type': substrate_type,
+                'types': [type_value],
+                'surface_conditions': [condition_value],
+                'finishes': [finish_value],
+                'product_groups': [product_group],
+                'moisture': 8,
+            }
+
+            matches = KnowledgeService.find_matches_for_section(None, context)
+            if not matches:
+                failures.append(f'{section_key} -> {context}')
+                continue
+            if not any(m.title for m in matches):
+                failures.append(f'{section_key} -> no meaningful title')
+
+        self.assertFalse(failures, f'No default matches found for: {failures}')
+
+    def test_interior_walls_seed_distinguishes_brick_drywall_and_crack_conditions(self):
+        KnowledgeEntry.objects.filter(is_active=True).delete()
+        seed_default_specification_knowledge()
+
+        brick_context = {
+            'section_key': 'interior_walls',
+            'substrate_type': 'INTERIOR',
+            'types': ['brick'],
+            'surface_conditions': ['cracks', 'previously_painted'],
+            'finishes': ['smooth_matte'],
+            'product_groups': ['pure_matte'],
+            'moisture': 9,
+        }
+        drywall_context = {
+            'section_key': 'interior_walls',
+            'substrate_type': 'INTERIOR',
+            'types': ['drywall'],
+            'surface_conditions': ['cracks', 'previously_painted'],
+            'finishes': ['smooth_sheen'],
+            'product_groups': ['pro_sheen'],
+            'moisture': 11,
+        }
+
+        brick_matches = KnowledgeService.find_matches_for_section(None, brick_context)
+        drywall_matches = KnowledgeService.find_matches_for_section(None, drywall_context)
+
+        brick_titles = {m.title.lower() for m in brick_matches}
+        drywall_titles = {m.title.lower() for m in drywall_matches}
+
+        self.assertTrue(any('brick' in title for title in brick_titles))
+        self.assertTrue(any('drywall' in title for title in drywall_titles))
+        self.assertTrue(any('crack' in title or 'repair' in title for title in brick_titles | drywall_titles))
+        self.assertNotEqual(brick_titles, drywall_titles)
+
     def test_manual_specification_is_registered_as_distinct_option(self):
         self.assertIn('manual_specification', PDF_TEMPLATES)
         self.assertIn('detailed_spec', PDF_TEMPLATES)
@@ -287,6 +543,17 @@ class Pack6BBuilderBlockOverrideTests(TestCase):
         self.assertFalse(preview_ctx['report_controls']['show_photos'])
         self.assertFalse(preview_ctx['report_options']['pricing_enabled'])
         self.assertEqual(preview_ctx['sections'][0]['section_name'], 'Changed section title')
+
+    def test_manual_builder_rebuilds_from_live_resolver_when_stale_draft_is_empty(self):
+        stale = self.service.create_draft_from_resolver(self.quotation, created_by=self.user, title='Stale Draft')
+        stale.data = {'resolver': {'sections': []}, 'draft_overrides': {'pricing_visible': True, 'sections': {}}}
+        stale.save()
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('specifications:builder_quotation', args=[self.quotation.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'interior_walls')
 
     def test_manual_builder_page_exposes_preview_and_export_workflow_actions(self):
         self.client.force_login(self.user)
