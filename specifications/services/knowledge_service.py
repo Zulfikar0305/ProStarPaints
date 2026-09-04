@@ -75,6 +75,30 @@ class KnowledgeService:
     def _normalise_token(value):
         return str(value).strip().lower()
 
+    @classmethod
+    def _match_aliases_for_field(cls, field_name: str, value) -> set[str]:
+        token = cls._normalise_token(value)
+        if field_name not in {"surface_condition", "surface_conditions"}:
+            return {token}
+
+        alias_groups = {
+            "prev_painted_good": {"prev_painted_good", "previously_painted"},
+            "prev_painted_poor": {"prev_painted_poor", "previously_painted", "peeling", "flaking"},
+            "prev_painted_chalky": {"prev_painted_chalky", "previously_painted", "chalky"},
+            "prev_painted_mouldy": {"prev_painted_mouldy", "previously_painted", "mould", "mouldy"},
+            "unpainted": {"unpainted", "new"},
+            "new": {"new", "unpainted"},
+            "previously_painted": {"previously_painted", "prev_painted_good", "prev_painted_poor", "prev_painted_chalky", "prev_painted_mouldy"},
+            "cracks": {"cracks", "crack", "cracked", "rough", "holes", "hole"},
+            "rough": {"rough", "cracks", "crack", "holes", "hole"},
+            "peeling": {"peeling", "flaking", "prev_painted_poor"},
+            "mould": {"mould", "mouldy", "prev_painted_mouldy"},
+        }
+        for canonical, aliases in alias_groups.items():
+            if token in aliases:
+                return {cls._normalise_token(v) for v in aliases}
+        return {token}
+
     @staticmethod
     def _context_has_any(context: Dict[str, Any], keys) -> bool:
         for key in keys:
@@ -97,6 +121,17 @@ class KnowledgeService:
         return False
 
     @classmethod
+    def _entry_has_explicit_type_selector(cls, meta: Dict[str, Any]) -> bool:
+        return any(key in meta for key in ("type", "types"))
+
+    @classmethod
+    def _is_specific_selection_entry(cls, entry: KnowledgeEntry) -> bool:
+        meta = entry.metadata or {}
+        if not meta:
+            return False
+        return any(key in meta for key in ("type", "types", "product_pk", "product_pks", "product_group", "product_groups"))
+
+    @classmethod
     def _match_any_value(cls, context_values, meta_keys, meta, matched_key):
         selected = []
         for source in context_values:
@@ -107,11 +142,25 @@ class KnowledgeService:
                 want.extend(cls._as_list(meta.get(key)))
         if not want:
             return None
-        selected_norm = [cls._normalise_token(v) for v in selected if str(v).strip()]
-        want_norm = {cls._normalise_token(v) for v in want if str(v).strip()}
+
+        selected_norm = {
+            alias
+            for v in selected
+            if str(v).strip()
+            for alias in cls._match_aliases_for_field(matched_key, v)
+        }
+        want_norm = {
+            alias
+            for v in want
+            if str(v).strip()
+            for alias in cls._match_aliases_for_field(matched_key, v)
+        }
         if not want_norm:
             return None
-        intersection = [v for v in selected if cls._normalise_token(v) in want_norm]
+        intersection = [
+            v for v in selected
+            if any(alias in want_norm for alias in cls._match_aliases_for_field(matched_key, v))
+        ]
         if not intersection:
             return None
         return {matched_key: intersection}
@@ -199,22 +248,54 @@ class KnowledgeService:
                     return None
 
         # Type / substrate selection
-        type_match = cls._match_any_value(
-            [
-                context.get("types"),
-                context.get("type"),
-                context.get("substrate_type"),
-                context.get("substrate"),
-            ],
-            ("type", "types", "substrate_type", "substrate"),
-            meta,
-            "types",
-        )
-        if type_match is not None:
-            matched.update(type_match)
-            score += 2
-        elif any(key in meta for key in ("type", "types", "substrate_type", "substrate")) and cls._context_has_any(context, ("type", "types", "substrate_type", "substrate")):
-            return None
+        type_context_values = []
+        for key in ("types", "type"):
+            if context.get(key) is not None:
+                type_context_values.extend(cls._as_list(context.get(key)))
+
+        type_meta_values = []
+        for key in ("type", "types"):
+            if key in meta:
+                type_meta_values.extend(cls._as_list(meta.get(key)))
+
+        if type_meta_values:
+            want_norm = {cls._normalise_token(v) for v in type_meta_values if str(v).strip()}
+            if want_norm:
+                intersection = [v for v in type_context_values if cls._normalise_token(v) in want_norm]
+                if intersection:
+                    matched["types"] = intersection
+                    score += 2
+                else:
+                    return None
+            else:
+                type_match = None
+        else:
+            substrate_context_has_data = cls._context_has_any(context, ("substrate_type", "substrate"))
+            type_match = cls._match_any_value(
+                [
+                    context.get("types"),
+                    context.get("type"),
+                    context.get("substrate_type"),
+                    context.get("substrate"),
+                ],
+                ("substrate_type", "substrate"),
+                meta,
+                "types",
+            )
+            if type_match is not None:
+                matched.update(type_match)
+                score += 2
+            elif (
+                cls._entry_has_explicit_type_selector(meta)
+                and cls._context_has_any(context, ("type", "types", "substrate_type", "substrate"))
+            ):
+                return None
+            elif substrate_context_has_data and not cls._entry_has_explicit_type_selector(meta):
+                # Generic substrate-only entries are allowed to remain as fallback
+                # when the caller did not provide an actual substrate selector for
+                # the section; this preserves fallback content without matching the
+                # wrong specific material context.
+                pass
 
         # Primary condition matching
         surface_match = cls._match_any_value(
@@ -347,7 +428,7 @@ class KnowledgeService:
         """
         qs = KnowledgeEntry.objects.filter(is_active=True).select_related("category")
 
-        matches: List[KnowledgeMatch] = []
+        entries_with_matches: List[Tuple[KnowledgeEntry, KnowledgeMatch]] = []
         for entry in qs:
             try:
                 res = cls._match_entry(entry, section_context)
@@ -357,18 +438,23 @@ class KnowledgeService:
                     km = KnowledgeMatch(
                         pk=entry.pk,
                         title=entry.title,
-                        body=entry.body,
+                        body=entry.automatic_spec_content(),
                         priority=int(entry.priority or 0),
                         score=int(score),
                         reason=reason,
                         matched_conditions=matched_conditions,
                         created_at=getattr(entry, "created_at", None),
                     )
-                    matches.append(km)
+                    entries_with_matches.append((entry, km))
             except Exception:
                 # Non-fatal: skip problematic entries
                 continue
 
         # Order by priority desc, score desc, created_at asc to be deterministic
-        matches.sort(key=lambda m: (-m.priority, -m.score, m.created_at or timezone.datetime(1970,1,1)))
-        return matches
+        entries_with_matches.sort(
+            key=lambda item: (-item[1].priority, -item[1].score, item[1].created_at or timezone.datetime(1970,1,1))
+        )
+
+        if any(cls._is_specific_selection_entry(entry) for entry, _ in entries_with_matches):
+            return [km for entry, km in entries_with_matches if cls._is_specific_selection_entry(entry)]
+        return [km for _, km in entries_with_matches]

@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Surface Default — ProStar Paints{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3 psp-ws-header">
+  <div>
+    <h4 class="fw-bold mb-0">{% trans "Surface Default" %}</h4>
+    <p class="text-muted mb-0 mt-1" style="font-size:.9rem;">{% trans "Configure default preparation and description wording for one exact ProStar surface selection." %}</p>
+  </div>
+  <div>
+    <a href="{% url 'specifications:surface_defaults_index' %}" class="btn btn-outline-secondary btn-sm">&larr; {% trans "Back" %}</a>
+  </div>
+</div>
+
+{{ form.section_choice_map|json_script:"surface-default-section-map" }}
+{{ form.surface_choice_map|json_script:"surface-default-surface-map" }}
+
+<form method="post">
+  {% csrf_token %}
+  <div class="card p-3">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-12 col-md-6">
+          <label class="form-label fw-semibold">Main Section</label>
+          {{ form.main_section }}
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label fw-semibold">Subsection</label>
+          {{ form.subsection }}
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Surface</label>
+          {{ form.surface }}
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Preparation Requirements</label>
+          {{ form.preparation_requirements }}
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Surface Rules / Description</label>
+          {{ form.surface_rules }}
+        </div>
+        <div class="col-12">
+          <div class="form-check">
+            {{ form.is_active }}
+            <label class="form-check-label" for="{{ form.is_active.id_for_label }}">Active</label>
+          </div>
+        </div>
+      </div>
+
+      {% if form.errors %}
+        <div class="alert alert-danger mt-3">
+          {{ form.errors }}
+        </div>
+      {% endif %}
+
+      <div class="text-end mt-4">
+        <button class="btn btn-primary" type="submit">Save</button>
+      </div>
+    </div>
+  </div>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const sectionMapNode = document.getElementById('surface-default-section-map');
+  const surfaceMapNode = document.getElementById('surface-default-surface-map');
+  const mainSectionSelect = document.getElementById('id_main_section');
+  const subsectionSelect = document.getElementById('id_subsection');
+  const surfaceSelect = document.getElementById('id_surface');
+
+  function updateSubsections() {
+    if (!mainSectionSelect || !subsectionSelect || !sectionMapNode) return;
+    const map = JSON.parse(sectionMapNode.textContent || '{}');
+    const currentValue = subsectionSelect.value || '';
+    const options = map[mainSectionSelect.value] || [];
+    subsectionSelect.innerHTML = '';
+    const blank = document.createElement('option');
+    blank.value = '';
+    blank.textContent = '---------';
+    subsectionSelect.appendChild(blank);
+    options.forEach((item) => {
+      const option = document.createElement('option');
+      option.value = item.value;
+      option.textContent = item.label;
+      if (item.value === currentValue) option.selected = true;
+      subsectionSelect.appendChild(option);
+    });
+    if (!options.some((item) => item.value === subsectionSelect.value)) {
+      subsectionSelect.value = '';
+    }
+    updateSurfaces();
+  }
+
+  function updateSurfaces() {
+    if (!subsectionSelect || !surfaceSelect || !surfaceMapNode) return;
+    const map = JSON.parse(surfaceMapNode.textContent || '{}');
+    const currentValue = surfaceSelect.value || '';
+    const options = map[subsectionSelect.value] || [];
+    surfaceSelect.innerHTML = '';
+    const blank = document.createElement('option');
+    blank.value = '';
+    blank.textContent = '---------';
+    surfaceSelect.appendChild(blank);
+    options.forEach((item) => {
+      const option = document.createElement('option');
+      option.value = item.value;
+      option.textContent = item.label;
+      if (item.value === currentValue) option.selected = true;
+      surfaceSelect.appendChild(option);
+    });
+    if (!options.some((item) => item.value === surfaceSelect.value)) {
+      surfaceSelect.value = '';
+    }
+  }
+
+  if (mainSectionSelect) {
+    mainSectionSelect.addEventListener('change', updateSubsections);
+    updateSubsections();
+  }
+  if (subsectionSelect) {
+    subsectionSelect.addEventListener('change', updateSurfaces);
+  }
+});
+</script>
+{% endblock %}

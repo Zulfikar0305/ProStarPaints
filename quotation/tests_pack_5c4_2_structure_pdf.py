@@ -8,6 +8,7 @@ from django.contrib.auth import get_user_model
 from .models import Quotation, QuotationSection, QuotationLineItem
 from .pdf_service import build_pdf_context
 from paints.models import Paint
+from specifications.models import SurfaceDefault
 
 
 class Pack5C4_2_StructureTests(TestCase):
@@ -91,6 +92,34 @@ class Pack5C4_2_StructureTests(TestCase):
         self.assertNotEqual(idx_summary, -1, "Expected 'class=\"summary-bar\"' to be present in rendered HTML")
         self.assertNotEqual(idx_first_section, -1, "Expected first section title 'class=\"sec-title\"' to be present in rendered HTML")
         self.assertLess(idx_summary, idx_first_section, "Expected 'class=\"summary-bar\"' to appear before the first 'class=\"sec-title\"' (project details should precede sections)")
+
+    def test_surface_default_data_is_injected_into_section_context(self):
+        QuotationLineItem.objects.create(
+            quotation=self.quotation,
+            section=self.section,
+            item_type=QuotationLineItem.ItemType.NOTE,
+            description="Brick wall summary",
+            metadata={"wall_type": "brick", "wall_type_label": "Brick"},
+        )
+        SurfaceDefault.objects.create(
+            main_section="INTERIOR",
+            subsection="interior_walls",
+            surface="brick",
+            preparation_requirements="Clean and repair. Prime before coating.",
+            surface_rules="Brick masonry surfaces require repair and a masonry primer.",
+            is_active=True,
+        )
+
+        context = build_pdf_context(self.quotation, request=self.request)
+        section = context["sections"][0]
+
+        self.assertIsNotNone(section.get("surface_default"))
+        self.assertEqual(section["surface_default"].preparation_requirements, "Clean and repair. Prime before coating.")
+        self.assertIn("masonry primer", section["surface_default"].surface_rules.lower())
+
+        html = render_to_string('quotation/pdf/detailed_spec.html', context)
+        self.assertIn('Clean and repair.', html)
+        self.assertIn('Brick masonry surfaces require repair', html)
 
     def test_headings_and_totals_and_section_independence(self):
         context = build_pdf_context(self.quotation, request=self.request)

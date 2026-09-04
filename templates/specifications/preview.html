@@ -55,6 +55,17 @@
         </div>
       {% endif %}
 
+      {% if sec.knowledge_matches %}
+        <div class="spec-knowledge">
+          {% for km in sec.knowledge_matches %}
+            <div class="clause">
+              <div class="title">{{ km.title }}</div>
+              <div class="body">{{ km.body|linebreaksbr }}</div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
       {% if sec.product_descriptions %}
         <div class="product-list">
           {% for pd in sec.product_descriptions %}

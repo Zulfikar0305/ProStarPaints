@@ -29,31 +29,16 @@
   </div>
 
   <div class="col-12 col-md-6 col-lg-3">
-    <a href="{% url 'specifications:knowledge_index' %}" class="card text-decoration-none h-100 p-3">
+    <a href="{% url 'specifications:surface_defaults_index' %}" class="card text-decoration-none h-100 p-3">
       <div class="card-body">
         <div class="d-flex align-items-start">
-          <div class="me-3" style="font-size:1.8rem;">📚</div>
+          <div class="me-3" style="font-size:1.8rem;">📋</div>
           <div>
-            <div class="fw-semibold" style="font-size:1.05rem;">{% trans "Knowledge Library" %}</div>
-            <div class="text-muted mt-2">{% trans "Manage reusable clauses and notes used inside specifications." %}</div>
+            <div class="fw-semibold" style="font-size:1.05rem;">{% trans "Surface Defaults" %}</div>
+            <div class="text-muted mt-2">{% trans "Manage reusable preparation and descriptive defaults for exact ProStar surfaces." %}</div>
           </div>
         </div>
         <div class="mt-3 text-end"><span class="text-primary">{% trans "Manage →" %}</span></div>
-      </div>
-    </a>
-  </div>
-
-  <div class="col-12 col-md-6 col-lg-3">
-    <a href="{% url 'specifications:rules_index' %}" class="card text-decoration-none h-100 p-3">
-      <div class="card-body">
-        <div class="d-flex align-items-start">
-          <div class="me-3" style="font-size:1.8rem;">🔁</div>
-          <div>
-            <div class="fw-semibold" style="font-size:1.05rem;">{% trans "Rule Engine" %}</div>
-            <div class="text-muted mt-2">{% trans "Configure conditional rules that add clauses to specifications." %}</div>
-          </div>
-        </div>
-        <div class="mt-3 text-end"><span class="text-primary">{% trans "Configure →" %}</span></div>
       </div>
     </a>
   </div>

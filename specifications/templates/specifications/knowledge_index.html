@@ -1,16 +1,13 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}Knowledge Library — ProStar Paints{% endblock %}
+{% block title %}Surface Defaults — ProStar Paints{% endblock %}
 
 {% block content %}
 <div class="d-flex align-items-center justify-content-between mb-3 psp-ws-header">
   <div>
-    <h4 class="fw-bold mb-0">{% trans "Knowledge Library" %}</h4>
-    <p class="text-muted mb-0 mt-1" style="font-size:.9rem;">{% trans "Create reusable notes and rules used throughout the system." %}</p>
-  </div>
-  <div>
-    <a href="{% url 'specifications:rules_index' %}" class="btn btn-outline-secondary btn-sm">{% trans "Manage Rules" %}</a>
+    <h4 class="fw-bold mb-0">{% trans "Surface Defaults" %}</h4>
+    <p class="text-muted mb-0 mt-1" style="font-size:.9rem;">{% trans "Configure reusable preparation and surface description defaults for exact ProStar surface targets." %}</p>
   </div>
 </div>
 
@@ -18,15 +15,7 @@
   <div class="card-body">
     <form method="get" class="row g-2 mb-3">
       <div class="col-auto">
-        <input type="search" name="q" value="{{ q }}" class="form-control" placeholder="Search by title">
-      </div>
-      <div class="col-auto">
-        <select name="category" class="form-select">
-          <option value="">All categories</option>
-          {% for c in categories %}
-            <option value="{{ c.slug }}" {% if c.slug == cat %}selected{% endif %}>{{ c.name }}</option>
-          {% endfor %}
-        </select>
+        <input type="search" name="q" value="{{ q }}" class="form-control" placeholder="Search surface or subsection">
       </div>
       <div class="col-auto">
         <div class="form-check">
@@ -38,7 +27,7 @@
         <button class="btn btn-outline-secondary">Filter</button>
       </div>
       <div class="col text-end">
-        <a href="{% url 'specifications:knowledge_add' %}" class="btn btn-primary">Add Knowledge</a>
+        <a href="{% url 'specifications:surface_default_add' %}" class="btn btn-primary">Add Surface Default</a>
       </div>
     </form>
 
@@ -47,18 +36,17 @@
         {% for e in entries %}
           <div class="list-group-item d-flex justify-content-between align-items-start">
             <div>
-              <div class="fw-semibold">{{ e.title }}</div>
+              <div class="fw-semibold">{{ e.selection_summary }}</div>
               <div class="text-muted small">
-                {% if e.category %}{{ e.category.name }} · {% endif %}
-                Priority: {{ e.priority }}
-                {% if e.tags %}· Tags: {{ e.tags|join:", " }}{% endif %}
+                {% if e.preparation_requirements %}Preparation: {{ e.preparation_requirements|truncatechars:80 }} · {% endif %}
+                {% if e.is_active %}Active{% else %}Inactive{% endif %}
               </div>
             </div>
             <div class="text-end">
               {% if not e.is_active %}<span class="badge bg-secondary me-2">Inactive</span>{% endif %}
-              <a class="btn btn-sm btn-outline-primary" href="{% url 'specifications:knowledge_edit' e.pk %}">Edit</a>
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'specifications:surface_default_edit' e.pk %}">Edit</a>
               {% if e.is_active %}
-                <form method="post" action="{% url 'specifications:knowledge_deactivate' e.pk %}" style="display:inline">
+                <form method="post" action="{% url 'specifications:surface_default_deactivate' e.pk %}" style="display:inline">
                   {% csrf_token %}
                   <button class="btn btn-sm btn-outline-danger">Deactivate</button>
                 </form>
@@ -69,9 +57,9 @@
       </div>
     {% else %}
       <div class="psp-empty p-4 text-center">
-        <div class="psp-empty-icon">📚</div>
-        <div class="psp-empty-title">{% trans "No knowledge entries yet" %}</div>
-        <div class="psp-empty-text">{% trans "Create reusable knowledge items to be applied to specifications." %}</div>
+        <div class="psp-empty-icon">📋</div>
+        <div class="psp-empty-title">{% trans "No surface defaults yet" %}</div>
+        <div class="psp-empty-text">{% trans "Create a reusable default for an exact surface target." %}</div>
       </div>
     {% endif %}
   </div>

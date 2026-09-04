@@ -982,6 +982,8 @@ class InteriorWallsSaveView(QuotationAccessMixin, View):
             metadata  = {
                 "wall_type":         wall_type,
                 "wall_type_label":   wall_type_label,
+                "types":             [wall_type] if wall_type else [],
+                "type_labels":       [wall_type_label] if wall_type_label else [],
                 "surface_conditions": surface_conds,
                 "surface_cond_labels": cond_labels,
                 "moisture_level":    moisture,

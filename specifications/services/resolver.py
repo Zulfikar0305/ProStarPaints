@@ -1,6 +1,7 @@
-from typing import Any, Dict, List
-from decimal import Decimal
 import hashlib
+import re
+from decimal import Decimal
+from typing import Any, Dict, List
 
 from django.db.models import Prefetch
 
@@ -156,6 +157,26 @@ class SpecificationResolver:
                 product_pks = [p.get("product_pk") for p in sec.get("product_descriptions") or []]
                 product_groups = [p.get("product_group") for p in sec.get("product_descriptions") or [] if p.get("product_group")]
                 section_meta = (note_item.metadata if note_item and note_item.metadata else {})
+
+                raw_types = []
+                for key in ("types", "type"):
+                    values = section_meta.get(key) or []
+                    if isinstance(values, (list, tuple, set)):
+                        raw_types.extend(str(v) for v in values if str(v).strip())
+                    elif values not in (None, ""):
+                        raw_types.append(str(values))
+
+                wall_type = section_meta.get("wall_type")
+                if wall_type and str(wall_type) not in raw_types:
+                    raw_types.append(str(wall_type))
+
+                wall_type_label = section_meta.get("wall_type_label")
+                if wall_type_label:
+                    for token in re.split(r"[/,&+\s]+", str(wall_type_label)):
+                        token = token.strip().lower()
+                        if token and token not in raw_types and token not in {"plasterboard", "gypsum", "board", "boards"}:
+                            raw_types.append(token)
+
                 section_context = {
                     "section_key": sec.get("section_key"),
                     "product_pks": product_pks,
@@ -164,7 +185,7 @@ class SpecificationResolver:
                     "surface_condition": surface_cond,
                     "surface_conditions": section_meta.get("surface_conditions") or [],
                     "substrate_type": getattr(section, "substrate_type", None) or section_meta.get("substrate_type"),
-                    "types": section_meta.get("types") or section_meta.get("type") or [],
+                    "types": list(dict.fromkeys(raw_types)),
                     "finish": None,
                     "finishes": [],
                     "preparation": None,

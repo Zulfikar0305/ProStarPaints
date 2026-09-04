@@ -8,10 +8,12 @@ from django.urls import reverse
 from quotation.models import Quotation, QuotationSection, QuotationLineItem
 from quotation.pdf_templates import PDF_TEMPLATES
 from paints.models import Paint
-from specifications.models import SpecificationTemplate, KnowledgeEntry
+from specifications.forms import KnowledgeEntryForm
+from specifications.models import SpecificationTemplate, KnowledgeEntry, SurfaceDefault
 from specifications.services import ManualSpecificationBuilderService, seed_default_specification_knowledge
 from specifications.services.export_service import ExportService
 from specifications.services.knowledge_service import KnowledgeService
+from specifications.services.resolver import SpecificationResolver
 from specifications.services.preview_service import PreviewService
 from specifications.services.template_service import TemplateService
 from quotation.config import ALL_GENERIC_SECTION_CONFIGS
@@ -463,6 +465,606 @@ class Pack6BBuilderBlockOverrideTests(TestCase):
         self.assertTrue(any('drywall' in title for title in drywall_titles))
         self.assertTrue(any('crack' in title or 'repair' in title for title in brick_titles | drywall_titles))
         self.assertNotEqual(brick_titles, drywall_titles)
+
+    def test_roof_selection_distinguishes_steel_and_concrete(self):
+        KnowledgeEntry.objects.filter(is_active=True).delete()
+        seed_default_specification_knowledge()
+
+        steel_context = {
+            'section_key': 'roof',
+            'substrate_type': 'EXTERIOR',
+            'types': ['steel'],
+            'surface_conditions': ['prev_painted_good'],
+            'finishes': ['smooth_matte'],
+            'product_groups': ['pure_matte'],
+            'moisture': 9,
+        }
+        concrete_context = {
+            'section_key': 'roof',
+            'substrate_type': 'EXTERIOR',
+            'types': ['concrete'],
+            'surface_conditions': ['prev_painted_good'],
+            'finishes': ['smooth_matte'],
+            'product_groups': ['pure_matte'],
+            'moisture': 10,
+        }
+
+        steel_matches = KnowledgeService.find_matches_for_section(None, steel_context)
+        concrete_matches = KnowledgeService.find_matches_for_section(None, concrete_context)
+
+        self.assertTrue(any('steel' in m.title.lower() for m in steel_matches))
+        self.assertTrue(any('concrete' in m.title.lower() for m in concrete_matches))
+        self.assertFalse(any('steel' in m.title.lower() and 'concrete' not in m.title.lower() for m in concrete_matches))
+        self.assertFalse(any('concrete' in m.title.lower() and 'steel' not in m.title.lower() for m in steel_matches))
+
+    def test_gutter_selection_distinguishes_metal_and_pvc(self):
+        KnowledgeEntry.objects.filter(is_active=True).delete()
+        seed_default_specification_knowledge()
+
+        metal_context = {
+            'section_key': 'gutter',
+            'substrate_type': 'EXTERIOR',
+            'types': ['metal'],
+            'surface_conditions': ['prev_painted_good'],
+            'finishes': ['smooth_matte'],
+            'product_groups': ['pure_matte'],
+            'moisture': 9,
+        }
+        pvc_context = {
+            'section_key': 'gutter',
+            'substrate_type': 'EXTERIOR',
+            'types': ['pvc'],
+            'surface_conditions': ['prev_painted_good'],
+            'finishes': ['smooth_matte'],
+            'product_groups': ['pure_matte'],
+            'moisture': 9,
+        }
+
+        metal_matches = KnowledgeService.find_matches_for_section(None, metal_context)
+        pvc_matches = KnowledgeService.find_matches_for_section(None, pvc_context)
+
+        self.assertTrue(any('metal' in m.title.lower() for m in metal_matches))
+        self.assertTrue(any('pvc' in m.title.lower() for m in pvc_matches))
+        self.assertFalse(any('pvc' in m.title.lower() for m in metal_matches))
+        self.assertFalse(any('metal' in m.title.lower() for m in pvc_matches))
+
+    def test_current_builder_surface_condition_aliases_match_seeded_knowledge(self):
+        KnowledgeEntry.objects.filter(is_active=True).delete()
+        seed_default_specification_knowledge()
+
+        matches = KnowledgeService.find_matches_for_section(None, {
+            'section_key': 'interior_walls',
+            'substrate_type': 'INTERIOR',
+            'types': ['brick'],
+            'surface_conditions': ['prev_painted_good'],
+            'finishes': ['smooth_matte'],
+            'moisture': 8,
+        })
+
+        titles = [m.title for m in matches]
+        self.assertTrue(any('brick' in title.lower() for title in titles))
+        self.assertFalse(any('drywall' in title.lower() for title in titles))
+
+    def test_specific_material_rule_precedes_generic_section_rule(self):
+        KnowledgeEntry.objects.filter(is_active=True).delete()
+
+        KnowledgeEntry.objects.create(
+            title='PACK2C GENERIC INTERIOR WALLS TEST',
+            kind=KnowledgeEntry.KIND_CLAUSE,
+            is_active=True,
+            priority=20,
+            metadata={
+                'section_key': 'interior_walls',
+                'substrate_type': 'INTERIOR',
+                'surface_conditions': ['cracks'],
+                'preparations': ['cleaning'],
+                'application_method': 'Generic application',
+            },
+        )
+        KnowledgeEntry.objects.create(
+            title='PACK2C BRICK SPECIFIC PRECEDENCE TEST',
+            kind=KnowledgeEntry.KIND_CLAUSE,
+            is_active=True,
+            priority=100,
+            metadata={
+                'section_key': 'interior_walls',
+                'substrate_type': 'INTERIOR',
+                'types': ['brick'],
+                'surface_conditions': ['cracks'],
+                'preparations': ['cleaning', 'sanding', 'filling'],
+                'preparation_requirements': ['cleaning', 'sanding', 'filling'],
+                'application_method': 'Brick application method',
+                'technical_notes': 'Brick-specific tech guidance',
+            },
+        )
+        KnowledgeEntry.objects.create(
+            title='PACK2C DRYWALL SPECIFIC PRECEDENCE TEST',
+            kind=KnowledgeEntry.KIND_CLAUSE,
+            is_active=True,
+            priority=90,
+            metadata={
+                'section_key': 'interior_walls',
+                'substrate_type': 'INTERIOR',
+                'types': ['drywall'],
+                'surface_conditions': ['cracks'],
+                'preparations': ['cleaning', 'patching'],
+                'application_method': 'Drywall application method',
+            },
+        )
+
+        matches = KnowledgeService.find_matches_for_section(None, {
+            'section_key': 'interior_walls',
+            'types': ['brick'],
+            'surface_conditions': ['cracks'],
+            'moisture': 9,
+        })
+
+        titles = [m.title for m in matches]
+        self.assertIn('PACK2C BRICK SPECIFIC PRECEDENCE TEST', titles)
+        self.assertNotIn('PACK2C GENERIC INTERIOR WALLS TEST', titles)
+        self.assertNotIn('PACK2C DRYWALL SPECIFIC PRECEDENCE TEST', titles)
+
+    def test_drywall_specific_rule_precedes_generic_section_rule(self):
+        KnowledgeEntry.objects.filter(is_active=True).delete()
+
+        KnowledgeEntry.objects.create(
+            title='PACK2C GENERIC INTERIOR WALLS TEST',
+            kind=KnowledgeEntry.KIND_CLAUSE,
+            is_active=True,
+            priority=20,
+            metadata={
+                'section_key': 'interior_walls',
+                'substrate_type': 'INTERIOR',
+                'surface_conditions': ['cracks'],
+                'preparations': ['cleaning'],
+                'application_method': 'Generic application',
+            },
+        )
+        KnowledgeEntry.objects.create(
+            title='PACK2C BRICK SPECIFIC PRECEDENCE TEST',
+            kind=KnowledgeEntry.KIND_CLAUSE,
+            is_active=True,
+            priority=100,
+            metadata={
+                'section_key': 'interior_walls',
+                'substrate_type': 'INTERIOR',
+                'types': ['brick'],
+                'surface_conditions': ['cracks'],
+                'preparations': ['cleaning', 'sanding', 'filling'],
+                'preparation_requirements': ['cleaning', 'sanding', 'filling'],
+                'application_method': 'Brick application method',
+            },
+        )
+        KnowledgeEntry.objects.create(
+            title='PACK2C DRYWALL SPECIFIC PRECEDENCE TEST',
+            kind=KnowledgeEntry.KIND_CLAUSE,
+            is_active=True,
+            priority=110,
+            metadata={
+                'section_key': 'interior_walls',
+                'substrate_type': 'INTERIOR',
+                'types': ['drywall'],
+                'surface_conditions': ['cracks'],
+                'preparations': ['cleaning', 'patching'],
+                'application_method': 'Drywall application method',
+            },
+        )
+
+        matches = KnowledgeService.find_matches_for_section(None, {
+            'section_key': 'interior_walls',
+            'types': ['drywall'],
+            'surface_conditions': ['cracks'],
+            'moisture': 8,
+        })
+
+        titles = [m.title for m in matches]
+        self.assertIn('PACK2C DRYWALL SPECIFIC PRECEDENCE TEST', titles)
+        self.assertNotIn('PACK2C GENERIC INTERIOR WALLS TEST', titles)
+        self.assertNotIn('PACK2C BRICK SPECIFIC PRECEDENCE TEST', titles)
+
+    def test_roof_steel_specific_rule_precedes_concrete_generic_rule(self):
+        KnowledgeEntry.objects.filter(is_active=True).delete()
+
+        KnowledgeEntry.objects.create(
+            title='PACK2C GENERIC ROOF TEST',
+            kind=KnowledgeEntry.KIND_CLAUSE,
+            is_active=True,
+            priority=20,
+            metadata={
+                'section_key': 'roof',
+                'substrate_type': 'EXTERIOR',
+                'surface_conditions': ['prev_painted_good'],
+                'preparations': ['cleaning'],
+                'application_method': 'Generic roof application',
+            },
+        )
+        KnowledgeEntry.objects.create(
+            title='PACK2C CONCRETE ROOF PRECEDENCE TEST',
+            kind=KnowledgeEntry.KIND_CLAUSE,
+            is_active=True,
+            priority=90,
+            metadata={
+                'section_key': 'roof',
+                'substrate_type': 'EXTERIOR',
+                'types': ['concrete'],
+                'surface_conditions': ['prev_painted_good'],
+                'preparations': ['cleaning', 'efflor_removal'],
+                'application_method': 'Concrete roof application',
+            },
+        )
+        KnowledgeEntry.objects.create(
+            title='PACK2C STEEL ROOF PRECEDENCE TEST',
+            kind=KnowledgeEntry.KIND_CLAUSE,
+            is_active=True,
+            priority=100,
+            metadata={
+                'section_key': 'roof',
+                'substrate_type': 'EXTERIOR',
+                'types': ['steel'],
+                'surface_conditions': ['prev_painted_good'],
+                'preparations': ['cleaning', 'rust_treatment'],
+                'application_method': 'Steel roof application',
+            },
+        )
+
+        matches = KnowledgeService.find_matches_for_section(None, {
+            'section_key': 'roof',
+            'types': ['steel'],
+            'surface_conditions': ['prev_painted_good'],
+            'moisture': 9,
+        })
+
+        titles = [m.title for m in matches]
+        self.assertIn('PACK2C STEEL ROOF PRECEDENCE TEST', titles)
+        self.assertNotIn('PACK2C GENERIC ROOF TEST', titles)
+        self.assertNotIn('PACK2C CONCRETE ROOF PRECEDENCE TEST', titles)
+
+    def test_generic_rule_remains_for_context_when_no_specific_rule_exists(self):
+        KnowledgeEntry.objects.filter(is_active=True).delete()
+
+        KnowledgeEntry.objects.create(
+            title='PACK2C GENERIC SECTION FALLBACK TEST',
+            kind=KnowledgeEntry.KIND_CLAUSE,
+            is_active=True,
+            priority=10,
+            metadata={
+                'section_key': 'interior_walls',
+                'substrate_type': 'INTERIOR',
+                'surface_conditions': ['cracks'],
+                'preparations': ['cleaning'],
+                'application_method': 'Fallback application',
+            },
+        )
+
+        matches = KnowledgeService.find_matches_for_section(None, {
+            'section_key': 'interior_walls',
+            'types': ['timber'],
+            'surface_conditions': ['cracks'],
+            'moisture': 9,
+        })
+
+        titles = [m.title for m in matches]
+        self.assertIn('PACK2C GENERIC SECTION FALLBACK TEST', titles)
+
+    def test_resolver_uses_legacy_interior_wall_type_metadata_for_match_selection(self):
+        KnowledgeEntry.objects.filter(is_active=True).delete()
+        seed_default_specification_knowledge()
+
+        quote = Quotation.objects.create(
+            created_by=self.user,
+            customer_name='Legacy Type Test',
+            project_name='Legacy Type Test',
+            project_location='Johannesburg',
+        )
+        section = QuotationSection.objects.create(
+            quotation=quote,
+            subsection_key='interior_walls',
+            display_name='Interior Walls',
+            selection_order=1,
+        )
+        QuotationLineItem.objects.create(
+            quotation=quote,
+            section=section,
+            item_type=QuotationLineItem.ItemType.NOTE,
+            description='Interior Walls — Drywall / Plasterboard',
+            area_sqm=Decimal('18.00'),
+            metadata={
+                'wall_type': 'drywall',
+                'wall_type_label': 'Drywall / Plasterboard',
+                'surface_conditions': ['previously_painted'],
+                'moisture_level': 8,
+                'finishes': ['smooth_matte'],
+            },
+        )
+        QuotationLineItem.objects.create(
+            quotation=quote,
+            section=section,
+            item_type=QuotationLineItem.ItemType.PAINT,
+            description='Apply primer and finish',
+            paint=self.paint,
+            coats=2,
+            area_sqm=Decimal('18.00'),
+            metadata={'finish': 'smooth_matte'},
+        )
+
+        resolved = SpecificationResolver().resolve(quote)
+        matches = resolved['sections'][0]['knowledge_matches']
+
+        self.assertTrue(matches)
+        self.assertTrue(any(
+            'drywall' in str(match.get('title', '')).lower()
+            or 'drywall' in str(match.get('reason', '')).lower()
+            for match in matches
+        ))
+
+    def test_structured_knowledge_form_persists_selection_targeting(self):
+        form = KnowledgeEntryForm(data={
+            'title': 'Interior Walls Brick Preparation',
+            'body': 'Brick walls need repair and a suitable masonry primer before final coating.',
+            'category': '',
+            'kind': KnowledgeEntry.KIND_CLAUSE,
+            'is_default': 'on',
+            'is_active': 'on',
+            'sort_order': '20',
+            'priority': '30',
+            'tags': 'seed_default, authoring, interior_walls',
+            'section_key': 'interior_walls',
+            'substrate_type': 'INTERIOR',
+            'types': 'brick',
+            'surface_conditions': 'prev_painted_good, cracks',
+            'finishes': 'smooth_matte',
+            'preparations': 'cleaning, filling',
+            'primers': 'gp_universal',
+            'waterproofing': 'hydro_shield',
+            'application': 'interior',
+            'metadata': '',
+        })
+
+        self.assertTrue(form.is_valid(), form.errors)
+        entry = form.save()
+        self.assertEqual(entry.metadata['section_key'], 'interior_walls')
+        self.assertEqual(entry.metadata['types'], ['brick'])
+        self.assertEqual(entry.metadata['surface_conditions'], ['prev_painted_good', 'cracks'])
+        self.assertEqual(entry.metadata['finishes'], ['smooth_matte'])
+        self.assertIn('Interior Walls', entry.selection_summary)
+        self.assertIn('Brick', entry.selection_summary)
+
+    def test_surface_default_persists_exact_surface_target(self):
+        surface_default = SurfaceDefault.objects.create(
+            main_section='INTERIOR',
+            subsection='interior_walls',
+            surface='brick',
+            preparation_requirements='Clean and repair.\nPrime before coating.',
+            surface_rules='Brick masonry surfaces require repair and a masonry primer.',
+            is_active=True,
+        )
+
+        self.assertEqual(surface_default.main_section, 'INTERIOR')
+        self.assertEqual(surface_default.subsection, 'interior_walls')
+        self.assertEqual(surface_default.surface, 'brick')
+        self.assertEqual(surface_default.selection_summary, 'Interior → Interior Walls → Brick')
+
+    def test_surface_default_edit_does_not_alter_other_surfaces(self):
+        first = SurfaceDefault.objects.create(
+            main_section='INTERIOR',
+            subsection='ceilings',
+            surface='gypsum_boards',
+            preparation_requirements='Prepare boards.',
+            surface_rules='Drywall surfaces.',
+            is_active=True,
+        )
+        second = SurfaceDefault.objects.create(
+            main_section='INTERIOR',
+            subsection='ceilings',
+            surface='concrete_socket',
+            preparation_requirements='Prepare concrete.',
+            surface_rules='Concrete ceiling requires masonry primer.',
+            is_active=True,
+        )
+
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertEqual(first.surface, 'gypsum_boards')
+        self.assertEqual(second.surface, 'concrete_socket')
+        self.assertNotEqual(first.surface, second.surface)
+
+    def test_relevant_selection_persists_exact_checked_values(self):
+        form = KnowledgeEntryForm(data={
+            'title': 'Interior Walls Brick Only',
+            'body': 'Only brick guidance.',
+            'category': '',
+            'kind': KnowledgeEntry.KIND_CLAUSE,
+            'is_default': 'on',
+            'is_active': 'on',
+            'sort_order': '5',
+            'priority': '10',
+            'tags': 'brick',
+            'section_key': 'interior_walls',
+            'substrate_type': 'INTERIOR',
+            'types': 'brick',
+            'surface_conditions': 'prev_painted_good',
+            'finishes': 'smooth_matte',
+            'application': 'interior',
+            'metadata': '',
+        })
+
+        self.assertTrue(form.is_valid(), form.errors)
+        entry = form.save()
+        self.assertEqual(entry.metadata['types'], ['brick'])
+
+        reopened = KnowledgeEntryForm(instance=entry)
+        self.assertEqual(reopened.fields['types'].initial, ['brick'])
+
+    def test_relevant_selection_updates_when_deselected_on_edit(self):
+        entry = KnowledgeEntry.objects.create(
+            title='Interior Walls Multi Materials',
+            body='Test body',
+            kind=KnowledgeEntry.KIND_CLAUSE,
+            is_active=True,
+            metadata={
+                'section_key': 'interior_walls',
+                'substrate_type': 'INTERIOR',
+                'types': ['brick', 'drywall'],
+                'surface_conditions': ['prev_painted_good'],
+                'finishes': ['smooth_matte'],
+                'application': 'interior',
+            },
+        )
+
+        form = KnowledgeEntryForm(instance=entry, data={
+            'title': 'Interior Walls Multi Materials',
+            'body': 'Test body',
+            'category': '',
+            'kind': KnowledgeEntry.KIND_CLAUSE,
+            'is_default': 'off',
+            'is_active': 'on',
+            'sort_order': '5',
+            'priority': '10',
+            'tags': 'updated',
+            'section_key': 'interior_walls',
+            'substrate_type': 'INTERIOR',
+            'types': 'brick',
+            'surface_conditions': 'prev_painted_good',
+            'finishes': 'smooth_matte',
+            'application': 'interior',
+            'metadata': '',
+        })
+
+        self.assertTrue(form.is_valid(), form.errors)
+        updated = form.save()
+        self.assertEqual(updated.metadata['types'], ['brick'])
+
+        reopened = KnowledgeEntryForm(instance=updated)
+        self.assertEqual(reopened.fields['types'].initial, ['brick'])
+
+    def test_form_filters_type_choices_to_selected_subsection(self):
+        form = KnowledgeEntryForm()
+
+        roof_choices = dict(form._type_choices_for_section('roof'))
+        self.assertIn('steel', roof_choices)
+        self.assertIn('concrete', roof_choices)
+        self.assertNotIn('pvc', roof_choices)
+        self.assertNotIn('brick', roof_choices)
+
+        interior_wall_choices = dict(form._type_choices_for_section('interior_walls'))
+        self.assertIn('brick', interior_wall_choices)
+        self.assertIn('drywall', interior_wall_choices)
+        self.assertNotIn('steel', interior_wall_choices)
+
+    def test_structured_selection_form_persists_preparation_and_guidance(self):
+        form = KnowledgeEntryForm(data={
+            'title': 'Interior Walls Brick Preparation',
+            'body': 'Use a repair-first system before coating.',
+            'category': '',
+            'kind': KnowledgeEntry.KIND_CLAUSE,
+            'is_default': 'on',
+            'is_active': 'on',
+            'sort_order': '15',
+            'priority': '50',
+            'tags': 'brick, prep',
+            'section_key': 'interior_walls',
+            'substrate_type': 'INTERIOR',
+            'types': 'brick',
+            'surface_conditions': 'previously_painted, cracks',
+            'finishes': 'smooth_matte',
+            'preparations': 'cleaning, sanding, filling',
+            'preparation_requirements': 'cleaning, sanding, filling',
+            'additional_preparation_notes': 'Ensure the substrate is sound and dry before coating.',
+            'application_method': 'Brush and roll',
+            'coating_system_notes': 'Use a masonry-compatible primer as the first coat.',
+            'technical_notes': 'Keep moisture below the project threshold before final coating.',
+            'drying_recoat_guidance': 'Allow full cure before the next coat.',
+            'primers': 'gp_universal',
+            'waterproofing': 'hydro_shield',
+            'moisture_min': '8',
+            'moisture_max': '12',
+            'application': 'interior',
+            'metadata': '',
+        })
+
+        self.assertTrue(form.is_valid(), form.errors)
+        entry = form.save()
+        self.assertEqual(entry.metadata['preparation_requirements'], ['cleaning', 'sanding', 'filling'])
+        self.assertEqual(entry.metadata['preparations'], ['cleaning', 'sanding', 'filling'])
+        self.assertEqual(entry.metadata['additional_preparation_notes'], 'Ensure the substrate is sound and dry before coating.')
+        self.assertEqual(entry.metadata['application_method'], 'Brush and roll')
+        self.assertEqual(entry.metadata['coating_system_notes'], 'Use a masonry-compatible primer as the first coat.')
+        self.assertEqual(entry.metadata['technical_notes'], 'Keep moisture below the project threshold before final coating.')
+        self.assertEqual(entry.metadata['drying_recoat_guidance'], 'Allow full cure before the next coat.')
+        self.assertEqual(entry.metadata['moisture_min'], '8')
+        self.assertEqual(entry.metadata['moisture_max'], '12')
+
+    def test_resolver_exposes_structured_knowledge_in_match_body(self):
+        entry = KnowledgeEntry.objects.create(
+            title='Brick preparation guidance',
+            body='General brick guidance.',
+            kind=KnowledgeEntry.KIND_CLAUSE,
+            is_active=True,
+            priority=25,
+            metadata={
+                'section_key': 'interior_walls',
+                'types': ['brick'],
+                'surface_conditions': ['cracks'],
+                'preparations': ['cleaning', 'sanding', 'filling'],
+                'preparation_requirements': ['cleaning', 'sanding', 'filling'],
+                'additional_preparation_notes': 'Ensure the substrate is sound and dry.',
+                'application_method': 'Brush and roll',
+                'coating_system_notes': 'Use a masonry-compatible primer as the first coat.',
+                'technical_notes': 'Moisture must be below the project threshold before finish coat.',
+                'drying_recoat_guidance': 'Allow full cure before the next coat.',
+                'primers': ['gp_universal'],
+                'waterproofing': ['hydro_shield'],
+                'moisture_min': '8',
+                'moisture_max': '12',
+            },
+        )
+
+        matches = KnowledgeService.find_matches_for_section(None, {
+            'section_key': 'interior_walls',
+            'types': ['brick'],
+            'surface_conditions': ['cracks'],
+            'moisture': 9,
+        })
+
+        matched = next(m for m in matches if m.pk == entry.pk)
+        self.assertIn('Preparation', matched.body)
+        self.assertIn('Cleaning', matched.body)
+        self.assertIn('Primer', matched.body)
+        self.assertIn('Brush and roll', matched.body)
+        self.assertIn('Coating System', matched.body)
+        self.assertIn('Drying / Recoat', matched.body)
+        self.assertIn('Technical Information', matched.body)
+
+    def test_preview_service_prefers_live_resolver_over_stale_rendered_html(self):
+        draft = self.service.create_draft_from_resolver(self.quotation, created_by=self.user, title='Live Preview')
+        draft.data["resolver"] = {
+            "report_controls": {"show_pricing": True},
+            "sections": [{
+                "section_name": "Interior Walls",
+                "section_key": "interior_walls",
+                "clauses": [],
+                "product_descriptions": [],
+                "images": [],
+                "knowledge_matches": [{
+                    "pk": 99,
+                    "title": "Brick repair guidance",
+                    "body": "Clean and prime first.",
+                    "priority": 10,
+                    "score": 5,
+                    "reason": "brick",
+                    "matched_conditions": {"types": ["brick"]},
+                }],
+                "blocks": [],
+            }],
+        }
+        draft.data["rendered_html"] = {"manual_specification": "<html><body>stale preview shell</body></html>"}
+        draft.save()
+
+        ctx = PreviewService().preview_context_for_draft(draft)
+
+        self.assertNotIn("rendered_html", ctx)
+        self.assertEqual(ctx["sections"][0]["section_name"], "Interior Walls")
+        self.assertEqual(ctx["sections"][0]["knowledge_matches"][0]["title"], "Brick repair guidance")
 
     def test_manual_specification_is_registered_as_distinct_option(self):
         self.assertIn('manual_specification', PDF_TEMPLATES)

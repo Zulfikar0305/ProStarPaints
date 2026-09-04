@@ -243,7 +243,15 @@ class ManualSpecificationBuilderService:
             if section_override is None and str(idx) in section_overrides:
                 section_override = section_overrides.get(str(idx))
             if not isinstance(section_override, dict):
-                self._sync_section_legacy_arrays(section)
+                # Preserve any live legacy arrays already present on the
+                # resolver payload unless there are actual blocks to reconcile.
+                blocks = section.get("blocks") or []
+                has_legacy_arrays = any(
+                    section.get(key)
+                    for key in ("clauses", "product_descriptions", "images", "knowledge_matches")
+                )
+                if blocks or not has_legacy_arrays:
+                    self._sync_section_legacy_arrays(section)
                 continue
 
             heading_override = section_override.get("heading_override")

@@ -3,12 +3,13 @@ from django.views.generic import View
 
 from users.mixins import AdminRequiredMixin
 
-from .models import SpecificationTemplate, KnowledgeEntry, KnowledgeCategory, SpecificationRule, KNOWLEDGE_CATEGORIES
+from .models import SpecificationTemplate, KnowledgeEntry, KnowledgeCategory, SpecificationRule, KNOWLEDGE_CATEGORIES, SurfaceDefault
 from .forms import SpecificationTemplateForm, SpecificationRuleForm
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.contrib import messages
-from .forms import KnowledgeEntryForm, KnowledgeCategoryForm
+from django.db.models import Q
+from .forms import KnowledgeEntryForm, KnowledgeCategoryForm, SurfaceDefaultForm
 from .models import KnowledgeCategory
 import logging
 
@@ -367,81 +368,88 @@ class AutomaticSpecificationView(AdminRequiredMixin, View):
         return redirect(reverse("specifications:automatic_spec"))
 
 
-class KnowledgeIndexView(AdminRequiredMixin, View):
+class SurfaceDefaultsIndexView(AdminRequiredMixin, View):
     template_name = "specifications/knowledge_index.html"
 
     def get(self, request):
-        # Ensure canonical categories exist for easy onboarding
-        try:
-            for slug, name in KNOWLEDGE_CATEGORIES:
-                KnowledgeCategory.objects.get_or_create(slug=slug, defaults={"name": name})
-        except Exception:
-            # Non-fatal: continue if categories cannot be created
-            pass
-
         q = request.GET.get("q", "").strip()
-        cat = request.GET.get("category")
         only_active = request.GET.get("active")
 
-        qs = KnowledgeEntry.objects.select_related("category").all()
+        qs = SurfaceDefault.objects.all()
         if q:
-            qs = qs.filter(title__icontains=q)
-        if cat:
-            qs = qs.filter(category__slug=cat)
+            qs = qs.filter(
+                Q(main_section__icontains=q)
+                | Q(subsection__icontains=q)
+                | Q(surface__icontains=q)
+                | Q(preparation_requirements__icontains=q)
+                | Q(surface_rules__icontains=q)
+            )
         if only_active in ("1", "true", "on"):
             qs = qs.filter(is_active=True)
 
-        # Order by priority descending, then title
-        qs = qs.order_by("-priority", "title")
-
-        categories = KnowledgeCategory.objects.order_by("name")
-
-        return render(request, self.template_name, {"entries": qs, "categories": categories, "q": q, "cat": cat, "only_active": only_active})
+        qs = qs.order_by("main_section", "subsection", "surface")
+        return render(request, self.template_name, {"entries": qs, "q": q, "only_active": only_active})
 
 
-class KnowledgeCreateView(AdminRequiredMixin, View):
-    template_name = "specifications/clause_edit.html"
+class SurfaceDefaultCreateView(AdminRequiredMixin, View):
+    template_name = "specifications/surface_default_edit.html"
 
     def get(self, request):
-        form = KnowledgeEntryForm()
+        form = SurfaceDefaultForm()
         return render(request, self.template_name, {"form": form, "obj": None})
 
     def post(self, request):
-        form = KnowledgeEntryForm(request.POST)
+        form = SurfaceDefaultForm(request.POST)
         if form.is_valid():
-            saved = form.save(commit=False)
-            saved.created_by = request.user
-            saved.save()
-            messages.success(request, "Knowledge item created.")
-            return redirect(reverse("specifications:knowledge_index"))
+            obj = form.save(commit=False)
+            obj.created_by = request.user
+            obj.save()
+            messages.success(request, "Surface default created.")
+            return redirect(reverse("specifications:surface_defaults_index"))
         return render(request, self.template_name, {"form": form, "obj": None})
 
 
-class KnowledgeEditView(AdminRequiredMixin, View):
-    template_name = "specifications/clause_edit.html"
+class SurfaceDefaultEditView(AdminRequiredMixin, View):
+    template_name = "specifications/surface_default_edit.html"
 
     def get(self, request, pk):
-        obj = get_object_or_404(KnowledgeEntry, pk=pk)
-        form = KnowledgeEntryForm(instance=obj)
+        obj = get_object_or_404(SurfaceDefault, pk=pk)
+        form = SurfaceDefaultForm(instance=obj)
         return render(request, self.template_name, {"form": form, "obj": obj})
 
     def post(self, request, pk):
-        obj = get_object_or_404(KnowledgeEntry, pk=pk)
-        form = KnowledgeEntryForm(request.POST, instance=obj)
+        obj = get_object_or_404(SurfaceDefault, pk=pk)
+        form = SurfaceDefaultForm(request.POST, instance=obj)
         if form.is_valid():
-            saved = form.save()
-            messages.success(request, "Knowledge item saved.")
-            return redirect(reverse("specifications:knowledge_index"))
+            form.save()
+            messages.success(request, "Surface default saved.")
+            return redirect(reverse("specifications:surface_defaults_index"))
         return render(request, self.template_name, {"form": form, "obj": obj})
 
 
-class KnowledgeDeactivateView(AdminRequiredMixin, View):
+class SurfaceDefaultDeactivateView(AdminRequiredMixin, View):
     def post(self, request, pk):
-        obj = get_object_or_404(KnowledgeEntry, pk=pk)
+        obj = get_object_or_404(SurfaceDefault, pk=pk)
         obj.is_active = False
         obj.save()
-        messages.success(request, "Knowledge item deactivated.")
-        return redirect(reverse("specifications:knowledge_index"))
+        messages.success(request, "Surface default deactivated.")
+        return redirect(reverse("specifications:surface_defaults_index"))
+
+
+class KnowledgeIndexView(SurfaceDefaultsIndexView):
+    pass
+
+
+class KnowledgeCreateView(SurfaceDefaultCreateView):
+    pass
+
+
+class KnowledgeEditView(SurfaceDefaultEditView):
+    pass
+
+
+class KnowledgeDeactivateView(SurfaceDefaultDeactivateView):
+    pass
 
 
 # ---------------------------------------------------------------------------

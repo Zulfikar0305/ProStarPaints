@@ -43,9 +43,15 @@ class PreviewService:
         if isinstance(draft_overrides, dict) and isinstance(draft_overrides.get("report_controls"), dict):
             report_controls = TemplateService.normalize_report_controls(draft_overrides.get("report_controls"))
 
-        # If the draft contains pre-rendered HTML for templates, prefer that
+        # Prefer the current live resolver data when it exists. A stale
+        # pre-rendered HTML snapshot is only a safe fallback when the draft
+        # does not have a live resolver payload to preview.
+        has_live_resolver = isinstance(resolver, dict) and bool(
+            resolver.get("sections") or resolver.get("template") or resolver.get("report_controls")
+        )
+
         rendered_html_map = None
-        if isinstance(data, dict) and data.get("rendered_html") and not (resolver and isinstance(draft_overrides, dict) and draft_overrides):
+        if isinstance(data, dict) and data.get("rendered_html") and not has_live_resolver:
             rendered_html_map = data.get("rendered_html")
 
         # Optional per-section metadata persisted by the builder

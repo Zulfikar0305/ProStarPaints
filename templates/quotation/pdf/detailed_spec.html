@@ -6,8 +6,7 @@
   <style>
     @page {
       size: A4;
-      margin: 18mm 18mm 18mm 18mm;
-      @top-left { content: element(doc-header); }
+      margin: 16mm 16mm 18mm 16mm;
       @bottom-left {
         content: "{{ branding.company_name|default:'ProStar Paints' }} · {{ quotation.reference }} · Generated {{ generated_at|date:'d M Y' }}";
         font-size: 8pt;
@@ -20,398 +19,422 @@
         color: #9aa6b8;
       }
     }
-    @page :first { @top-left { content: none; } }
 
     :root {
-      --brand: #0f172a;
+      --brand: #1f2937;
       --accent: #7c3aed;
       --muted: #64748b;
-      --border: #e6edf5;
-      --bg: #ffffff;
+      --border: #dfe8f1;
+      --soft: #f8fafc;
+      --ink: #0f172a;
       --sans: 'Helvetica Neue', Arial, 'Segoe UI', Helvetica, sans-serif;
-      --base-font: 11pt;
     }
 
     * { box-sizing: border-box; }
     body {
       font-family: var(--sans);
-      font-size: var(--base-font);
+      font-size: 11pt;
       color: var(--brand);
       margin: 0;
-      background: var(--bg);
+      background: #fff;
     }
 
-    .doc-header {
-      position: running(doc-header);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 6px 0;
-      border-bottom: 1px solid var(--border);
+    .document-shell {
+      margin: 0 auto;
+      width: 100%;
     }
-    .doc-header .brand { display: flex; align-items: center; gap: 8px; }
-    .doc-header img { height: 18pt; }
-    .doc-header .meta { font-size: 8pt; color: var(--muted); text-align: right; }
+
+    .spec-section {
+      page-break-inside: avoid;
+      margin: 0 0 18px 0;
+    }
+
+    .item-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+
+    .item-badge {
+      width: 21px;
+      height: 21px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 5px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 10pt;
+      font-weight: 700;
+      line-height: 1;
+    }
 
     .summary-bar {
-      background: #f8f7ff;
+      display: none;
+    }
+
+    .sec-title {
+      margin: 0;
+      font-size: 22pt;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+    }
+
+    .item-tag {
+      margin: 0 0 12px 0;
+      font-size: 8.5pt;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .summary-box {
+      background: #f9fafb;
       border: 1px solid var(--border);
-      border-radius: 6px;
+      border-radius: 0;
+      padding: 8px 12px 6px 12px;
+      margin: 0 0 12px 0;
+    }
+
+    .summary-row {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      min-height: 20px;
+      padding: 2px 0;
+    }
+
+    .summary-label {
+      width: 118px;
+      color: var(--brand);
+      font-weight: 600;
+    }
+
+    .summary-value {
+      color: var(--ink);
+      font-weight: 600;
+      flex: 1;
+    }
+
+    .section-block {
+      margin-top: 14px;
+    }
+
+    .section-block h3 {
+      margin: 0 0 8px 0;
+      font-size: 17pt;
+      line-height: 1.2;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .section-block p,
+    .section-block li,
+    .section-block td,
+    .section-block th {
+      font-size: 10.5pt;
+      line-height: 1.45;
+      color: var(--ink);
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .section-block ol {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .section-block li {
+      margin-bottom: 4px;
+    }
+
+    .photo-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .gallery-item {
+      margin: 0;
+      border: 1px solid var(--border);
+      background: var(--soft);
+      height: 110px;
+      overflow: hidden;
+    }
+
+    .gallery-item img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .dense-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      border: 1px solid var(--border);
+      margin-top: 6px;
+    }
+
+    .dense-table th,
+    .dense-table td {
+      border: 1px solid var(--border);
+      padding: 6px 7px;
+      text-align: left;
+      vertical-align: top;
+      background: #fff;
+    }
+
+    .dense-table th {
+      background: #f3f6fb;
+      font-size: 9pt;
+      font-weight: 700;
+      color: var(--ink);
+      letter-spacing: 0.01em;
+    }
+
+    .totals-right {
+      width: 250px;
+      margin: 18px 0 0 auto;
+    }
+
+    .totals-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--border);
+    }
+
+    .totals-table td {
+      border: 1px solid var(--border);
+      padding: 6px 8px;
+      font-size: 10pt;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .totals-table tr:last-child td {
+      background: #0f172a;
+      color: #fff;
+      font-weight: 800;
+    }
+
+    .page-footer {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+      font-size: 7.5pt;
+      color: var(--muted);
       display: flex;
       justify-content: space-between;
-      gap: 12px;
-      padding: 10px 12px;
-      margin: 0 0 16px 0;
-      font-size: 10pt;
-      color: var(--brand);
-    }
-    .summary-bar__brand { font-weight: 800; color: var(--accent); }
-    .summary-bar__info { color: var(--muted); }
-
-    .cover-page, .summary-page, .spec-section, .final-page { padding: 18mm; }
-    .cover-page {
-      page-break-after: always;
-      text-align: center;
-      padding-top: 40mm;
-    }
-    .cover-logo { margin-bottom: 32px; }
-    .cover-logo img { max-height: 192pt; display: block; margin: 0 auto; }
-    .cover-title {
-      font-size: 40pt;
-      font-weight: 900;
-      color: var(--accent);
-      letter-spacing: 0.02em;
-      line-height: 1.05;
-      margin: 0;
-    }
-    .cover-sub { margin-top: 18px; font-size: 13pt; color: var(--muted); font-weight: 600; }
-    .cover-details {
-      margin-top: 20px;
-      font-size: 12pt;
-      color: var(--muted);
-      line-height: 1.7;
-    }
-    .cover-intro {
-      margin-top: 28px;
-      font-size: 10pt;
-      color: #25303b;
-      line-height: 1.45;
-      max-width: 680px;
-      margin-left: auto;
-      margin-right: auto;
+      gap: 8px;
     }
 
-    .summary-page { page-break-after: always; }
-    .report-h1 { font-size: 20pt; color: var(--accent); font-weight: 900; margin: 6px 0 12px 0; }
-    .overview-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 8px; }
-    .card { border: 1px solid var(--border); padding: 10px; border-radius: 6px; background: #fff; }
-    .card .lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; }
-    .card .val { font-weight: 800; color: var(--brand); margin-top: 6px; }
-    .purpose, .general-notes { margin-top: 12px; }
-    .general-notes ul { margin-left: 18px; }
-
-    .spec-section { page-break-before: always; }
-    .sec-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
-    .sec-no { font-weight: 900; background: var(--accent); color: #fff; padding: 6px 10px; border-radius: 4px; }
-    .sec-title { font-size: 16pt; font-weight: 900; color: var(--brand); }
-    .summary-table, .spec-table, .material-schedule, .totals { width: 100%; border-collapse: collapse; table-layout: fixed; }
-    .summary-table td, .spec-table td, .spec-table th, .material-schedule td, .material-schedule th, .totals td { border: 1px solid var(--border); padding: 8px; overflow-wrap: anywhere; word-break: break-word; }
-    .summary-table .label { width: 28%; color: var(--muted); }
-    .summary-table .value { font-weight: 700; }
-    .spec-table th, .material-schedule th { background: #f8f8fb; text-align: left; }
-    p, li, td, th, .observed-conditions { overflow-wrap: anywhere; word-break: break-word; }
-
-    .image-gallery { display: grid; gap: 8px; margin-top: 12px; }
-    .image-gallery[data-count="1"] { grid-template-columns: 1fr; }
-    .image-gallery[data-count="2"] { grid-template-columns: 1fr 1fr; }
-    .image-gallery[data-count="3"] { grid-template-columns: 2fr 1fr; }
-    .gallery-item { overflow: hidden; border-radius: 6px; border: 1px solid var(--border); background: #fff; }
-    .gallery-item img { width: 100%; height: 100%; object-fit: contain; display: block; }
-
-    .block { margin-top: 12px; }
-    .block h3 { font-size: 13pt; color: var(--accent); margin: 6px 0; }
-    .instructions ol { margin-left: 18px; }
-    .section-total { margin-top: 12px; padding: 12px; border-radius: 6px; border: 1px solid var(--border); background: #fff; text-align: center; }
-
-    .final-page { page-break-before: always; }
-    .totals-right { width: 360px; margin-left: auto; margin-top: 12px; }
-    .totals tr:last-child td { background: var(--accent); color: #fff; font-weight: 900; }
-    .important-notes { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; color: var(--muted); }
-
-    .gallery-item, .spec-table, .material-schedule { page-break-inside: avoid; }
+    .legacy-only {
+      display: none;
+    }
   </style>
 </head>
 <body>
   {% load pdf_extras %}
 
-  <div class="doc-header">
-    <div class="brand">
-      {% if logo_data_uri %}
-        <img src="{{ logo_data_uri }}" alt="{{ branding.company_name|default:'ProStar Paints' }}">
-      {% else %}
-        <div>{{ branding.company_name|default:'ProStar Paints' }}</div>
-      {% endif %}
-      <div style="font-weight:800">{{ report_label|default:'DETAILED PAINT SPECIFICATION' }}</div>
-    </div>
-    <div class="meta">
-      <div>Ref: {{ quotation.reference }}</div>
-      <div>{{ customer_name|default:'—' }}</div>
-      <div>{{ project_name|default:quotation.project_name }}</div>
+  <div class="document-shell">
+    {% for sec_data in sections %}
+      <article class="spec-section" id="section-{{ sec_data.section.pk }}">
+        <div class="summary-bar">Project Summary — {{ quotation.reference }} · {{ project_name|default:quotation.project_name }}</div>
+        <div class="item-header">
+          <span class="item-badge">{{ forloop.counter }}</span>
+          <h2 class="sec-title">{{ sec_data.section.display_name }}</h2>
+        </div>
+        <div class="item-tag">{{ sec_data.section.substrate_type|default:'INTERIOR' }} · {{ sec_data.section.subsection_key }}</div>
+
+        {% if report_controls.show_photos and sec_data.images %}
+          <div class="photo-strip">
+            {% for img_uri in sec_data.images|slice:":3" %}
+              <figure class="gallery-item"><img src="{{ img_uri }}" alt="Section photo"></figure>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="legacy-only"><h3>Section Overview</h3></div>
+        <div class="summary-box">
+          <div class="summary-row"><div class="summary-label">Substrate</div><div class="summary-value">{% if sec_data.surface_info and sec_data.surface_info.wall_type %}{{ sec_data.surface_info.wall_type }}{% else %}{{ sec_data.section.get_substrate_type_display }}{% endif %}</div></div>
+          <div class="summary-row"><div class="summary-label">Surface Area</div><div class="summary-value">{% if sec_data.surface_info and sec_data.surface_info.reference_area %}{{ sec_data.surface_info.reference_area }}{% else %}—{% endif %}</div></div>
+          <div class="summary-row"><div class="summary-label">Moisture</div><div class="summary-value">{% if sec_data.note_item and sec_data.note_item.metadata and sec_data.note_item.metadata.moisture_level %}{{ sec_data.note_item.metadata.moisture_level }}{% else %}—{% endif %}</div></div>
+          <div class="summary-row"><div class="summary-label">Surface Condition</div><div class="summary-value">{% if sec_data.surface_info and sec_data.surface_info.surface_conditions %}{{ sec_data.surface_info.surface_conditions|join:", " }}{% else %}—{% endif %}</div></div>
+          <div class="summary-row"><div class="summary-label">Finish Required</div><div class="summary-value">—</div></div>
+          <div class="summary-row"><div class="summary-label">Selected Paint System</div><div class="summary-value">—</div></div>
+          <div class="summary-row"><div class="summary-label">Est. Material Cost</div><div class="summary-value">{% if pricing_enabled and sec_data.section_total_excl_vat and sec_data.section_total_excl_vat != 0 %}R {{ sec_data.section_total_excl_vat|floatformat:2 }}{% else %}—{% endif %}</div></div>
+        </div>
+
+        {% if report_controls.show_notes and sec_data.surface_description %}
+          <div class="section-block">
+            <h3>Observed Conditions</h3>
+            <p>{{ sec_data.surface_description }}</p>
+          </div>
+        {% endif %}
+
+        {% if report_controls.show_preparation_requirements and sec_data.prep_instructions %}
+          <div class="section-block">
+            <h3>Preparation Requirements</h3>
+            <ol>
+              {% for instr in sec_data.prep_instructions %}
+                <li>{{ instr }}</li>
+              {% endfor %}
+            </ol>
+          </div>
+        {% endif %}
+
+        {% if report_controls.show_recommendations and sec_data.recommendation %}
+          <div class="section-block">
+            <h3>Section Recommendation</h3>
+            <p>{{ sec_data.recommendation }}</p>
+          </div>
+        {% elif report_controls.show_recommendations and sec_data.surface_default and sec_data.surface_default.surface_rules %}
+          <div class="section-block">
+            <h3>Section Recommendation</h3>
+            <p>Proceed with the specified coating system following the preparation and application procedures described above. {{ sec_data.surface_default.surface_rules }}</p>
+          </div>
+        {% endif %}
+
+        {% if report_controls.show_coating_system and sec_data.coating_system %}
+          <div class="section-block">
+            <h3>Coating System</h3>
+            <table class="dense-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Finish</th>
+                  <th>Coats</th>
+                  <th>Coverage</th>
+                  <th>Application</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for cs in sec_data.coating_system %}
+                  <tr>
+                    <td>{{ cs.product|default:'—' }}</td>
+                    <td>{{ cs.finish|default:'—' }}</td>
+                    <td>{{ cs.coats|default:'—' }}</td>
+                    <td>
+                      {% with pk=cs.line_item_pk %}
+                        {% for t in sec_data.technical %}
+                          {% if t.line_item_pk == pk and t.info and t.info.coverage %}{{ t.info.coverage }}{% endif %}
+                        {% empty %}—{% endfor %}
+                      {% endwith %}
+                    </td>
+                    <td>{% if cs.application_method %}{{ cs.application_method }}{% else %}—{% endif %}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+
+        {% if report_controls.show_product_table and sec_data.material_summary %}
+          <div class="section-block">
+            <h3>Surface / Product</h3>
+            <table class="dense-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Package</th>
+                  <th>Required Quantity</th>
+                  <th>Estimated Material Cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for m in sec_data.material_summary %}
+                  {% if m.product or m.recommended_containers or m.required_litres or m.est_material_cost %}
+                    <tr>
+                      <td>{{ m.product|default:'—' }}</td>
+                      <td>{% if m.recommended_containers %}{{ m.recommended_containers }}{% else %}—{% endif %}</td>
+                      <td>{% if m.required_litres %}{{ m.required_litres }}{% else %}—{% endif %}</td>
+                      <td>{% if pricing_enabled and m.est_material_cost %}R {{ m.est_material_cost|floatformat:2 }}{% else %}—{% endif %}</td>
+                    </tr>
+                  {% endif %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+
+        <div class="legacy-only">
+          {% if sec_data.application_instructions %}
+            <div class="section-block">
+              <h3>Application Requirements</h3>
+              <ol>
+                {% for a in sec_data.application_instructions %}<li>{{ a }}</li>{% endfor %}
+              </ol>
+            </div>
+          {% endif %}
+
+          {% if report_controls.show_tds and sec_data.technical %}
+            <div class="section-block">
+              <h3>Technical Information</h3>
+              <table class="dense-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Spread Rate</th>
+                    <th>Coverage</th>
+                    <th>DFT</th>
+                    <th>Drying</th>
+                    <th>Recoat</th>
+                    <th>TDS</th>
+                    <th>Application Method</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for tech in sec_data.technical %}
+                    {% if tech.info.spread_rate_per_litre or tech.info.coverage or tech.info.dft or tech.info.drying_time or tech.info.recoat_time or tech.info.tds_reference or tech.info.application_method %}
+                      <tr>
+                        <td>
+                          {% with pk=tech.line_item_pk %}
+                            {% for cs in sec_data.coating_system %}
+                              {% if cs.line_item_pk == pk %}{{ cs.product|default:'—' }}{% endif %}
+                            {% endfor %}
+                          {% endwith %}
+                        </td>
+                        <td>{% if tech.info.spread_rate_per_litre %}{{ tech.info.spread_rate_per_litre }}{% else %}—{% endif %}</td>
+                        <td>{% if tech.info.coverage %}{{ tech.info.coverage }}{% else %}—{% endif %}</td>
+                        <td>{% if tech.info.dft %}{{ tech.info.dft }}{% else %}—{% endif %}</td>
+                        <td>{% if tech.info.drying_time %}{{ tech.info.drying_time }}{% else %}—{% endif %}</td>
+                        <td>{% if tech.info.recoat_time %}{{ tech.info.recoat_time }}{% else %}—{% endif %}</td>
+                        <td>{% if tech.info.tds_reference %}{{ tech.info.tds_reference }}{% else %}—{% endif %}</td>
+                        <td>{% if tech.info.application_method %}{{ tech.info.application_method }}{% else %}—{% endif %}</td>
+                      </tr>
+                    {% endif %}
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% endif %}
+
+          {% if report_controls.show_product_table and sec_data.material_summary %}
+            <div class="section-block">
+              <h3>Material Costing</h3>
+            </div>
+          {% endif %}
+        </div>
+      </article>
+    {% endfor %}
+
+    <div class="totals-right">
+      <table class="totals-table">
+        <tr><td>Subtotal (excl. VAT)</td><td style="text-align:right; white-space:nowrap;">R {{ quotation.subtotal_excl_vat|floatformat:2 }}</td></tr>
+        <tr><td>VAT</td><td style="text-align:right; white-space:nowrap;">R {{ quotation.vat_amount|floatformat:2 }}</td></tr>
+        <tr><td><strong>Total (incl. VAT)</strong></td><td style="text-align:right; white-space:nowrap;"><strong>R {{ quotation.total_incl_vat|floatformat:2 }}</strong></td></tr>
+      </table>
     </div>
   </div>
 
-  <section class="cover-page">
-    <div class="cover-logo">
-      {% if logo_data_uri %}
-        <img src="{{ logo_data_uri }}" alt="{{ branding.company_name|default:'ProStar Paints' }}">
-      {% else %}
-        {{ branding.company_name|default:'ProStar Paints' }}
-      {% endif %}
-    </div>
-    <div class="cover-title"><span>{{ report_label|default:'DETAILED PAINT' }}</span><span>{{ report_label|default:'SPECIFICATION' }}</span></div>
-    <div class="cover-sub">{{ quotation.reference }}</div>
-    <div class="cover-details">
-      <div>{{ customer_name|default:quotation.customer_name }}</div>
-      <div>{{ project_name|default:quotation.project_name }}</div>
-      <div>{{ project_location|default:quotation.project_location }}</div>
-      <div>Prepared By: {% if sales_profile and sales_profile.signature_name %}{{ sales_profile.signature_name }}{% else %}{{ created_by.get_full_name }}{% endif %}</div>
-      <div>Generated: {{ generated_at|date:"d F Y" }}</div>
-    </div>
-    <div class="cover-intro">This specification has been prepared following inspection of the project and outlines the recommended preparation procedures, coating systems and estimated material requirements for the surfaces included within this quotation. All recommendations are based on the recorded site conditions at the time of inspection.</div>
-  </section>
-
-  <section class="summary-page">
-    <div class="summary-bar">
-      <div class="summary-bar__brand">{{ branding.company_name|default:'ProStar Paints' }}</div>
-      <div class="summary-bar__info">{{ quotation.reference }} · {{ project_name|default:quotation.project_name }} · {{ customer_name|default:quotation.customer_name }}</div>
-    </div>
-
-    <div class="report-h1">Project Overview</div>
-    <div class="overview-grid">
-      <div class="card"><div class="lbl">Project</div><div class="val">{{ project_name|default:quotation.project_name }}</div></div>
-      <div class="card"><div class="lbl">Customer</div><div class="val">{{ customer_name|default:quotation.customer_name }}</div></div>
-      <div class="card"><div class="lbl">Quotation Reference</div><div class="val">{{ quotation.reference }}</div></div>
-    </div>
-    <div style="display:flex;gap:12px;margin-top:10px">
-      <div class="card" style="flex:1"><div class="lbl">Prepared By</div><div class="val">{% if sales_profile and sales_profile.signature_name %}{{ sales_profile.signature_name }}{% else %}{{ created_by.get_full_name }}{% endif %}</div></div>
-      <div class="card" style="width:160px"><div class="lbl">Date</div><div class="val">{{ generated_at|date:"d F Y" }}</div></div>
-      <div class="card" style="width:160px"><div class="lbl">Specification Sections</div><div class="val">{{ sections|length }}</div></div>
-    </div>
-
-    <div class="purpose">
-      <h3>Purpose</h3>
-      <p>The purpose of this specification is to provide a structured coating recommendation for each inspected surface included within this quotation. The document should be used together with the official quotation and manufacturer product data sheets.</p>
-    </div>
-
-    <div class="general-notes">
-      <h3>General Application Notes</h3>
-      <ul>
-        <li>Ensure all surfaces are clean, dry and free from contaminants before coating.</li>
-        <li>Moisture levels should fall within manufacturer recommendations before application.</li>
-        <li>All preparation work should be completed before primers or finish coats are applied.</li>
-        <li>Observe all manufacturer drying and recoat times. Application should only be carried out under suitable environmental conditions.</li>
-      </ul>
-    </div>
-  </section>
-
-  {% for sec_data in sections %}
-    <article class="spec-section" id="section-{{ sec_data.section.pk }}">
-      <div class="sec-head">
-        <div style="display:flex;align-items:center;gap:10px">
-          <span class="sec-no">SECTION {{ forloop.counter }}</span>
-          <span class="sec-title">{{ sec_data.section.display_name }}</span>
-        </div>
-      </div>
-
-      <table class="summary-table">
-        <tr><td class="label">Substrate</td><td class="value">{% if sec_data.surface_info and sec_data.surface_info.wall_type %}{{ sec_data.surface_info.wall_type }}{% else %}{{ sec_data.section.get_substrate_type_display }}{% endif %}</td></tr>
-        <tr><td class="label">Surface Area</td><td class="value">{% if sec_data.surface_info and sec_data.surface_info.reference_area %}{{ sec_data.surface_info.reference_area }}{% else %}—{% endif %}</td></tr>
-        <tr><td class="label">Surface Condition</td><td class="value">{% if sec_data.surface_info and sec_data.surface_info.surface_conditions %}{{ sec_data.surface_info.surface_conditions|join:", " }}{% else %}—{% endif %}</td></tr>
-{% if report_controls.show_moisture_reading and sec_data.note_item and sec_data.note_item.metadata and sec_data.note_item.metadata.moisture_level %}
-        <tr><td class="label">Moisture Reading</td><td class="value">{{ sec_data.note_item.metadata.moisture_level }}</td></tr>
-      {% endif %}
-      </table>
-
-      {% if report_controls.show_photos and sec_data.images %}
-        <div class="image-gallery" data-count="{{ sec_data.images|length }}">
-          {% for img_uri in sec_data.images|slice:":3" %}
-            <figure class="gallery-item"><img src="{{ img_uri }}" alt="Section photo"></figure>
-          {% endfor %}
-        </div>
-      {% endif %}
-
-      {% if report_controls.show_notes and sec_data.description %}
-        <div class="block">
-          <h3>Observed Conditions</h3>
-          <div class="observed-conditions"><p>{{ sec_data.description }}</p></div>
-        </div>
-      {% endif %}
-
-      {% if report_controls.show_preparation_requirements and sec_data.prep_instructions %}
-        <div class="block">
-          <h3>Preparation Requirements</h3>
-          <div class="instructions">
-            <ol>{% for instr in sec_data.prep_instructions %}<li>{{ instr }}</li>{% endfor %}</ol>
-          </div>
-        </div>
-      {% endif %}
-
-      <div class="block">
-        <h3>Application Requirements</h3>
-        <div class="instructions">
-          {% if sec_data.application_instructions %}
-            <ol>{% for a in sec_data.application_instructions %}<li>{{ a }}</li>{% endfor %}</ol>
-          {% else %}
-            <ol><li>No application items recorded.</li></ol>
-          {% endif %}
-        </div>
-      </div>
-
-      <div class="block">
-        <h3>Section Overview</h3>
-        <table class="summary-table">
-          <tr><td class="label">Surface Area</td><td class="value">{% if sec_data.surface_info and sec_data.surface_info.reference_area %}{{ sec_data.surface_info.reference_area }}{% else %}—{% endif %}</td></tr>
-          <tr><td class="label">Surface Condition</td><td class="value">{% if sec_data.surface_info and sec_data.surface_info.surface_conditions %}{{ sec_data.surface_info.surface_conditions|join:", " }}{% else %}—{% endif %}</td></tr>
-          <tr><td class="label">Estimated Material Cost</td><td class="value">{% if pricing_enabled and sec_data.section_total_excl_vat and sec_data.section_total_excl_vat != 0 %}R {{ sec_data.section_total_excl_vat|floatformat:2 }}{% else %}—{% endif %}</td></tr>
-        </table>
-      </div>
-
-      {% if report_controls.show_coating_system and sec_data.coating_system %}
-        <div class="block">
-          <h3>Coating System</h3>
-          <table class="spec-table">
-            <thead><tr><th>Product</th><th>Finish</th><th>Number of Coats</th><th>Coverage</th><th>Application Method</th></tr></thead>
-            <tbody>
-              {% for cs in sec_data.coating_system %}
-                <tr>
-                  <td>{{ cs.product|default:'—' }}</td>
-                  <td>{{ cs.finish|default:'—' }}</td>
-                  <td>{{ cs.coats|default:'—' }}</td>
-                  <td>
-                    {% with pk=cs.line_item_pk %}
-                      {% for t in sec_data.technical %}
-                        {% if t.line_item_pk == pk and t.info and t.info.coverage %}{{ t.info.coverage }}{% endif %}
-                      {% empty %}—{% endfor %}
-                    {% endwith %}
-                  </td>
-                  <td>{% if cs.application_method %}{{ cs.application_method }}{% else %}—{% endif %}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% endif %}
-
-      {% if report_controls.show_tds and sec_data.technical %}
-        <div class="block">
-          <h3>Technical Information</h3>
-          <table class="spec-table">
-            <thead><tr><th>Product</th><th>Spread Rate</th><th>Coverage</th><th>DFT</th><th>Drying</th><th>Recoat</th><th>TDS</th><th>Application Method</th></tr></thead>
-            <tbody>
-              {% for tech in sec_data.technical %}
-                {% if tech.info.spread_rate_per_litre or tech.info.coverage or tech.info.dft or tech.info.drying_time or tech.info.recoat_time or tech.info.tds_reference or tech.info.application_method %}
-                  <tr>
-                    <td>
-                      {% with pk=tech.line_item_pk %}
-                        {% for cs in sec_data.coating_system %}
-                          {% if cs.line_item_pk == pk %}{{ cs.product|default:'—' }}{% endif %}
-                        {% endfor %}
-                      {% endwith %}
-                    </td>
-                    <td>{% if tech.info.spread_rate_per_litre %}{{ tech.info.spread_rate_per_litre }}{% else %}—{% endif %}</td>
-                    <td>{% if tech.info.coverage %}{{ tech.info.coverage }}{% else %}—{% endif %}</td>
-                    <td>{% if tech.info.dft %}{{ tech.info.dft }}{% else %}—{% endif %}</td>
-                    <td>{% if tech.info.drying_time %}{{ tech.info.drying_time }}{% else %}—{% endif %}</td>
-                    <td>{% if tech.info.recoat_time %}{{ tech.info.recoat_time }}{% else %}—{% endif %}</td>
-                    <td>{% if tech.info.tds_reference %}{{ tech.info.tds_reference }}{% else %}—{% endif %}</td>
-                    <td>{% if tech.info.application_method %}{{ tech.info.application_method }}{% else %}—{% endif %}</td>
-                  </tr>
-                {% endif %}
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% endif %}
-
-      {% if report_controls.show_product_table and sec_data.material_summary %}
-        <div class="block">
-          <h3>Material Costing</h3>
-          <table class="material-schedule">
-            <thead><tr><th>Product</th><th>Package</th><th>Required Quantity</th><th>Estimated Material Cost</th></tr></thead>
-            <tbody>
-              {% for m in sec_data.material_summary %}
-                {% if m.product or m.recommended_containers or m.required_litres or m.est_material_cost %}
-                  <tr>
-                    <td>{{ m.product|default:'—' }}</td>
-                    <td>{% if m.recommended_containers %}{{ m.recommended_containers }}{% else %}—{% endif %}</td>
-                    <td>{% if m.required_litres %}{{ m.required_litres }}{% else %}—{% endif %}</td>
-                    <td>{% if pricing_enabled and m.est_material_cost %}R {{ m.est_material_cost|floatformat:2 }}{% else %}—{% endif %}</td>
-                  </tr>
-                {% endif %}
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% endif %}
-
-      {% if report_controls.show_recommendations and sec_data.recommendation %}
-        <div class="block">
-          <h3>Section Recommendation</h3>
-          <div class="observed-conditions"><p>{{ sec_data.recommendation }}</p></div>
-        </div>
-      {% endif %}
-    </article>
-  {% endfor %}
-
-  <section class="final-page">
-    <div class="report-h1">Quotation Summary</div>
-    {% if report_controls.show_pricing %}
-      <div class="totals-right">
-        {% if pricing_enabled %}
-          <table class="totals" style="border-collapse:collapse;">
-            <tr><td>Subtotal (excl. VAT)</td><td style="text-align:right">R {{ quotation.subtotal_excl_vat|floatformat:2 }}</td></tr>
-            <tr><td>VAT</td><td style="text-align:right">R {{ quotation.vat_amount|floatformat:2 }}</td></tr>
-            <tr><td style="font-weight:900">Grand Total</td><td style="text-align:right;font-weight:900">R {{ quotation.total_incl_vat|floatformat:2 }}</td></tr>
-          </table>
-        {% else %}
-          <div class="card" style="max-width:360px; margin-left:auto;">Pricing is intentionally excluded from this specification report.</div>
-        {% endif %}
-      </div>
-    {% endif %}
-
-    {% if report_controls.show_warranty and has_warranty_content %}
-      <div class="important-notes">
-        <h3>Warranty</h3>
-        <p>All paint systems are supplied and specified in accordance with the manufacturer’s product data sheets and recommended system requirements. Any warranty conditions remain subject to the relevant product and installation standards applicable to the project and site conditions.</p>
-      </div>
-    {% endif %}
-
-    {% if report_controls.show_notes %}
-      <div class="important-notes">
-        <h3>Important Notes</h3>
-        <p>Material quantities are estimates based on the recorded surface areas and selected coating systems. Actual consumption may vary depending on substrate porosity, application method and site conditions.</p>
-        <p>This specification should be read together with the official quotation and any manufacturer technical data sheets supplied with the selected coating products.</p>
-      </div>
-    {% endif %}
-
-    <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:flex-start">
-      <div>
-        <div><strong>Prepared By</strong></div>
-        <div>{% if sales_profile and sales_profile.signature_name %}{{ sales_profile.signature_name }}{% else %}{{ created_by.get_full_name }}{% endif %}</div>
-      </div>
-      <div>
-        <div><strong>Company Details</strong></div>
-        <div>{{ branding.company_name }}</div>
-        {% if branding.support_email %}<div>{{ branding.support_email }}</div>{% endif %}
-        {% if branding.support_phone %}<div>{{ branding.support_phone }}</div>{% endif %}
-        {% if branding.website %}<div>{{ branding.website }}</div>{% endif %}
-      </div>
-      <div style="text-align:right">
-        <div><strong>Quotation</strong></div>
-        <div>{{ quotation.reference }}</div>
-        <div style="margin-top:6px">Generated {{ generated_at|date:"d F Y" }}</div>
-      </div>
-    </div>
-  </section>
+  <div class="page-footer">
+    <div>{{ branding.company_name|default:'ProStar Paints' }} — Detailed Specification Sheet — Reg {{ quotation.reference }} — VAT {{ quotation.vat_amount|floatformat:2 }}</div>
+    <div>Generated {{ generated_at|date:"d M Y" }} — {{ quotation.customer_name|default:'Customer' }}</div>
+  </div>
 </body>
 </html>

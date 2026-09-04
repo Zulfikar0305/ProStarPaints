@@ -15,6 +15,13 @@ class KnowledgeCategoryAdmin(admin.ModelAdmin):
     search_fields = ("name", "slug")
 
 
+@admin.register(models.SurfaceDefault)
+class SurfaceDefaultAdmin(admin.ModelAdmin):
+    list_display = ("main_section", "subsection", "surface", "is_active")
+    list_filter = ("main_section", "is_active")
+    search_fields = ("subsection", "surface", "preparation_requirements", "surface_rules")
+
+
 @admin.register(models.KnowledgeEntry)
 class KnowledgeEntryAdmin(admin.ModelAdmin):
     list_display = ("title", "category", "kind", "is_default", "is_active", "sort_order", "created_at")

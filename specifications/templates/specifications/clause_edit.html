@@ -14,6 +14,9 @@
   </div>
 </div>
 
+{{ form.section_choice_map|json_script:"knowledge-section-map" }}
+{{ form.section_target_config|json_script:"knowledge-target-config" }}
+
 <form method="post">
   {% csrf_token %}
   <div class="row g-3">
@@ -23,8 +26,51 @@
           <div class="mb-2">{{ form.title.label_tag }} {{ form.title }}</div>
           <div class="mb-2">{{ form.category.label_tag }} {{ form.category }}</div>
           <div class="mb-2">{{ form.body.label_tag }} {{ form.body }}</div>
-          <div class="mb-2">{{ form.tags.label_tag }} {{ form.tags }}</div>
-          <div class="mb-2">{{ form.metadata.label_tag }} {{ form.metadata }}</div>
+          <hr>
+          <h6 class="fw-semibold mb-3">Target selection</h6>
+          <div class="alert alert-light border small text-muted mb-3">
+            Build knowledge from the ProStar hierarchy: Main Section → Subsection → relevant selection(s) → technical response.
+          </div>
+          <div class="alert alert-info border small mb-3" id="knowledge-target-summary">
+            Target: Select a main section, subsection and relevant selection.
+          </div>
+          <div class="mb-2"><label class="form-label fw-semibold">Main Section</label> {{ form.substrate_type }}</div>
+          <div class="mb-2"><label class="form-label fw-semibold">Subsection</label> {{ form.section_key }}</div>
+          <div class="mb-2">
+            <label class="form-label fw-semibold">Relevant selection</label>
+            <div id="types-field-container" class="selection-field-container">{{ form.types }}</div>
+          </div>
+          <div class="d-none">
+            <div class="mb-2">
+              <label class="form-label fw-semibold">Surface conditions</label>
+              <div id="surface_conditions-field-container" class="selection-field-container">{{ form.surface_conditions }}</div>
+            </div>
+            <div class="mb-2">
+              <label class="form-label fw-semibold">Finishes</label>
+              <div id="finishes-field-container" class="selection-field-container">{{ form.finishes }}</div>
+            </div>
+            <div class="mb-2">{{ form.application.label_tag }} {{ form.application }}</div>
+            <div class="mb-2">{{ form.preparations.label_tag }} {{ form.preparations }}</div>
+            <div class="mb-2">{{ form.preparation_requirements.label_tag }} {{ form.preparation_requirements }}</div>
+            <div class="mb-2">{{ form.primers.label_tag }} {{ form.primers }}</div>
+            <div class="mb-2">{{ form.waterproofing.label_tag }} {{ form.waterproofing }}</div>
+            <div class="mb-2">{{ form.moisture_min.label_tag }} {{ form.moisture_min }}</div>
+            <div class="mb-2">{{ form.moisture_max.label_tag }} {{ form.moisture_max }}</div>
+            <div class="mb-2">{{ form.tags.label_tag }} {{ form.tags }}</div>
+            <div class="mb-2">{{ form.metadata.label_tag }} {{ form.metadata }}</div>
+          </div>
+          <div id="technical-response-section" style="display:none;">
+            <hr>
+            <h6 class="fw-semibold mb-3">Technical response</h6>
+            <div class="alert alert-light border small text-muted mb-3">
+              Write the actual specification guidance for this target. The selected section and material drive the matching context; the response below is what is published to the automatic specification.
+            </div>
+            <div class="mb-2">{{ form.additional_preparation_notes.label_tag }} {{ form.additional_preparation_notes }}</div>
+            <div class="mb-2">{{ form.application_method.label_tag }} {{ form.application_method }}</div>
+            <div class="mb-2">{{ form.coating_system_notes.label_tag }} {{ form.coating_system_notes }}</div>
+            <div class="mb-2">{{ form.technical_notes.label_tag }} {{ form.technical_notes }}</div>
+            <div class="mb-2">{{ form.drying_recoat_guidance.label_tag }} {{ form.drying_recoat_guidance }}</div>
+          </div>
         </div>
       </div>
     </div>
@@ -44,5 +90,107 @@
     </div>
   </div>
 </form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const sectionMapNode = document.getElementById('knowledge-section-map');
+  const targetConfigNode = document.getElementById('knowledge-target-config');
+  const substrateSelect = document.getElementById('id_substrate_type');
+  const sectionSelect = document.getElementById('id_section_key');
+  const technicalResponseSection = document.getElementById('technical-response-section');
+  const summaryNode = document.getElementById('knowledge-target-summary');
+
+  function renderCheckboxGroup(containerId, fieldName, items) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    if (!items || !items.length) {
+      container.innerHTML = '<div class="text-muted small">Select a subsection to show the relevant choices.</div>';
+      return;
+    }
+    const existing = new Set(Array.from(container.querySelectorAll('input[name="' + fieldName + '"]:checked')).map((input) => input.value));
+    container.innerHTML = items.map((item) => `
+      <label class="d-flex align-items-center gap-2 mb-2">
+        <input type="checkbox" name="${fieldName}" value="${item.value}" ${existing.has(item.value) ? 'checked' : ''}>
+        <span>${item.label}</span>
+      </label>
+    `).join('');
+
+    container.querySelectorAll('input[name="' + fieldName + '"]').forEach((input) => {
+      input.addEventListener('change', updateTechnicalResponseVisibility);
+    });
+  }
+
+  function updateTechnicalResponseVisibility() {
+    if (!technicalResponseSection) return;
+
+    const selectedTypes = Array.from(document.querySelectorAll('input[name="types"]')).filter((input) => input.checked);
+    const showResponse = Boolean(sectionSelect && sectionSelect.value && selectedTypes.length > 0);
+    technicalResponseSection.style.display = showResponse ? 'block' : 'none';
+
+    if (summaryNode) {
+      const substrateLabel = substrateSelect && substrateSelect.selectedIndex >= 0
+        ? substrateSelect.options[substrateSelect.selectedIndex]?.text || 'Main section'
+        : 'Main section';
+      const sectionLabel = sectionSelect && sectionSelect.selectedIndex >= 0
+        ? sectionSelect.options[sectionSelect.selectedIndex]?.text || 'Subsection'
+        : 'Subsection';
+      const selectedLabel = selectedTypes.length
+        ? selectedTypes.map((input) => input.parentElement?.textContent?.trim() || input.value).join(', ')
+        : 'Select a relevant selection';
+
+      summaryNode.textContent = sectionSelect && sectionSelect.value
+        ? `Target: ${substrateLabel} → ${sectionLabel} → ${selectedLabel}`
+        : `Target: Select a main section, subsection and relevant selection.`;
+    }
+  }
+
+  if (sectionMapNode && substrateSelect && sectionSelect) {
+    const sectionMap = JSON.parse(sectionMapNode.textContent || '{}');
+    const rebuildSectionOptions = () => {
+      const substrate = substrateSelect.value || '';
+      const source = substrate && sectionMap[substrate] ? sectionMap[substrate] : [];
+      const currentValue = sectionSelect.value;
+      const options = [];
+      source.forEach((item) => {
+        const option = document.createElement('option');
+        option.value = item.value;
+        option.textContent = item.label;
+        if (item.value === currentValue) option.selected = true;
+        options.push(option);
+      });
+      sectionSelect.innerHTML = '';
+      const blank = document.createElement('option');
+      blank.value = '';
+      blank.textContent = '---------';
+      sectionSelect.appendChild(blank);
+      options.forEach((option) => sectionSelect.appendChild(option));
+      if (!source.some((item) => item.value === sectionSelect.value)) {
+        sectionSelect.value = '';
+      }
+      updateTechnicalResponseVisibility();
+    };
+
+    substrateSelect.addEventListener('change', rebuildSectionOptions);
+    rebuildSectionOptions();
+  }
+
+  if (targetConfigNode && sectionSelect) {
+    const targetConfig = JSON.parse(targetConfigNode.textContent || '{}');
+    const applyRelevantFilters = () => {
+      const sectionKey = sectionSelect.value || '';
+      const config = targetConfig[sectionKey] || { types: [], surface_conditions: [], finishes: [] };
+      renderCheckboxGroup('types-field-container', 'types', config.types || []);
+      renderCheckboxGroup('surface_conditions-field-container', 'surface_conditions', config.surface_conditions || []);
+      renderCheckboxGroup('finishes-field-container', 'finishes', config.finishes || []);
+      updateTechnicalResponseVisibility();
+    };
+
+    sectionSelect.addEventListener('change', applyRelevantFilters);
+    applyRelevantFilters();
+  }
+
+  updateTechnicalResponseVisibility();
+});
+</script>
 
 {% endblock %}
