@@ -51,6 +51,37 @@ def _format_val(v: Any) -> str:
 
 
 @register.filter
+def div(value: Any, arg: Any) -> Any:
+    """Return value / arg, safely handling Decimal/float/string inputs."""
+    if value in (None, "") or arg in (None, "") or arg == 0:
+        return "—"
+    try:
+        left = Decimal(str(value).replace(",", ""))
+        right = Decimal(str(arg).replace(",", ""))
+        if right == 0:
+            return "—"
+        return left / right
+    except Exception:
+        try:
+            return float(value) / float(arg)
+        except Exception:
+            return "—"
+
+
+@register.filter
+def dict_get(value: Any, key: Any) -> Any:
+    """Safely read a key from a dict or object without raising for missing values."""
+    if value is None:
+        return ""
+    if isinstance(value, dict):
+        return value.get(key, "")
+    try:
+        return getattr(value, str(key), "")
+    except Exception:
+        return ""
+
+
+@register.filter
 def render_technical(info: Any) -> str:
     """Render a technical info dict as a compact safe HTML table.
 

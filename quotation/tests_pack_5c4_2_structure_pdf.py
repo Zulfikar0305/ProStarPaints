@@ -122,17 +122,35 @@ class Pack5C4_2_StructureTests(TestCase):
         self.assertIn('Brick masonry surfaces require repair', html)
 
     def test_headings_and_totals_and_section_independence(self):
+        QuotationLineItem.objects.create(
+            quotation=self.quotation,
+            section=self.section,
+            item_type=QuotationLineItem.ItemType.NOTE,
+            description="Brick wall summary",
+            metadata={"wall_type": "brick", "wall_type_label": "Brick"},
+        )
+        SurfaceDefault.objects.create(
+            main_section="INTERIOR",
+            subsection="interior_walls",
+            surface="brick",
+            preparation_requirements="Clean and repair. Prime before coating.",
+            surface_rules="Brick masonry surfaces require repair and a masonry primer.",
+            is_active=True,
+        )
+
         context = build_pdf_context(self.quotation, request=self.request)
         html = render_to_string('quotation/pdf/detailed_spec.html', context)
 
-        # Headings
-        # Template was reorganized: 'Surface Information' -> 'Section Overview'
-        self.assertIn('Section Overview', html, "Expected heading 'Section Overview' to be present in rendered HTML")
+        # Expected item-page composition: the Surface Default paragraphs appear
+        # directly beneath the images, with coating and product tables following.
         self.assertIn('Preparation Requirements', html, "Expected heading 'Preparation Requirements' to be present in rendered HTML")
-        self.assertIn('Application Requirements', html, "Expected heading 'Application Requirements' to be present in rendered HTML")
+        self.assertIn('Surface Rules / Description', html, "Expected heading 'Surface Rules / Description' to be present in rendered HTML")
         self.assertIn('Coating System', html, "Expected heading 'Coating System' to be present in rendered HTML")
-        self.assertIn('Technical Information', html, "Expected heading 'Technical Information' to be present in rendered HTML")
-        self.assertIn('Material Costing', html, "Expected heading 'Material Costing' to be present in rendered HTML")
+        self.assertIn('Surface / Product', html, "Expected heading 'Surface / Product' to be present in rendered HTML")
+        self.assertNotIn('Section Overview', html, "Expected 'Section Overview' not to render on the item page")
+        self.assertNotIn('Application Requirements', html, "Expected 'Application Requirements' not to render on the item page")
+        self.assertNotIn('Material Costing', html, "Expected 'Material Costing' not to render on the item page")
+        self.assertNotIn('Technical Information', html, "Expected 'Technical Information' not to render on the item page")
 
         # Section renders independently (display name appears once as a section title)
         self.assertIn('Interior Walls 1', html, "Expected section display name 'Interior Walls 1' to be present in rendered HTML")
