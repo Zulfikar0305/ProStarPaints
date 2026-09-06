@@ -180,7 +180,7 @@ class Pack5C4_3_SpecReportTests(TestCase):
         info = ctx['sections'][0]['technical'][0]['info']
 
         self.assertEqual(info['application_method'], 'Spray')
-        self.assertEqual(info['dft'], '90.00-140.00')
+        self.assertEqual(info['dft'], '90–140')
         self.assertEqual(info['drying_time'], '1-2 hours')
         self.assertEqual(info['recoat_time'], '3-4 hours')
         self.assertEqual(info['tds_reference'], 'TDS-ALG-204')
@@ -200,10 +200,202 @@ class Pack5C4_3_SpecReportTests(TestCase):
 
         self.assertEqual(info['application_method'], 'Spray')
         self.assertEqual(str(info['spread_rate_per_litre']), '6.50')
-        self.assertEqual(str(info['dft']), '60.00-90.00')
+        self.assertEqual(str(info['dft']), '60–90')
         self.assertEqual(info['drying_time'], '1-2 hours')
         self.assertEqual(info['recoat_time'], '3-4 hours')
         self.assertEqual(info['tds_reference'], 'SPRAY-TDS')
+
+    def test_coating_system_expands_each_actual_coat_into_separate_row(self):
+        q = Quotation.objects.create(created_by=self.user, customer_name='Coat Row Check')
+        s = QuotationSection.objects.create(quotation=q, subsection_key='interior_walls', display_name='Coat Rows', selection_order=1)
+
+        waterproofing = Paint.objects.create(
+            name='TEST Waterproofing',
+            is_active=True,
+            application_method='Brush,Roller',
+            dft_min=Decimal('25.00'),
+            dft_max=Decimal('30.00'),
+            spread_rate_per_litre=Decimal('8.00'),
+            tds_reference='WATER-TDS-01',
+            priced_volume_litres=Decimal('1.00'),
+            price_excl_vat=Decimal('10.00'),
+            price_incl_vat=Decimal('11.50'),
+            base_type='WHITE',
+            pricing_method=Paint.PricingMethod.AREA_COATING,
+        )
+        primer = Paint.objects.create(
+            name='TEST Primer',
+            is_active=True,
+            application_method='Brush',
+            dft_min=Decimal('40.00'),
+            dft_max=Decimal('40.00'),
+            spread_rate_per_litre=Decimal('10.00'),
+            tds_reference='PRIMER-TDS-01',
+            priced_volume_litres=Decimal('1.00'),
+            price_excl_vat=Decimal('20.00'),
+            price_incl_vat=Decimal('23.00'),
+            base_type='WHITE',
+            pricing_method=Paint.PricingMethod.AREA_COATING,
+        )
+        finish = Paint.objects.create(
+            name='TEST Interior Smooth Matte',
+            is_active=True,
+            application_method='Brush,Roller',
+            dft_min=Decimal('40.00'),
+            dft_max=Decimal('50.00'),
+            spread_rate_per_litre=Decimal('10.00'),
+            tds_reference='FINISH-TDS-01',
+            priced_volume_litres=Decimal('1.00'),
+            price_excl_vat=Decimal('50.00'),
+            price_incl_vat=Decimal('57.50'),
+            base_type='WHITE',
+            pricing_method=Paint.PricingMethod.AREA_COATING,
+        )
+
+        QuotationLineItem.objects.create(
+            quotation=q,
+            section=s,
+            item_type=QuotationLineItem.ItemType.WATERPROOFING,
+            paint=waterproofing,
+            coats=1,
+            area_sqm=Decimal('20.00'),
+        )
+        QuotationLineItem.objects.create(
+            quotation=q,
+            section=s,
+            item_type=QuotationLineItem.ItemType.PRIMER,
+            paint=primer,
+            coats=1,
+            area_sqm=Decimal('20.00'),
+        )
+        QuotationLineItem.objects.create(
+            quotation=q,
+            section=s,
+            item_type=QuotationLineItem.ItemType.PAINT,
+            paint=finish,
+            coats=2,
+            area_sqm=Decimal('20.00'),
+        )
+
+        ctx = build_pdf_context(q)
+        rows = ctx['sections'][0]['coating_system']
+        self.assertEqual(len(rows), 4)
+        self.assertEqual(rows[0]['product'], 'TEST Waterproofing')
+        self.assertEqual(rows[1]['product'], 'TEST Primer')
+        self.assertEqual(rows[2]['product'], 'TEST Interior Smooth Matte')
+        self.assertEqual(rows[3]['product'], 'TEST Interior Smooth Matte')
+        self.assertEqual(rows[0]['coat_label'], 'Coat 1: TEST Waterproofing')
+        self.assertEqual(rows[1]['coat_label'], 'Coat 2: TEST Primer')
+        self.assertEqual(rows[2]['coat_label'], 'Coat 3: TEST Interior Smooth Matte')
+        self.assertEqual(rows[3]['coat_label'], 'Coat 4: TEST Interior Smooth Matte')
+        self.assertEqual(rows[0]['dft'], '25–30')
+        self.assertEqual(rows[1]['dft'], '40')
+        self.assertEqual(rows[2]['dft'], '40–50')
+        self.assertEqual(rows[0]['tds_reference'], 'WATER-TDS-01')
+
+    def test_coating_system_row_count_and_column_labels(self):
+        self.paint.dft_min = Decimal('25.00')
+        self.paint.dft_max = Decimal('30.00')
+        self.paint.tds_reference = 'TDS-123'
+        self.paint.application_method = 'Brush,Roller'
+        self.paint.save()
+        self.li_paint.coats = 2
+        self.li_paint.save(update_fields=['coats'])
+
+        ctx = build_pdf_context(self.q)
+        rows = ctx['sections'][0]['coating_system']
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]['dft'], '25–30')
+        self.assertEqual(rows[1]['dft'], '25–30')
+        self.assertEqual(rows[0]['tds_reference'], 'TDS-123')
+        self.assertEqual(rows[0]['application_method'], 'Brush,Roller')
+
+        rendered = self.li_paint.section and self.li_paint.section or self.s
+        html = __import__('django.template.loader').template.loader.render_to_string('quotation/pdf/detailed_spec.html', ctx)
+        self.assertIn('Spread Rate (m²/L)', html)
+        self.assertIn('DFT (µm)', html)
+        self.assertIn('Coat 1:', html)
+        self.assertIn('Coat 2:', html)
+        self.assertNotIn('TEST Waterproofing', html)
+
+    def test_coating_system_ignores_prep_work_and_missing_dft_data(self):
+        missing = Paint.objects.create(
+            name='No DFT Paint',
+            is_active=True,
+            application_method='Spray',
+            spread_rate_per_litre=Decimal('12.00'),
+            tds_reference='NO-DFT-TDS',
+            priced_volume_litres=Decimal('1.00'),
+            price_excl_vat=Decimal('60.00'),
+            price_incl_vat=Decimal('69.00'),
+            base_type='WHITE',
+            pricing_method=Paint.PricingMethod.AREA_COATING,
+        )
+        QuotationLineItem.objects.create(
+            quotation=self.q,
+            section=self.s,
+            item_type=QuotationLineItem.ItemType.PAINT,
+            paint=missing,
+            coats=1,
+            area_sqm=Decimal('10.00'),
+        )
+
+        ctx = build_pdf_context(self.q)
+        rows = ctx['sections'][0]['coating_system']
+        self.assertTrue(all(row['product'] != 'Sand and clean' for row in rows))
+        self.assertTrue(any(row['product'] == 'No DFT Paint' for row in rows))
+        self.assertTrue(any(not row.get('dft') for row in rows))
+        self.assertTrue(any(row['tds_reference'] == 'NO-DFT-TDS' for row in rows))
+
+    def test_surface_product_table_uses_section_item_number_and_product_mapping(self):
+        from django.template.loader import render_to_string
+
+        paint = Paint.objects.create(
+            name='Surface Test Paint',
+            is_active=True,
+            colour='White',
+            spread_rate_per_litre=Decimal('8.00'),
+            priced_volume_litres=Decimal('20.00'),
+            package_size=Decimal('20.00'),
+            price_excl_vat=Decimal('120.00'),
+            price_incl_vat=Decimal('138.00'),
+            base_type='WHITE',
+            pricing_method=Paint.PricingMethod.AREA_COATING,
+        )
+        QuotationLineItem.objects.create(
+            quotation=self.q,
+            section=self.s,
+            item_type=QuotationLineItem.ItemType.PAINT,
+            paint=paint,
+            coats=1,
+            area_sqm=Decimal('100.00'),
+            price_excl_vat=Decimal('120.00'),
+            price_incl_vat=Decimal('138.00'),
+            total_excl_vat=Decimal('1200.00'),
+            total_incl_vat=Decimal('1380.00'),
+        )
+
+        ctx = build_pdf_context(self.q)
+        row = next(r for r in ctx['sections'][0]['material_summary'] if r.get('product') == 'Surface Test Paint')
+        self.assertEqual(row['item_no'], 1)
+        self.assertEqual(row['coverage_per_20l'], Decimal('160.00'))
+        self.assertEqual(row['coverage'], Decimal('8.00'))
+        self.assertEqual(row['colour'], 'White')
+        self.assertEqual(row['pack_size'], Decimal('20.00'))
+        self.assertEqual(row['unit_price_excl_vat'], Decimal('120.00'))
+        self.assertEqual(row['paint_cost_per_m2_excl_vat'], Decimal('12.00'))
+
+        html = render_to_string('quotation/pdf/detailed_spec.html', ctx)
+        self.assertIn('Item No.', html)
+        self.assertIn('Surface Type', html)
+        self.assertIn('Substrate', html)
+        self.assertIn('Coverage per 20L', html)
+        self.assertIn('Coverage (m²/L)', html)
+        self.assertIn('Unit Price (excl. VAT)', html)
+        self.assertIn('Paint cost per m² (excl. VAT)', html)
+        self.assertNotIn('Amount Required', html)
+        self.assertNotIn('Units of Paint', html)
+        self.assertNotIn('Total Price (excl. VAT)', html)
 
     def test_empty_optional_blocks_are_suppressed_in_rendered_pdf(self):
         from django.template.loader import render_to_string

@@ -13,6 +13,7 @@ falling back to empty lists when metadata is missing or malformed.
 from __future__ import annotations
 
 import re
+from decimal import Decimal
 from typing import Any
 
 from .description_engine import generate_line_item_description
@@ -63,13 +64,35 @@ def _format_reference_areas(line_items: list) -> str:
     return ", ".join(parts)
 
 
+def _format_dft_value(value=None):
+    if value is None:
+        return ""
+    try:
+        text = str(value).strip()
+        if text in ("", "None"):
+            return ""
+        if "." in text:
+            text = text.rstrip("0").rstrip(".")
+        return text
+    except Exception:
+        return ""
+
+
 def _format_dft_range(min_value=None, max_value=None):
     try:
         if min_value is None and max_value is None:
             return None
-        if min_value is not None and max_value is not None and min_value != max_value:
-            return f"{min_value}-{max_value}"
-        return str(min_value if min_value is not None else max_value)
+        if min_value is not None and max_value is not None:
+            min_text = _format_dft_value(min_value)
+            max_text = _format_dft_value(max_value)
+            if min_value == max_value:
+                return min_text
+            return f"{min_text}–{max_text}"
+        if min_value is not None:
+            return _format_dft_value(min_value)
+        if max_value is not None:
+            return _format_dft_value(max_value)
+        return None
     except Exception:
         return None
 
@@ -358,23 +381,81 @@ def compose_application_requirements(section_data: dict | list | None) -> str:
     return " ".join(sentences)
 
 
-def _material_summary_for_item(item) -> dict:
-    # Use persisted fields only; do not calculate new totals.
+def _material_summary_for_item(item, item_no=None, surface_type=None, substrate=None) -> dict:
+    # Use persisted fields only; do not recalculate pricing or quantities here.
     product = None
+    paint = getattr(item, "paint", None)
+    metadata = getattr(item, "metadata", {}) or {}
     try:
-        if getattr(item, "paint", None):
-            product = item.paint.name
+        if paint:
+            product = paint.name
     except Exception:
         product = None
 
+    spread_rate = None
+    if paint is not None and getattr(paint, "spread_rate_per_litre", None) not in (None, ""):
+        spread_rate = paint.spread_rate_per_litre
+    if spread_rate is None:
+        spread_rate = metadata.get("spread_rate_per_litre")
+
+    coverage = None
+    try:
+        if spread_rate not in (None, ""):
+            coverage = Decimal(str(spread_rate).replace(",", ""))
+    except Exception:
+        coverage = None
+
+    coverage_per_20l = None
+    if coverage is not None:
+        try:
+            coverage_per_20l = coverage * Decimal("20")
+        except Exception:
+            coverage_per_20l = None
+
+    pack_size = None
+    if paint is not None:
+        for key in ("package_size", "priced_volume_litres"):
+            value = getattr(paint, key, None)
+            if value not in (None, ""):
+                pack_size = value
+                break
+    if pack_size is None:
+        for key in ("package_size", "recommended_containers", "priced_volume_litres"):
+            value = metadata.get(key)
+            if value not in (None, ""):
+                pack_size = value
+                break
+
+    unit_price = getattr(item, "price_excl_vat", None)
+    if unit_price in (None, "") and paint is not None:
+        unit_price = getattr(paint, "price_excl_vat", None)
+
+    paint_cost_per_m2 = None
+    try:
+        area = getattr(item, "area_sqm", None)
+        total = getattr(item, "total_excl_vat", None)
+        if area not in (None, "", 0) and total not in (None, ""):
+            paint_cost_per_m2 = Decimal(str(total).replace(",", "")) / Decimal(str(area).replace(",", ""))
+    except Exception:
+        paint_cost_per_m2 = None
+
     return {
+        "item_no": item_no,
+        "surface_type": surface_type,
+        "substrate": substrate,
         "product": product or (getattr(item, "description", "") or ""),
         "finish": (getattr(item, "paint", None) and getattr(item.paint, "get_finish_display", lambda: None)()) if getattr(item, "paint", None) else None,
         "base": (getattr(item, "paint", None) and getattr(item.paint, "get_base_type_display", lambda: None)()) if getattr(item, "paint", None) else None,
         "area": getattr(item, "area_sqm", None),
         "coats": getattr(item, "coats", None),
-        "required_litres": (item.metadata or {}).get("required_litres"),
-        "recommended_containers": (item.metadata or {}).get("recommended_containers"),
+        "coverage": coverage,
+        "coverage_per_20l": coverage_per_20l,
+        "colour": getattr(paint, "colour", None) if paint is not None else "",
+        "pack_size": pack_size,
+        "unit_price_excl_vat": unit_price,
+        "paint_cost_per_m2_excl_vat": paint_cost_per_m2,
+        "required_litres": metadata.get("required_litres"),
+        "recommended_containers": metadata.get("recommended_containers"),
         "est_material_cost": getattr(item, "total_excl_vat", None),
         "line_item_pk": getattr(item, "pk", None),
     }
@@ -409,7 +490,7 @@ def generate_spec_for_sections(section_data: list[dict]) -> list[dict]:
     except Exception:
         default_map = {}
 
-    for sec in section_data:
+    for section_index, sec in enumerate(section_data):
         try:
             note_item = sec.get("note_item")
             # line_items in the section_data are dicts with 'item' and 'description'
@@ -559,7 +640,6 @@ def generate_spec_for_sections(section_data: list[dict]) -> list[dict]:
             for it in work_items:
                 try:
                     if getattr(it, "item_type", None) in (QuotationLineItem.ItemType.PRIMER, QuotationLineItem.ItemType.WATERPROOFING, QuotationLineItem.ItemType.PAINT):
-                        stage += 1
                         product = None
                         try:
                             if it.paint:
@@ -584,25 +664,44 @@ def generate_spec_for_sections(section_data: list[dict]) -> list[dict]:
                         meta = getattr(it, "metadata", {}) or {}
                         app_method = _paint_application_method(it) or meta.get("application_method") or meta.get("application_method_label") or "Brush / Roller / Spray"
                         tech_info = _gather_technical_for_item(it)
-                        coating_system.append({
-                            "stage": stage,
-                            "product": product,
-                            "finish": finish,
-                            "base": base,
-                            "coats": getattr(it, "coats", None),
-                            "area": getattr(it, "area_sqm", None) or getattr(it, "quantity", None),
-                            "line_item_pk": getattr(it, "pk", None),
-                            "application_method": app_method,
-                            "coverage": tech_info.get("coverage") or meta.get("coverage"),
-                            "dft": tech_info.get("dft") or meta.get("dft"),
-                            "dft_min": tech_info.get("dft_min") or meta.get("dft_min"),
-                            "dft_max": tech_info.get("dft_max") or meta.get("dft_max"),
-                            "drying_time": tech_info.get("drying_time") or meta.get("drying_time"),
-                            "recoat_time": tech_info.get("recoat_time") or meta.get("recoat_time"),
-                            "tds_reference": tech_info.get("tds_reference") or meta.get("tds_reference"),
-                            "spread_rate_per_litre": tech_info.get("spread_rate_per_litre") or meta.get("spread_rate_per_litre"),
-                            "required_litres": tech_info.get("required_litres") or meta.get("required_litres"),
-                        })
+                        dft_min = tech_info.get("dft_min")
+                        dft_max = tech_info.get("dft_max")
+                        if dft_min is None:
+                            dft_min = meta.get("dft_min")
+                        if dft_max is None:
+                            dft_max = meta.get("dft_max")
+                        dft_value = _format_dft_range(dft_min, dft_max)
+                        coat_count = getattr(it, "coats", None)
+                        try:
+                            coat_count = int(coat_count)
+                        except Exception:
+                            coat_count = 1
+                        if coat_count <= 0:
+                            coat_count = 1
+
+                        for coat_index in range(1, coat_count + 1):
+                            stage += 1
+                            coating_system.append({
+                                "stage": stage,
+                                "coat_number": coat_index,
+                                "coat_label": f"Coat {stage}: {product}" if product else f"Coat {stage}",
+                                "product": product,
+                                "finish": finish,
+                                "base": base,
+                                "coats": getattr(it, "coats", None),
+                                "area": getattr(it, "area_sqm", None) or getattr(it, "quantity", None),
+                                "line_item_pk": getattr(it, "pk", None),
+                                "application_method": app_method,
+                                "coverage": tech_info.get("coverage") or meta.get("coverage"),
+                                "dft": dft_value,
+                                "dft_min": dft_min,
+                                "dft_max": dft_max,
+                                "drying_time": tech_info.get("drying_time") or meta.get("drying_time"),
+                                "recoat_time": tech_info.get("recoat_time") or meta.get("recoat_time"),
+                                "tds_reference": tech_info.get("tds_reference") or meta.get("tds_reference"),
+                                "spread_rate_per_litre": tech_info.get("spread_rate_per_litre") or meta.get("spread_rate_per_litre"),
+                                "required_litres": tech_info.get("required_litres") or meta.get("required_litres"),
+                            })
                 except Exception:
                     continue
 
@@ -617,7 +716,14 @@ def generate_spec_for_sections(section_data: list[dict]) -> list[dict]:
             material_summary = []
             for it in work_items:
                 if getattr(it, "item_type", None) in (QuotationLineItem.ItemType.PAINT, QuotationLineItem.ItemType.PRIMER, QuotationLineItem.ItemType.WATERPROOFING):
-                    material_summary.append(_material_summary_for_item(it))
+                    material_summary.append(
+                        _material_summary_for_item(
+                            it,
+                            item_no=section_index + 1,
+                            surface_type=getattr(section_obj, "display_name", None) or None,
+                            substrate=wall_type or getattr(section_obj, "substrate_type", None),
+                        )
+                    )
 
             surface_description = (sec.get("description") or "").strip()
             if surface_default and surface_default.surface_rules:

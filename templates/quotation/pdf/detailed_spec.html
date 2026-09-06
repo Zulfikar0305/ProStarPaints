@@ -672,50 +672,26 @@
                 <tr>
                   <th>Coating System</th>
                   <th>Technical Data Sheet</th>
-                  <th>Spread Rate</th>
+                  <th>Spread Rate (m²/L)</th>
                   <th>DFT (µm)</th>
                   <th>Application Methods</th>
                 </tr>
               </thead>
               <tbody>
                 {% for cs in sec_data.coating_system %}
-                  {% with pk=cs.line_item_pk %}
-                    {% for tech in sec_data.technical %}
-                      {% if tech.line_item_pk == pk %}
-                        <tr>
-                          <td>{{ cs.product|default:'—' }}</td>
-                          <td>
-                            {% with tech_tds=tech.info|dict_get:'tds_reference' %}
-                              {% if cs.tds_reference %}{{ cs.tds_reference }}{% elif tech_tds %}{{ tech_tds }}{% else %}—{% endif %}
-                            {% endwith %}
-                          </td>
-                          <td>
-                            {% with tech_spread=tech.info|dict_get:'spread_rate_per_litre' %}
-                              {% if cs.spread_rate_per_litre %}{{ cs.spread_rate_per_litre|floatformat:2 }}{% elif tech_spread %}{{ tech_spread|floatformat:2 }}{% else %}—{% endif %}
-                            {% endwith %}
-                          </td>
-                          <td>
-                            {% with tech_dft=tech.info|dict_get:'dft' %}
-                              {% if cs.dft %}{{ cs.dft|floatformat:2 }}{% elif tech_dft %}{{ tech_dft|floatformat:2 }}{% else %}—{% endif %}
-                            {% endwith %}
-                          </td>
-                          <td>
-                            {% with tech_app=tech.info|dict_get:'application_method' %}
-                              {% if cs.application_method %}{{ cs.application_method }}{% elif tech_app %}{{ tech_app }}{% else %}—{% endif %}
-                            {% endwith %}
-                          </td>
-                        </tr>
+                  <tr>
+                    <td>{{ cs.coat_label|default:cs.product|default:'—' }}</td>
+                    <td>{% if cs.tds_reference %}{{ cs.tds_reference }}{% else %}—{% endif %}</td>
+                    <td>
+                      {% if cs.spread_rate_per_litre %}
+                        {{ cs.spread_rate_per_litre|floatformat:2 }}
+                      {% else %}
+                        —
                       {% endif %}
-                    {% empty %}
-                      <tr>
-                        <td>{{ cs.product|default:'—' }}</td>
-                        <td>—</td>
-                        <td>{% with cs_spread=cs|dict_get:'spread_rate_per_litre' %}{% if cs_spread %}{{ cs_spread|floatformat:2 }}{% else %}—{% endif %}{% endwith %}</td>
-                        <td>{% with cs_dft=cs|dict_get:'dft' %}{% if cs_dft %}{{ cs_dft|floatformat:2 }}{% else %}—{% endif %}{% endwith %}</td>
-                        <td>{% with cs_app=cs|dict_get:'application_method' %}{% if cs_app %}{{ cs_app }}{% else %}—{% endif %}{% endwith %}</td>
-                      </tr>
-                    {% endfor %}
-                  {% endwith %}
+                    </td>
+                    <td>{% if cs.dft %}{{ cs.dft }}{% else %}—{% endif %}</td>
+                    <td>{% if cs.application_method %}{{ cs.application_method }}{% else %}—{% endif %}</td>
+                  </tr>
                 {% endfor %}
               </tbody>
             </table>
@@ -729,60 +705,45 @@
               <thead>
                 <tr>
                   <th>Item No.</th>
-                  <th>Surface</th>
                   <th>Surface Type</th>
+                  <th>Substrate</th>
                   <th>Product</th>
-                  <th>Surface Area (m²)</th>
+                  <th>Coverage per 20L</th>
                   <th>Coverage (m²/L)</th>
-                  <th>Amount Required (L/kg)</th>
+                  <th>Colour</th>
                   <th>Pack Size</th>
-                  <th>Units of Paint</th>
                   <th>Unit Price (excl. VAT)</th>
-                  <th>Total Price (excl. VAT)</th>
-                  <th>Paint Cost per m² (excl. VAT)</th>
+                  <th>Paint cost per m² (excl. VAT)</th>
                 </tr>
               </thead>
               <tbody>
                 {% for m in sec_data.material_summary %}
                   {% if m.product or m.area or m.required_litres or m.est_material_cost %}
                     <tr>
-                      <td>{{ forloop.counter }}</td>
-                      <td>{{ sec_data.section.display_name|default:'—' }}</td>
+                      <td>{{ m|dict_get:'item_no'|default:'—' }}</td>
                       <td>
-                        {% with wall_type=sec_data.surface_info|dict_get:'wall_type' %}
-                          {% if wall_type %}{{ wall_type }}{% else %}{{ sec_data.section.substrate_type|default:'—' }}{% endif %}
+                        {% with surface_type=m|dict_get:'surface_type' %}
+                          {% if surface_type %}{{ surface_type }}{% else %}{{ sec_data.section.display_name|default:'—' }}{% endif %}
+                        {% endwith %}
+                      </td>
+                      <td>
+                        {% with substrate=m|dict_get:'substrate' %}
+                          {% if substrate %}{{ substrate }}{% else %}
+                            {% with wall_type=sec_data.surface_info|dict_get:'wall_type' %}
+                              {% if wall_type %}{{ wall_type }}{% else %}{{ sec_data.section.substrate_type|default:'—' }}{% endif %}
+                            {% endwith %}
+                          {% endif %}
                         {% endwith %}
                       </td>
                       <td>{{ m|dict_get:'product'|default:'—' }}</td>
-                      <td>{% with mat_area=m|dict_get:'area' %}{% if mat_area %}{{ mat_area|floatformat:2 }}{% else %}—{% endif %}{% endwith %}</td>
+                      <td>{% if m|dict_get:'coverage_per_20l' %}{{ m|dict_get:'coverage_per_20l'|floatformat:2 }}{% else %}—{% endif %}</td>
+                      <td>{% if m|dict_get:'coverage' %}{{ m|dict_get:'coverage'|floatformat:2 }}{% else %}—{% endif %}</td>
+                      <td>{{ m|dict_get:'colour'|default:'—' }}</td>
+                      <td>{% if m|dict_get:'pack_size' %}{{ m|dict_get:'pack_size'|floatformat:0 }}L{% else %}—{% endif %}</td>
+                      <td>{% if pricing_enabled and m|dict_get:'unit_price_excl_vat' %}R {{ m|dict_get:'unit_price_excl_vat'|floatformat:2 }}{% else %}—{% endif %}</td>
                       <td>
-                        {% with pk=m|dict_get:'line_item_pk' %}
-                          {% for tech in sec_data.technical %}
-                            {% with tech_cov=tech.info|dict_get:'coverage' %}
-                              {% if tech.line_item_pk == pk and tech_cov %}{{ tech_cov|floatformat:2 }}{% endif %}
-                            {% endwith %}
-                          {% endfor %}
-                        {% endwith %}
-                        {% if not m|dict_get:'area' and not m|dict_get:'required_litres' and not m|dict_get:'est_material_cost' %}—{% endif %}
-                      </td>
-                      <td>{% with mat_required=m|dict_get:'required_litres' %}{% if mat_required %}{{ mat_required|floatformat:2 }}{% else %}—{% endif %}{% endwith %}</td>
-                      <td>{% with mat_pack=m|dict_get:'recommended_containers' %}{% if mat_pack %}{{ mat_pack }}{% else %}—{% endif %}{% endwith %}</td>
-                      <td>{% with mat_pack2=m|dict_get:'recommended_containers' %}{% if mat_pack2 %}{{ mat_pack2 }}{% else %}—{% endif %}{% endwith %}</td>
-                      <td>
-                        {% with mat_cost=m|dict_get:'est_material_cost' mat_required2=m|dict_get:'required_litres' %}
-                          {% if pricing_enabled and mat_cost and mat_required2 and mat_required2 != '0' and mat_required2 != 0 %}
-                            R {{ mat_cost|floatformat:2 }} / {{ mat_required2|floatformat:2 }}
-                          {% elif pricing_enabled and mat_cost %}
-                            R {{ mat_cost|floatformat:2 }}
-                          {% else %}—{% endif %}
-                        {% endwith %}
-                      </td>
-                      <td>{% if pricing_enabled and m|dict_get:'est_material_cost' %}R {{ m|dict_get:'est_material_cost'|floatformat:2 }}{% else %}—{% endif %}</td>
-                      <td>
-                        {% with mat_cost=m|dict_get:'est_material_cost' mat_area=m|dict_get:'area' %}
-                          {% if pricing_enabled and mat_cost and mat_area and mat_area != '0' and mat_area != 0 %}
-                            R {{ mat_cost|div:mat_area|floatformat:2 }}
-                          {% else %}—{% endif %}
+                        {% with mat_cost=m|dict_get:'paint_cost_per_m2_excl_vat' %}
+                          {% if pricing_enabled and mat_cost %}R {{ mat_cost|floatformat:2 }}{% else %}—{% endif %}
                         {% endwith %}
                       </td>
                     </tr>
