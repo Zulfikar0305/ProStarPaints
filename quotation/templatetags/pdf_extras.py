@@ -27,6 +27,24 @@ _LABELS = {
 }
 
 
+def _format_number(v: Any) -> str:
+    if v is None or v == "":
+        return "—"
+    try:
+        if isinstance(v, str):
+            value = v.strip()
+            if value == "":
+                return "—"
+            d = Decimal(value.replace(",", ""))
+        elif isinstance(v, (Decimal, float, int)):
+            d = Decimal(str(v))
+        else:
+            return str(v)
+        return f"{d.quantize(Decimal('0.01')):,.2f}"
+    except Exception:
+        return str(v)
+
+
 def _format_val(v: Any) -> str:
     if v is None or v == "":
         return "—"
@@ -43,7 +61,10 @@ def _format_val(v: Any) -> str:
     try:
         # Monetary formatting for Decimal/float/int
         if isinstance(v, (Decimal, float, int)):
-            d = Decimal(v)
+            d = Decimal(str(v))
+            return f"R {d.quantize(Decimal('0.01')):,.2f}"
+        if isinstance(v, str):
+            d = Decimal(v.replace(",", ""))
             return f"R {d.quantize(Decimal('0.01')):,.2f}"
     except Exception:
         pass
@@ -155,9 +176,9 @@ def render_coating_rows(coating_system: Any, technical: Any) -> str:
         coverage = tech.get("coverage") if isinstance(tech, dict) else None
         required = (m.get("required_litres") if isinstance(m, dict) else getattr(m, "required_litres", None)) or tech.get("required_litres") if isinstance(tech, dict) else None
 
-        spread_txt = f"{spread} m²/L" if spread is not None else "—"
-        coverage_txt = _format_val(coverage) if coverage is not None else "—"
-        required_txt = _format_val(required)
+        spread_txt = f"{_format_number(spread)} m²/L" if spread is not None else "—"
+        coverage_txt = _format_number(coverage) if coverage is not None else "—"
+        required_txt = _format_number(required)
 
         rows.append(
             f"<tr>"
@@ -206,8 +227,8 @@ def render_material_schedule_rows(material_summary: Any, technical: Any) -> str:
             f"<tr>"
             f"<td>{escape(product or '—')}</td>"
             f"<td>{escape(_format_package(package))}</td>"
-            f"<td>{escape(_format_val(coverage))}</td>"
-            f"<td>{escape(_format_val(quantity))}</td>"
+            f"<td>{escape(_format_number(coverage))}</td>"
+            f"<td>{escape(_format_number(quantity))}</td>"
             f"<td>{escape(est_text)}</td>"
             f"</tr>"
         )

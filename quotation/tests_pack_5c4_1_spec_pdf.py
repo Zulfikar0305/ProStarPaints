@@ -154,3 +154,53 @@ class DetailedSpecPdfPersistenceTests(TestCase):
             ctx2['sections'][0]['description'],
             "FAILED ASSERTION: expected 'peeling / flaking' to appear in section description (canonical surface information)."
         )
+
+    def test_detailed_spec_renders_numeric_values_to_two_decimal_places(self):
+        s = QuotationSection.objects.create(
+            quotation=self.q,
+            subsection_key='interior_walls',
+            display_name='Precision Test',
+            selection_order=2,
+        )
+        paint = Paint.objects.create(
+            name='Precision Paint',
+            is_active=True,
+            spread_rate_per_litre=Decimal('2.9883742842472748237'),
+            priced_volume_litres=Decimal('1.00'),
+            price_excl_vat=Decimal('40.00'),
+            price_incl_vat=Decimal('46.00'),
+            base_type='WHITE',
+            pricing_method=Paint.PricingMethod.AREA_COATING,
+            package_size=Decimal('5.00'),
+            package_unit='L',
+        )
+        li = QuotationLineItem.objects.create(
+            quotation=self.q,
+            section=s,
+            item_type=QuotationLineItem.ItemType.PAINT,
+            paint=paint,
+            coats=2,
+            area_sqm=Decimal('12.345678'),
+            price_excl_vat=paint.price_excl_vat,
+            price_incl_vat=paint.price_incl_vat,
+            metadata={
+                'surface_cond_labels': ['good surface'],
+                'spread_rate_per_litre': '2.9883742842472748237',
+                'coverage': '2.997002997002997',
+                'required_litres': '0.999000999000999',
+                'recommended_containers': '1',
+            },
+        )
+        apply_paint_pricing_to_line_item(li)
+        recalculate_quotation_totals(self.q)
+
+        rendered = render_to_string('quotation/pdf/detailed_spec.html', build_pdf_context(self.q))
+
+        self.assertIn('2.99', rendered)
+        self.assertIn('12.35', rendered)
+        self.assertIn('8.26', rendered)
+        self.assertIn('R 80.00 / 8.26', rendered)
+        self.assertNotIn('2.9883742842472748237', rendered)
+        self.assertNotIn('12.345678', rendered)
+        self.assertNotIn('0.999000999000999', rendered)
+        self.assertNotIn('8.262471046600968183350018116', rendered)

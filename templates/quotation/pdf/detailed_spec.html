@@ -690,12 +690,12 @@
                           </td>
                           <td>
                             {% with tech_spread=tech.info|dict_get:'spread_rate_per_litre' %}
-                              {% if cs.spread_rate_per_litre %}{{ cs.spread_rate_per_litre }}{% elif tech_spread %}{{ tech_spread }}{% else %}—{% endif %}
+                              {% if cs.spread_rate_per_litre %}{{ cs.spread_rate_per_litre|floatformat:2 }}{% elif tech_spread %}{{ tech_spread|floatformat:2 }}{% else %}—{% endif %}
                             {% endwith %}
                           </td>
                           <td>
                             {% with tech_dft=tech.info|dict_get:'dft' %}
-                              {% if cs.dft %}{{ cs.dft }}{% elif tech_dft %}{{ tech_dft }}{% else %}—{% endif %}
+                              {% if cs.dft %}{{ cs.dft|floatformat:2 }}{% elif tech_dft %}{{ tech_dft|floatformat:2 }}{% else %}—{% endif %}
                             {% endwith %}
                           </td>
                           <td>
@@ -709,8 +709,8 @@
                       <tr>
                         <td>{{ cs.product|default:'—' }}</td>
                         <td>—</td>
-                        <td>{% with cs_spread=cs|dict_get:'spread_rate_per_litre' %}{% if cs_spread %}{{ cs_spread }}{% else %}—{% endif %}{% endwith %}</td>
-                        <td>{% with cs_dft=cs|dict_get:'dft' %}{% if cs_dft %}{{ cs_dft }}{% else %}—{% endif %}{% endwith %}</td>
+                        <td>{% with cs_spread=cs|dict_get:'spread_rate_per_litre' %}{% if cs_spread %}{{ cs_spread|floatformat:2 }}{% else %}—{% endif %}{% endwith %}</td>
+                        <td>{% with cs_dft=cs|dict_get:'dft' %}{% if cs_dft %}{{ cs_dft|floatformat:2 }}{% else %}—{% endif %}{% endwith %}</td>
                         <td>{% with cs_app=cs|dict_get:'application_method' %}{% if cs_app %}{{ cs_app }}{% else %}—{% endif %}{% endwith %}</td>
                       </tr>
                     {% endfor %}
@@ -753,24 +753,24 @@
                         {% endwith %}
                       </td>
                       <td>{{ m|dict_get:'product'|default:'—' }}</td>
-                      <td>{% with mat_area=m|dict_get:'area' %}{% if mat_area %}{{ mat_area }}{% else %}—{% endif %}{% endwith %}</td>
+                      <td>{% with mat_area=m|dict_get:'area' %}{% if mat_area %}{{ mat_area|floatformat:2 }}{% else %}—{% endif %}{% endwith %}</td>
                       <td>
                         {% with pk=m|dict_get:'line_item_pk' %}
                           {% for tech in sec_data.technical %}
                             {% with tech_cov=tech.info|dict_get:'coverage' %}
-                              {% if tech.line_item_pk == pk and tech_cov %}{{ tech_cov }}{% endif %}
+                              {% if tech.line_item_pk == pk and tech_cov %}{{ tech_cov|floatformat:2 }}{% endif %}
                             {% endwith %}
                           {% endfor %}
                         {% endwith %}
                         {% if not m|dict_get:'area' and not m|dict_get:'required_litres' and not m|dict_get:'est_material_cost' %}—{% endif %}
                       </td>
-                      <td>{% with mat_required=m|dict_get:'required_litres' %}{% if mat_required %}{{ mat_required }}{% else %}—{% endif %}{% endwith %}</td>
+                      <td>{% with mat_required=m|dict_get:'required_litres' %}{% if mat_required %}{{ mat_required|floatformat:2 }}{% else %}—{% endif %}{% endwith %}</td>
                       <td>{% with mat_pack=m|dict_get:'recommended_containers' %}{% if mat_pack %}{{ mat_pack }}{% else %}—{% endif %}{% endwith %}</td>
                       <td>{% with mat_pack2=m|dict_get:'recommended_containers' %}{% if mat_pack2 %}{{ mat_pack2 }}{% else %}—{% endif %}{% endwith %}</td>
                       <td>
                         {% with mat_cost=m|dict_get:'est_material_cost' mat_required2=m|dict_get:'required_litres' %}
                           {% if pricing_enabled and mat_cost and mat_required2 and mat_required2 != '0' and mat_required2 != 0 %}
-                            R {{ mat_cost|floatformat:2 }} / {{ mat_required2 }}
+                            R {{ mat_cost|floatformat:2 }} / {{ mat_required2|floatformat:2 }}
                           {% elif pricing_enabled and mat_cost %}
                             R {{ mat_cost|floatformat:2 }}
                           {% else %}—{% endif %}
