@@ -119,7 +119,9 @@ class Pack5C4_2_StructureTests(TestCase):
 
         html = render_to_string('quotation/pdf/detailed_spec.html', context)
         self.assertIn('Clean and repair.', html)
-        self.assertIn('Brick masonry surfaces require repair', html)
+        self.assertIn('Preparation Requirements', html)
+        self.assertIn('Application Requirements', html)
+        self.assertNotIn('Surface Rules / Description', html)
 
     def test_headings_and_totals_and_section_independence(self):
         QuotationLineItem.objects.create(
@@ -141,14 +143,14 @@ class Pack5C4_2_StructureTests(TestCase):
         context = build_pdf_context(self.quotation, request=self.request)
         html = render_to_string('quotation/pdf/detailed_spec.html', context)
 
-        # Expected item-page composition: the Surface Default paragraphs appear
-        # directly beneath the images, with coating and product tables following.
+        # Expected item-page composition: prep text appears first, then the derived
+        # application requirements paragraph, followed by the existing product tables.
         self.assertIn('Preparation Requirements', html, "Expected heading 'Preparation Requirements' to be present in rendered HTML")
-        self.assertIn('Surface Rules / Description', html, "Expected heading 'Surface Rules / Description' to be present in rendered HTML")
+        self.assertIn('Application Requirements', html, "Expected heading 'Application Requirements' to be present in rendered HTML")
         self.assertIn('Coating System', html, "Expected heading 'Coating System' to be present in rendered HTML")
         self.assertIn('Surface / Product', html, "Expected heading 'Surface / Product' to be present in rendered HTML")
         self.assertNotIn('Section Overview', html, "Expected 'Section Overview' not to render on the item page")
-        self.assertNotIn('Application Requirements', html, "Expected 'Application Requirements' not to render on the item page")
+        self.assertNotIn('Surface Rules / Description', html, "Expected 'Surface Rules / Description' not to render on the item page")
         self.assertNotIn('Material Costing', html, "Expected 'Material Costing' not to render on the item page")
         self.assertNotIn('Technical Information', html, "Expected 'Technical Information' not to render on the item page")
 

@@ -65,12 +65,74 @@ class Pack5C4_3_SpecReportTests(TestCase):
         s = sections[0]
         self.assertIn('prep_instructions', s)
         self.assertIn('application_instructions', s)
+        self.assertIn('application_requirements', s)
         self.assertIn('coating_system', s)
         self.assertIn('technical', s)
         self.assertIn('material_summary', s)
 
+        self.assertTrue(isinstance(s['application_requirements'], str))
+        self.assertIn('Apply', s['application_requirements'])
+
         # Prep instructions should include removing loose paint and mould treatment
         self.assertTrue(any('Remove loose paint' in p or 'Remove mould' in p for p in s['prep_instructions']))
+
+    def test_application_requirements_for_multiple_products_and_methods(self):
+        primer = Paint.objects.create(
+            name='Prime Coat',
+            is_active=True,
+            application_method='Brush',
+            drying_time='2-4 hours',
+            recoat_time='4-6 hours',
+            spread_rate_per_litre=Decimal('8.00'),
+            priced_volume_litres=Decimal('1.00'),
+            price_excl_vat=Decimal('30.00'),
+            price_incl_vat=Decimal('34.50'),
+            base_type='WHITE',
+            pricing_method=Paint.PricingMethod.AREA_COATING,
+        )
+        topcoat = Paint.objects.create(
+            name='Finish Coat',
+            is_active=True,
+            application_method='Brush,Roller',
+            drying_time='2-4 hours',
+            recoat_time='4-6 hours',
+            spread_rate_per_litre=Decimal('10.00'),
+            priced_volume_litres=Decimal('1.00'),
+            price_excl_vat=Decimal('50.00'),
+            price_incl_vat=Decimal('57.50'),
+            base_type='WHITE',
+            pricing_method=Paint.PricingMethod.AREA_COATING,
+        )
+        QuotationLineItem.objects.create(
+            quotation=self.q,
+            section=self.s,
+            item_type=QuotationLineItem.ItemType.PRIMER,
+            paint=primer,
+            coats=1,
+            area_sqm=Decimal('20.00'),
+            price_excl_vat=primer.price_excl_vat,
+            price_incl_vat=primer.price_incl_vat,
+        )
+        QuotationLineItem.objects.create(
+            quotation=self.q,
+            section=self.s,
+            item_type=QuotationLineItem.ItemType.PAINT,
+            paint=topcoat,
+            coats=2,
+            area_sqm=Decimal('20.00'),
+            price_excl_vat=topcoat.price_excl_vat,
+            price_incl_vat=topcoat.price_incl_vat,
+        )
+
+        ctx = build_pdf_context(self.q)
+        s = ctx['sections'][0]
+        text = s['application_requirements']
+
+        self.assertIn('Apply 1 coat of Prime Coat', text)
+        self.assertIn('with a brush', text)
+        self.assertIn('Apply 2 coats of Finish Coat', text)
+        self.assertIn('with a brush and roller', text)
+        self.assertIn('dry for approximately', text)
 
     def test_no_duplicate_prep_statements(self):
         # Add another paint with same surface condition to ensure no dupes

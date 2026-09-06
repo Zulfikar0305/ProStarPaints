@@ -638,17 +638,11 @@
         {% endif %}
 
         {% if sec_data.surface_default %}
-          {% with surface_prep=sec_data.surface_default.preparation_requirements|default:'' surface_rules=sec_data.surface_default.surface_rules|default:'' %}
+          {% with surface_prep=sec_data.surface_default.preparation_requirements|default:'' %}
             {% if surface_prep %}
               <div class="section-block">
                 <h3 class="item-section-heading">Preparation Requirements</h3>
                 <p class="prep-copy">{{ surface_prep|linebreaksbr }}</p>
-              </div>
-            {% endif %}
-            {% if surface_rules %}
-              <div class="section-block">
-                <h3 class="item-section-heading">Surface Rules / Description</h3>
-                <p class="prep-copy">{{ surface_rules|linebreaksbr }}</p>
               </div>
             {% endif %}
           {% endwith %}
@@ -660,6 +654,13 @@
                 {% if forloop.first %}{{ instr }}{% else %} {{ instr }}{% endif %}
               {% endfor %}
             </div>
+          </div>
+        {% endif %}
+
+        {% if sec_data.application_requirements %}
+          <div class="section-block">
+            <h3 class="item-section-heading">Application Requirements</h3>
+            <p class="prep-copy">{{ sec_data.application_requirements|linebreaksbr }}</p>
           </div>
         {% endif %}
 

@@ -243,6 +243,121 @@ def _gather_technical_for_item(item) -> dict:
     return info
 
 
+def _normalise_method_words(value: str | None) -> list[str]:
+    text = str(value or "").strip()
+    if not text:
+        return []
+    text = text.replace("/", ",").replace("&", ",").replace(";", ",")
+    parts = [part.strip().lower() for part in text.split(",") if part.strip()]
+    if not parts:
+        return []
+    cleaned = []
+    for part in parts:
+        part = part.replace("and", " ").strip()
+        part = re.sub(r"\s+", " ", part)
+        if part:
+            cleaned.append(part)
+    return cleaned
+
+
+def _application_method_phrase(value: str | None) -> str:
+    methods = _normalise_method_words(value)
+    if not methods:
+        return ""
+
+    if len(methods) == 1:
+        method = methods[0]
+        if method in {"brush", "roller", "spray"}:
+            return f"with a {method}"
+        return f"with {method}"
+
+    if len(methods) == 2:
+        first, second = methods[0], methods[1]
+        if first in {"brush", "roller", "spray"} and second in {"brush", "roller", "spray"}:
+            return f"with a {first} and {second}"
+        return f"with {first} and {second}"
+
+    human = ", ".join(methods[:-1])
+    return f"with {human} and {methods[-1]}"
+
+
+def compose_application_requirements(section_data: dict | list | None) -> str:
+    """Compose a short deterministic application paragraph from persisted section data."""
+    try:
+        from .models import QuotationLineItem
+    except Exception:
+        QuotationLineItem = None
+
+    if isinstance(section_data, dict):
+        work_items = []
+        for entry in (section_data.get("line_items") or []):
+            if isinstance(entry, dict):
+                item = entry.get("item")
+            else:
+                item = entry
+            if item is not None:
+                work_items.append(item)
+        note_item = section_data.get("note_item")
+    else:
+        work_items = list(section_data or [])
+        note_item = None
+
+    sentences = []
+    if note_item:
+        conditions = _collect_surface_conditions(note_item)
+        if conditions:
+            label = conditions[0].strip()
+            sentences.append(f"The substrate is {label}.")
+
+    for item in work_items:
+        if QuotationLineItem is not None:
+            try:
+                if getattr(item, "item_type", None) not in (
+                    QuotationLineItem.ItemType.PAINT,
+                    QuotationLineItem.ItemType.PRIMER,
+                    QuotationLineItem.ItemType.WATERPROOFING,
+                ):
+                    continue
+            except Exception:
+                pass
+
+        paint = getattr(item, "paint", None)
+        product_name = getattr(paint, "name", None) or getattr(item, "description", "") or ""
+        product_name = str(product_name).strip()
+        if not product_name:
+            continue
+
+        coats = getattr(item, "coats", None)
+        try:
+            coats = int(coats)
+        except Exception:
+            coats = 1
+        if coats <= 0:
+            coats = 1
+
+        sentence = f"Apply {coats} {'coat' if coats == 1 else 'coats'} of {product_name}"
+        product_method = _selected_application_method(item) or getattr(paint, "application_method", None)
+        method_phrase = _application_method_phrase(product_method)
+        if method_phrase:
+            sentence += f" {method_phrase}"
+
+        drying_time = None
+        if paint is not None:
+            drying_time = getattr(paint, "drying_time", None) or None
+        if not drying_time:
+            drying_time = (getattr(item, "metadata", {}) or {}).get("drying_time")
+
+        if drying_time:
+            sentence += f" and allow to dry for approximately {drying_time} before proceeding"
+
+        sentence = sentence.rstrip(". ") + "."
+        sentences.append(sentence)
+
+    if not sentences:
+        return ""
+    return " ".join(sentences)
+
+
 def _material_summary_for_item(item) -> dict:
     # Use persisted fields only; do not calculate new totals.
     product = None
@@ -425,6 +540,18 @@ def generate_spec_for_sections(section_data: list[dict]) -> list[dict]:
                 app_instructions.append("Respect drying times between coats and stages.")
 
             app_instructions = _unique_preserve_order([a for a in app_instructions if a])
+            application_requirements = compose_application_requirements({
+                "line_items": [
+                    {"item": item}
+                    for item in work_items
+                    if getattr(item, "item_type", None) in (
+                        QuotationLineItem.ItemType.PAINT,
+                        QuotationLineItem.ItemType.PRIMER,
+                        QuotationLineItem.ItemType.WATERPROOFING,
+                    )
+                ],
+                "note_item": note_item,
+            })
 
             # --- Coating system ---
             coating_system = []
@@ -513,6 +640,7 @@ def generate_spec_for_sections(section_data: list[dict]) -> list[dict]:
                 "surface_description": surface_description,
                 "prep_instructions": prep_instructions,
                 "application_instructions": app_instructions,
+                "application_requirements": application_requirements,
                 "coating_system": coating_system,
                 "technical": technical,
                 "material_summary": material_summary,
@@ -525,6 +653,7 @@ def generate_spec_for_sections(section_data: list[dict]) -> list[dict]:
             s = dict(sec)
             s.setdefault("prep_instructions", [])
             s.setdefault("application_instructions", [])
+            s.setdefault("application_requirements", "")
             s.setdefault("coating_system", [])
             s.setdefault("technical", [])
             s.setdefault("material_summary", [])
