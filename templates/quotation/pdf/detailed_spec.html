@@ -50,7 +50,7 @@
       break-inside: avoid;
       margin: 0 0 8px 0;
       overflow: visible;
-      border: 1px solid #2d3748;
+      border: none;
       background: #fff;
     }
 
@@ -219,31 +219,6 @@
       line-height: 1.2;
     }
 
-    .cover-wave {
-      position: absolute;
-      left: -10%;
-      right: -10%;
-      bottom: 0;
-      height: 100px;
-      background: linear-gradient(135deg, #8c57d7 0%, #7c3aed 100%);
-      border-radius: 45% 55% 0 0 / 100% 100% 0 0;
-      overflow: hidden;
-      opacity: 0.96;
-      transform: scaleY(1.2);
-    }
-
-    .cover-wave::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 80px;
-      background: linear-gradient(135deg, #a6d96a 0%, #7ac243 100%);
-      border-radius: 45% 55% 0 0 / 100% 100% 0 0;
-      transform: translateY(34px);
-    }
-
     .item-header {
       display: flex;
       align-items: center;
@@ -340,6 +315,10 @@
       color: var(--ink);
     }
 
+    .item-section-heading {
+      text-align: center;
+    }
+
     .section-block p,
     .section-block li,
     .section-block td,
@@ -373,7 +352,7 @@
       margin: 0;
       border: 1px solid var(--border);
       background: var(--soft);
-      height: 128px;
+      height: 180px;
       overflow: hidden;
       page-break-inside: avoid;
       break-inside: avoid;
@@ -589,8 +568,6 @@
           <div class="fact-value">{{ sections|length }}</div>
         </div>
       </div>
-
-      <div class="cover-wave" aria-hidden="true"></div>
     </section>
 
     <section class="project-overview" aria-label="Project overview">
@@ -664,20 +641,20 @@
           {% with surface_prep=sec_data.surface_default.preparation_requirements|default:'' surface_rules=sec_data.surface_default.surface_rules|default:'' %}
             {% if surface_prep %}
               <div class="section-block">
-                <h3>Preparation Requirements</h3>
+                <h3 class="item-section-heading">Preparation Requirements</h3>
                 <p class="prep-copy">{{ surface_prep|linebreaksbr }}</p>
               </div>
             {% endif %}
             {% if surface_rules %}
               <div class="section-block">
-                <h3>Surface Rules / Description</h3>
+                <h3 class="item-section-heading">Surface Rules / Description</h3>
                 <p class="prep-copy">{{ surface_rules|linebreaksbr }}</p>
               </div>
             {% endif %}
           {% endwith %}
         {% elif sec_data.prep_instructions %}
           <div class="section-block">
-            <h3>Preparation Requirements</h3>
+            <h3 class="item-section-heading">Preparation Requirements</h3>
             <div class="prep-copy">
               {% for instr in sec_data.prep_instructions %}
                 {% if forloop.first %}{{ instr }}{% else %} {{ instr }}{% endif %}
@@ -688,7 +665,7 @@
 
         {% if report_controls.show_coating_system and sec_data.coating_system %}
           <div class="section-block">
-            <h3>Coating System</h3>
+            <h3 class="item-section-heading">Coating System</h3>
             <table class="dense-table compact-coat-table">
               <thead>
                 <tr>
@@ -746,7 +723,7 @@
 
         {% if report_controls.show_product_table and sec_data.material_summary %}
           <div class="section-block">
-            <h3>Surface / Product</h3>
+            <h3 class="item-section-heading">Surface / Product</h3>
             <table class="dense-table compact-cost-table">
               <thead>
                 <tr>
