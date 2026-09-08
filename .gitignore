@@ -20,9 +20,24 @@ env/
 
 # Django
 *.log
+*.sqlite3
+*.bak
 db.sqlite3
 staticfiles/
 media/
+/renders/
+/tmp_pdf_pages/
+/tmp_uploads/
+
+# Test / local tooling artifacts
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.capture
+*.tmp
+*.orig
 
 # IDE
 .vscode/
@@ -34,9 +49,8 @@ media/
 .DS_Store
 Thumbs.db
 
-# Coverage
-.coverage
-htmlcov/
+# Local caches
+__pycache__/
 
 # Migrations (optional: remove if you want to track migrations)
 # */migrations/*.py
