@@ -1,15 +1,19 @@
 from copy import deepcopy
+from datetime import timedelta
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.utils import timezone
 
-from quotation.models import Quotation, QuotationSection, QuotationLineItem
+from quotation.models import Quotation, QuotationSection, QuotationLineItem, QuotationSectionImage
 from quotation.pdf_templates import PDF_TEMPLATES
 from paints.models import Paint
 from specifications.forms import KnowledgeEntryForm
-from specifications.models import SpecificationTemplate, KnowledgeEntry, SurfaceDefault
+from specifications.models import SpecificationTemplate, KnowledgeEntry, SurfaceDefault, ManualSpecificationDraft, ManualSpecificationItem
 from specifications.services import ManualSpecificationBuilderService, seed_default_specification_knowledge
 from specifications.services.export_service import ExportService
 from specifications.services.knowledge_service import KnowledgeService
@@ -93,9 +97,10 @@ class Pack6BBuilderBlockOverrideTests(TestCase):
 
         overrides = self.service.extract_draft_overrides(base, edited)
         self.assertIn('sections', overrides)
-        self.assertIn('order', overrides['sections'][section['section_key']])
-        self.assertIn('visible', overrides['sections'][section['section_key']])
-        self.assertIn('title_overrides', overrides['sections'][section['section_key']])
+        override_key = str(section.get('section_pk', section['section_key']))
+        self.assertIn('order', overrides['sections'][override_key])
+        self.assertIn('visible', overrides['sections'][override_key])
+        self.assertIn('title_overrides', overrides['sections'][override_key])
 
         applied = self.service.apply_draft_overrides(base, overrides)
         applied_section = applied['sections'][0]
@@ -103,7 +108,7 @@ class Pack6BBuilderBlockOverrideTests(TestCase):
         self.assertFalse(hidden_block['visible'])
         self.assertEqual(hidden_block['title'], 'Surface Preparation Requirements')
         self.assertEqual(hidden_block['content'], 'Draft override content')
-        self.assertEqual([b['resolved_id'] for b in applied_section['blocks']], overrides['sections'][section['section_key']]['order'])
+        self.assertEqual([b['resolved_id'] for b in applied_section['blocks']], overrides['sections'][override_key]['order'])
 
     def test_non_editable_source_data_remains_unchanged(self):
         base = self.service.prepare_spec(self.quotation)
@@ -116,7 +121,8 @@ class Pack6BBuilderBlockOverrideTests(TestCase):
                 break
 
         overrides = self.service.extract_draft_overrides(base, edited)
-        self.assertIn('content_overrides', overrides['sections'][section['section_key']])
+        override_key = str(section.get('section_pk', section['section_key']))
+        self.assertIn('content_overrides', overrides['sections'][override_key])
         self.assertNotEqual(base['sections'][0]['blocks'][0]['title'], 'Mutated title')
         self.assertNotEqual(base['sections'][0]['blocks'][0]['content'], 'DO NOT mutate source')
 
@@ -159,6 +165,362 @@ class Pack6BBuilderBlockOverrideTests(TestCase):
         self.assertIn('product_descriptions', first)
         self.assertIn('images', first)
         self.assertIn('knowledge_matches', first)
+
+    def test_manual_item_overrides_are_persisted_per_section(self):
+        draft = self.service.create_draft_from_resolver(self.quotation, created_by=self.user, title='Item Override Draft')
+        section_key = self.quotation.sections.first().subsection_key
+        manual_overrides = {
+            section_key: {
+                'preparation_requirements': 'Custom prep override for this item.',
+                'application_requirements': 'Custom application override for this item.',
+                'images': ['data:image/png;base64,AAA', 'data:image/png;base64,BBB'],
+            }
+        }
+
+        saved = self.service.save_draft(draft, {
+            'resolver': draft.data['resolver'],
+            'manual_overrides': manual_overrides,
+        })
+
+        self.assertEqual(saved.data['manual_overrides'][section_key]['preparation_requirements'], 'Custom prep override for this item.')
+        self.assertEqual(saved.data['manual_overrides'][section_key]['application_requirements'], 'Custom application override for this item.')
+        self.assertEqual(saved.data['manual_overrides'][section_key]['images'][1], 'data:image/png;base64,BBB')
+
+    def test_manual_specification_item_is_the_authoritative_persistence_layer(self):
+        section = self.quotation.sections.first()
+        saved = self.service.save_manual_item(
+            self.quotation,
+            section,
+            preparation_requirements='Manual prep requirement for Q47.',
+            application_requirements='Manual application requirement for Q47.',
+            created_by=self.user,
+        )
+
+        self.assertEqual(saved.quotation, self.quotation)
+        self.assertEqual(saved.section, section)
+        self.assertEqual(saved.preparation_requirements, 'Manual prep requirement for Q47.')
+        self.assertEqual(saved.application_requirements, 'Manual application requirement for Q47.')
+
+        manual_overrides = self.service.manual_overrides_for_quotation(self.quotation)
+        self.assertEqual(manual_overrides[str(section.pk)]['preparation_requirements'], 'Manual prep requirement for Q47.')
+        self.assertEqual(manual_overrides[str(section.pk)]['application_requirements'], 'Manual application requirement for Q47.')
+
+        reverted = self.service.revert_manual_item(self.quotation, section)
+        self.assertTrue(ManualSpecificationItem.objects.filter(quotation=self.quotation, section=section).exists())
+        self.assertEqual(reverted.preparation_requirements, reverted.original_preparation_requirements)
+        self.assertEqual(reverted.application_requirements, reverted.original_application_requirements)
+
+    def test_builder_uses_section_pk_for_manual_override_keys(self):
+        first = self.quotation.sections.first()
+        second = QuotationSection.objects.create(
+            quotation=self.quotation,
+            subsection_key='interior_walls',
+            display_name='Interior Walls',
+            selection_order=2,
+        )
+
+        self.assertEqual(self.service._section_key(first), str(first.pk))
+        self.assertEqual(self.service._section_key(second), str(second.pk))
+        self.assertNotEqual(self.service._section_key(first), self.service._section_key(second))
+
+    def test_manual_resolver_match_uses_selection_order_not_shared_subsection_bucket(self):
+        wall_one = self.quotation.sections.first()
+        wall_two = QuotationSection.objects.create(
+            quotation=self.quotation,
+            subsection_key='interior_walls',
+            display_name='Interior Walls 2',
+            selection_order=2,
+        )
+        ceiling_one = QuotationSection.objects.create(
+            quotation=self.quotation,
+            subsection_key='ceilings',
+            display_name='Ceilings',
+            selection_order=1,
+        )
+        ceiling_two = QuotationSection.objects.create(
+            quotation=self.quotation,
+            subsection_key='ceilings',
+            display_name='Ceilings 2',
+            selection_order=2,
+        )
+
+        for section, metadata in {
+            wall_one: {'wall_type_label': 'Brick'},
+            wall_two: {'wall_type_label': 'Drywall / Plasterboard'},
+            ceiling_one: {'type_labels': ['Concrete socket'], 'types': ['concrete_socket']},
+            ceiling_two: {'type_labels': ['Gypsum boards'], 'types': ['gypsum_boards']},
+        }.items():
+            QuotationLineItem.objects.create(
+                quotation=self.quotation,
+                section=section,
+                item_type=QuotationLineItem.ItemType.NOTE,
+                description='section note',
+                metadata=metadata,
+            )
+
+        fake_sections = [
+            {
+                'section_name': 'Interior Walls 2',
+                'section_key': 'interior_walls',
+                'subsection_key': 'interior_walls',
+                'selection_order': 2,
+                'images': [],
+            },
+            {
+                'section_name': 'Interior Walls',
+                'section_key': 'interior_walls',
+                'subsection_key': 'interior_walls',
+                'selection_order': 1,
+                'images': [],
+            },
+            {
+                'section_name': 'Ceilings 2',
+                'section_key': 'ceilings',
+                'subsection_key': 'ceilings',
+                'selection_order': 2,
+                'images': [],
+            },
+            {
+                'section_name': 'Ceilings',
+                'section_key': 'ceilings',
+                'subsection_key': 'ceilings',
+                'selection_order': 1,
+                'images': [],
+            },
+        ]
+
+        captured = {}
+
+        def fake_render_to_string(template_name, context):
+            captured['context'] = context
+            return '<html>rendered</html>'
+
+        with patch('quotation.pdf_service.build_pdf_context', return_value={'sections': fake_sections}), \
+             patch('django.template.loader.render_to_string', side_effect=fake_render_to_string):
+            self.service.create_draft_from_resolver(self.quotation, created_by=self.user, title='Repeated Section Mapping Draft')
+
+        resolved_sections = self.service.resolver.resolve(self.quotation)['sections']
+        sections_by_identity = {
+            (section.get('section_key'), int(section.get('selection_order'))): section
+            for section in captured['context']['sections']
+            if isinstance(section, dict) and section.get('section_key') and section.get('selection_order') is not None
+        }
+        resolved_by_identity = {
+            (section.get('section_key'), int(section.get('selection_order'))): section
+            for section in resolved_sections
+            if section.get('section_key') and section.get('selection_order') is not None
+        }
+
+        self.assertEqual(sections_by_identity[('interior_walls', 1)].get('section_name'), 'Interior Walls')
+        self.assertEqual(sections_by_identity[('interior_walls', 2)].get('section_name'), 'Interior Walls 2')
+        self.assertEqual(sections_by_identity[('ceilings', 1)].get('section_name'), 'Ceilings')
+        self.assertEqual(sections_by_identity[('ceilings', 2)].get('section_name'), 'Ceilings 2')
+        self.assertEqual(sections_by_identity[('interior_walls', 1)].get('resolved_id'), resolved_by_identity[('interior_walls', 1)].get('resolved_id'))
+        self.assertEqual(sections_by_identity[('interior_walls', 2)].get('resolved_id'), resolved_by_identity[('interior_walls', 2)].get('resolved_id'))
+        self.assertEqual(sections_by_identity[('ceilings', 1)].get('resolved_id'), resolved_by_identity[('ceilings', 1)].get('resolved_id'))
+        self.assertEqual(sections_by_identity[('ceilings', 2)].get('resolved_id'), resolved_by_identity[('ceilings', 2)].get('resolved_id'))
+
+    def test_manual_pdf_context_keeps_images_isolated_per_section_instance(self):
+        from django.template.loader import render_to_string
+
+        section_a = self.quotation.sections.first()
+        section_b = QuotationSection.objects.create(
+            quotation=self.quotation,
+            subsection_key='interior_walls_2',
+            display_name='Interior Walls 2',
+            selection_order=2,
+        )
+        section_c = QuotationSection.objects.create(
+            quotation=self.quotation,
+            subsection_key='ceilings',
+            display_name='Ceilings',
+            selection_order=3,
+        )
+        section_d = QuotationSection.objects.create(
+            quotation=self.quotation,
+            subsection_key='ceilings_2',
+            display_name='Ceilings 2',
+            selection_order=4,
+        )
+
+        png_bytes = (
+            b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
+            b"\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\xf8\x0f"
+            b"\x00\x01\x01\x01\x00\x18\xdd\x03\xc5\x00\x00\x00\x00IEND\xaeB`\x82"
+        )
+
+        expected_urls = {}
+        for section, names in {
+            section_a: ['a', 'b'],
+            section_b: ['c'],
+            section_c: ['d', 'e'],
+            section_d: [],
+        }.items():
+            section_urls = []
+            for idx, name in enumerate(names):
+                image = QuotationSectionImage.objects.create(
+                    section=section,
+                    image=SimpleUploadedFile(f"{section.subsection_key}_{name}.png", png_bytes, content_type='image/png'),
+                    uploaded_by=self.user,
+                    sort_order=idx + 1,
+                )
+                section_urls.append(image.image.url)
+            expected_urls[section.pk] = section_urls
+
+        draft = self.service.create_draft_from_resolver(self.quotation, created_by=self.user, title='Preview Image Draft')
+        ctx = PreviewService().preview_context_for_draft(draft)
+        by_pk = {
+            int(section.get('section_pk')): section
+            for section in (ctx.get('sections') or [])
+            if isinstance(section, dict) and section.get('section_pk') is not None
+        }
+
+        self.assertEqual(len(by_pk[section_a.pk].get('images')), 2)
+        self.assertEqual(len(by_pk[section_b.pk].get('images')), 1)
+        self.assertEqual(len(by_pk[section_c.pk].get('images')), 2)
+        self.assertEqual(len(by_pk[section_d.pk].get('images')), 0)
+
+        rendered = render_to_string('quotation/pdf/manual_specification.html', ctx)
+        for urls in expected_urls.values():
+            for url in urls:
+                self.assertIn(url, rendered)
+
+    def test_manual_preview_reuses_full_automatic_section_payload(self):
+        from quotation.pdf_service import build_pdf_context
+
+        repeated = [
+            QuotationSection.objects.create(
+                quotation=self.quotation,
+                subsection_key='interior_walls',
+                display_name='Interior Walls 2',
+                selection_order=2,
+            ),
+            QuotationSection.objects.create(
+                quotation=self.quotation,
+                subsection_key='ceilings',
+                display_name='Ceilings',
+                selection_order=1,
+            ),
+            QuotationSection.objects.create(
+                quotation=self.quotation,
+                subsection_key='ceilings',
+                display_name='Ceilings 2',
+                selection_order=2,
+            ),
+        ]
+        for section, metadata in {
+            repeated[0]: {'wall_type_label': 'Drywall / Plasterboard'},
+            repeated[1]: {'type_labels': ['Concrete socket'], 'types': ['concrete_socket']},
+            repeated[2]: {'type_labels': ['Gypsum boards'], 'types': ['gypsum_boards']},
+        }.items():
+            QuotationLineItem.objects.create(
+                quotation=self.quotation,
+                section=section,
+                item_type=QuotationLineItem.ItemType.NOTE,
+                description='section note',
+                metadata=metadata,
+            )
+
+        draft = self.service.create_draft_from_resolver(self.quotation, created_by=self.user, title='Automatic Payload Draft')
+        auto_ctx = build_pdf_context(self.quotation, use_resolver=False)
+        preview_ctx = PreviewService().preview_context_for_draft(draft)
+
+        self.assertTrue(auto_ctx['sections'])
+        self.assertTrue(preview_ctx['sections'])
+        self.assertEqual(len(preview_ctx['sections']), len(auto_ctx['sections']))
+
+        for auto_section, manual_section in zip(auto_ctx['sections'], preview_ctx['sections']):
+            auto_section_obj = auto_section.get('section') or {}
+            manual_section_obj = manual_section.get('section') or {}
+            auto_display_name = getattr(auto_section_obj, 'display_name', None) if not isinstance(auto_section_obj, dict) else auto_section_obj.get('display_name')
+            manual_display_name = getattr(manual_section_obj, 'display_name', None) if not isinstance(manual_section_obj, dict) else manual_section_obj.get('display_name')
+            auto_subsection_key = getattr(auto_section_obj, 'subsection_key', None) if not isinstance(auto_section_obj, dict) else auto_section_obj.get('subsection_key')
+            manual_subsection_key = getattr(manual_section_obj, 'subsection_key', None) if not isinstance(manual_section_obj, dict) else manual_section_obj.get('subsection_key')
+            auto_selection_order = getattr(auto_section_obj, 'selection_order', None) if not isinstance(auto_section_obj, dict) else auto_section_obj.get('selection_order')
+            manual_selection_order = getattr(manual_section_obj, 'selection_order', None) if not isinstance(manual_section_obj, dict) else manual_section_obj.get('selection_order')
+
+            self.assertEqual(auto_display_name, manual_display_name)
+            self.assertEqual(auto_subsection_key, manual_subsection_key)
+            self.assertEqual(auto_selection_order, manual_selection_order)
+            self.assertEqual(auto_section.get('surface_info'), manual_section.get('surface_info'))
+            self.assertEqual(auto_section.get('coating_system'), manual_section.get('coating_system'))
+            self.assertEqual(auto_section.get('material_summary'), manual_section.get('material_summary'))
+            self.assertEqual(auto_section.get('technical'), manual_section.get('technical'))
+            self.assertEqual(auto_section.get('prep_instructions'), manual_section.get('prep_instructions'))
+            self.assertEqual(auto_section.get('application_requirements'), manual_section.get('application_requirements'))
+
+    def test_manual_item_overrides_are_applied_to_preview_context(self):
+        draft = self.service.create_draft_from_resolver(self.quotation, created_by=self.user, title='Preview Override Draft')
+        section_key = self.quotation.sections.first().subsection_key
+        draft = self.service.save_draft(draft, {
+            'resolver': draft.data['resolver'],
+            'manual_overrides': {
+                section_key: {
+                    'preparation_requirements': 'User override prep text.',
+                    'application_requirements': 'User override app text.',
+                    'images': ['data:image/png;base64,OVERRIDDEN'],
+                }
+            },
+        })
+
+        ctx = PreviewService().preview_context_for_draft(draft)
+        section = next(s for s in ctx['sections'] if s.get('section_key') == section_key)
+        self.assertEqual(section.get('manual_preparation_requirements'), 'User override prep text.')
+        self.assertEqual(section.get('manual_application_requirements'), 'User override app text.')
+        self.assertEqual(section.get('images')[0].get('url'), 'data:image/png;base64,OVERRIDDEN')
+
+    def test_manual_pdf_template_prefers_saved_prep_and_app_overrides(self):
+        from django.template.loader import render_to_string
+
+        draft = self.service.create_draft_from_resolver(self.quotation, created_by=self.user, title='Render Override Draft')
+        section_key = self.quotation.sections.first().subsection_key
+        resolver_section = draft.data['resolver']['sections'][0]
+        surface_default = resolver_section.get('surface_default') or {}
+        automatic_prep = surface_default.get('preparation_requirements')
+        if not automatic_prep:
+            prep_list = resolver_section.get('prep_instructions') or []
+            automatic_prep = prep_list[0] if isinstance(prep_list, list) and prep_list else ''
+        automatic_app = resolver_section.get('application_requirements') or ''
+
+        draft = self.service.save_draft(draft, {
+            'resolver': draft.data['resolver'],
+            'manual_overrides': {
+                section_key: {
+                    'preparation_requirements': 'Manual prep override for this item.',
+                    'application_requirements': 'Manual app override for this item.',
+                }
+            },
+        })
+
+        ctx = PreviewService().preview_context_for_draft(draft)
+        rendered = render_to_string('quotation/pdf/manual_specification.html', ctx)
+
+        self.assertIn('Manual prep override for this item.', rendered)
+        self.assertIn('Manual app override for this item.', rendered)
+        if automatic_prep:
+            self.assertNotIn(str(automatic_prep), rendered)
+        if automatic_app:
+            self.assertNotIn(str(automatic_app), rendered)
+
+    def test_manual_pdf_export_converts_section_images_to_data_uris(self):
+        png_bytes = (
+            b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
+            b"\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\xf8\x0f"
+            b"\x00\x01\x01\x01\x00\x18\xdd\x03\xc5\x00\x00\x00\x00IEND\xaeB`\x82"
+        )
+        image = QuotationSectionImage.objects.create(
+            section=self.section,
+            image=SimpleUploadedFile('manual_pdf_section.png', png_bytes, content_type='image/png'),
+            uploaded_by=self.user,
+            sort_order=1,
+        )
+
+        draft = self.service.create_draft_from_resolver(self.quotation, created_by=self.user, title='Manual PDF Image Draft')
+        html = ExportService().render_html_for_draft(draft, 'manual_specification')
+
+        self.assertIn('data:image/png;base64,', html)
+        self.assertNotIn('/media/quotation/images/', html)
+        self.assertNotIn(image.image.url, html)
 
     def test_template_service_normalises_report_controls(self):
         template = SpecificationTemplate.objects.create(
@@ -1146,6 +1508,52 @@ class Pack6BBuilderBlockOverrideTests(TestCase):
         self.assertFalse(preview_ctx['report_options']['pricing_enabled'])
         self.assertEqual(preview_ctx['sections'][0]['section_name'], 'Changed section title')
 
+    def test_manual_builder_uses_latest_quotation_draft_regardless_of_creator(self):
+        User = get_user_model()
+        other_user = User.objects.create_user(username='other_builder', email='other@example.test', password='pass')
+
+        latest_quote_draft = self.service.create_draft_from_resolver(self.quotation, created_by=self.user, title='Latest quote draft')
+        stale_user_draft = self.service.create_draft_from_resolver(self.quotation, created_by=other_user, title='Stale other-user draft')
+
+        ManualSpecificationDraft.objects.filter(pk=latest_quote_draft.pk).update(updated_at=timezone.now())
+        ManualSpecificationDraft.objects.filter(pk=stale_user_draft.pk).update(updated_at=timezone.now() - timedelta(days=1))
+
+        self.assertEqual(
+            self.service.latest_draft_for_user(self.quotation, other_user).pk,
+            latest_quote_draft.pk,
+        )
+
+    def test_manual_builder_prefers_live_quote_draft_over_newer_stale_fake_draft(self):
+        live_draft = self.service.create_draft_from_resolver(self.quotation, created_by=self.user, title='Live Draft')
+        live_draft.data = {
+            'resolver': self.service.build_serialisable_automatic_context(self.quotation),
+            'manual_overrides': {
+                '117': {
+                    'preparation_requirements': 'Real prep override',
+                    'application_requirements': 'Real app override',
+                }
+            },
+            'draft_overrides': {'pricing_visible': True, 'sections': {}},
+        }
+        live_draft.save()
+
+        stale_fake_draft = self.service.create_draft_from_resolver(self.quotation, created_by=self.user, title='Stale Fake Draft')
+        stale_fake_draft.data = {
+            'resolver': {'sections': [{'section_name': 'Test Section', 'section_key': 'test_section', 'subsection_key': 'test_section', 'selection_order': 1, 'blocks': []}]},
+            'manual_overrides': {'Test Section': {'preparation_requirements': 'Stale prep', 'application_requirements': 'Stale app'}},
+            'draft_overrides': {'pricing_visible': True, 'sections': {}},
+        }
+        stale_fake_draft.save()
+
+        ManualSpecificationDraft.objects.filter(pk=live_draft.pk).update(updated_at=timezone.now() - timedelta(minutes=5))
+        ManualSpecificationDraft.objects.filter(pk=stale_fake_draft.pk).update(updated_at=timezone.now())
+
+        chosen = self.service.latest_draft_for_user(self.quotation, self.user)
+
+        self.assertEqual(chosen.pk, live_draft.pk)
+        self.assertEqual(chosen.data['manual_overrides']['117']['preparation_requirements'], 'Real prep override')
+        self.assertEqual(chosen.data['manual_overrides']['117']['application_requirements'], 'Real app override')
+
     def test_manual_builder_rebuilds_from_live_resolver_when_stale_draft_is_empty(self):
         stale = self.service.create_draft_from_resolver(self.quotation, created_by=self.user, title='Stale Draft')
         stale.data = {'resolver': {'sections': []}, 'draft_overrides': {'pricing_visible': True, 'sections': {}}}
@@ -1157,15 +1565,33 @@ class Pack6BBuilderBlockOverrideTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'interior_walls')
 
-    def test_manual_builder_page_exposes_preview_and_export_workflow_actions(self):
+    def test_manual_builder_rebuilds_from_live_resolver_when_draft_has_fake_sections(self):
+        stale = self.service.create_draft_from_resolver(self.quotation, created_by=self.user, title='Fake Section Draft')
+        stale.data = {
+            'resolver': {'sections': [{'section_name': 'Test Section', 'section_key': 'test_section', 'subsection_key': 'test_section', 'selection_order': 1, 'blocks': []}]},
+            'manual_overrides': {'Test Section': {'preparation_requirements': 'Fake stale prep', 'application_requirements': 'Fake stale app'}},
+            'draft_overrides': {'pricing_visible': True, 'sections': {}},
+        }
+        stale.save()
+
         self.client.force_login(self.user)
         response = self.client.get(reverse('specifications:builder_quotation', args=[self.quotation.pk]))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Preview Draft')
+        self.assertContains(response, 'Interior Walls')
+        self.assertNotContains(response, 'Test Section')
+
+    def test_manual_builder_page_exposes_item_and_export_workflow_actions(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('specifications:builder_quotation', args=[self.quotation.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Preview Draft')
         self.assertContains(response, 'Open PDF Options')
         self.assertContains(response, 'Generate Manual Specification PDF')
         self.assertContains(response, 'Manual Specification Builder')
+        self.assertContains(response, 'Save Item')
+        self.assertContains(response, 'Revert')
 
     def test_manual_preview_uses_visibility_and_content_overrides_for_product_image_blocks(self):
         base = self.service.prepare_spec(self.quotation)
@@ -1199,10 +1625,12 @@ class Pack6BBuilderBlockOverrideTests(TestCase):
         export_id = response.url.rsplit('/', 2)[-2]
         self.assertTrue(export_id.isdigit())
 
-    def test_manual_builder_javascript_collects_both_input_and_textarea_content(self):
+    def test_manual_builder_uses_current_item_textareas_for_manual_edits(self):
         self.client.force_login(self.user)
         response = self.client.get(reverse('specifications:builder_quotation', args=[self.quotation.pk]))
 
         self.assertEqual(response.status_code, 200)
         html = response.content.decode('utf-8')
-        self.assertIn('input[data-kind="content"], textarea[data-kind="content"]', html)
+        self.assertIn('data-field="preparation_requirements"', html)
+        self.assertIn('data-field="application_requirements"', html)
+        self.assertIn('Save Item', html)

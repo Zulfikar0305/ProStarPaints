@@ -346,24 +346,8 @@ def render_quotation_pdf(
         status=QuotationPdfExport.Status.GENERATED,
     )
 
-    if template_key == "manual_specification":
-        from specifications.models import ManualSpecificationDraft
-        from specifications.services.builder_service import ManualSpecificationBuilderService
-        from specifications.services.export_service import ExportService
-
-        draft = (
-            ManualSpecificationDraft.objects.filter(quotation=quotation, created_by=generated_by)
-            .order_by("-updated_at")
-            .first()
-        )
-        if draft is None:
-            draft = ManualSpecificationBuilderService().create_draft_from_resolver(
-                quotation,
-                created_by=generated_by,
-                title=f"Manual spec for {quotation.reference}",
-            )
-        return ExportService().export_pdf_from_draft(draft, template_key, generated_by=generated_by, request=request)
-
+    # The dedicated Manual Specification Builder is served from the builder flow,
+    # so template-level PDF generation must stay available for the registry entry.
     try:
         # 1. Validate template key — raises KeyError on unknown key
         template_config = get_pdf_template(template_key)

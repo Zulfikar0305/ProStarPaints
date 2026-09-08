@@ -2,40 +2,271 @@
 
 {% block content %}
 <style>
-  .spec-builder { display: grid; gap: 1rem; }
-  .spec-section-card { border: 1px solid #e5e7eb; border-radius: 12px; background: white; padding: 1rem; }
-  .spec-section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
-  .spec-blocks { display: grid; gap: 0.75rem; }
-  .spec-block { border: 1px solid #e5e7eb; border-left: 4px solid #0d6efd; border-radius: 8px; padding: 0.75rem; background: #f8fafc; }
-  .spec-block-header { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
-  .spec-block-row { display: flex; align-items: center; gap: 0.5rem; }
-  .spec-block-row input[type="checkbox"] { margin-right: 0.25rem; }
-  .small-muted { font-size: 0.85rem; color: #5b6471; }
-  .spec-edit { display: grid; gap: 0.5rem; }
-  .spec-edit textarea, .spec-edit input { width: 100%; }
+  .manual-builder-layout {
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: start;
+  }
+  .manual-builder-summary,
+  .manual-builder-editor {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+  }
+  .manual-builder-summary {
+    padding: 1rem;
+    position: sticky;
+    top: 1rem;
+  }
+  .manual-summary-title {
+    margin: 0 0 0.75rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+  .manual-summary-list {
+    display: grid;
+    gap: 0.5rem;
+  }
+  .manual-summary-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 0.75rem;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    background: #f8fafc;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .manual-summary-item.active {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+  }
+  .manual-summary-item.saved {
+    border-left: 4px solid #16a34a;
+  }
+  .manual-summary-item .status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #cbd5e1;
+    display: inline-block;
+  }
+  .manual-summary-item.saved .status-dot {
+    background: #16a34a;
+  }
+  .manual-summary-item .summary-text {
+    font-weight: 600;
+    color: #0f172a;
+  }
+  .manual-summary-item .summary-meta {
+    display: block;
+    font-size: 0.75rem;
+    color: #64748b;
+  }
+  .manual-builder-editor {
+    padding: 1.25rem;
+  }
+  .manual-editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #eef2f7;
+  }
+  .manual-editor-header h2 {
+    margin: 0;
+    font-size: 1.4rem;
+  }
+  .manual-editor-body {
+    display: grid;
+    gap: 1.5rem;
+  }
+  .manual-image-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .manual-image-card {
+    position: relative;
+    width: 180px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #f8fafc;
+  }
+  .manual-image-card img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    display: block;
+  }
+  .manual-image-actions {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.55rem;
+    background: #fff;
+  }
+  .manual-empty-image {
+    padding: 1rem;
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    color: #64748b;
+    background: #f8fafc;
+  }
+  .manual-form-section {
+    display: grid;
+    gap: 0.5rem;
+  }
+  .manual-form-section label {
+    font-weight: 600;
+    color: #334155;
+    font-size: 0.92rem;
+  }
+  .manual-form-section textarea {
+    width: 100%;
+    min-height: 120px;
+    resize: vertical;
+    border: 1px solid #dbe3ec;
+    border-radius: 10px;
+    padding: 0.75rem;
+  }
+  .manual-reference-panel {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.75rem 0.8rem;
+    margin-bottom: 1rem;
+  }
+  .manual-reference-panel h3 {
+    margin: 0 0 0.65rem;
+    font-size: 0.96rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  .manual-reference-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.45rem;
+    margin-bottom: 0.55rem;
+  }
+  .manual-reference-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.35rem 0.5rem;
+  }
+  .manual-reference-label {
+    color: #475569;
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+  .manual-reference-value {
+    color: #0f172a;
+    font-size: 0.76rem;
+    font-weight: 600;
+    text-align: right;
+  }
+  .manual-reference-products {
+    display: grid;
+    gap: 0.45rem;
+    margin-top: 0.2rem;
+  }
+  .manual-reference-products h4 {
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #475569;
+  }
+  .manual-reference-product {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.45rem 0.55rem;
+  }
+  .manual-reference-product-name {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  .manual-reference-product-description {
+    font-size: 0.72rem;
+    color: #475569;
+    line-height: 1.4;
+  }
+  .manual-reference-empty {
+    color: #64748b;
+    font-size: 0.76rem;
+  }
+  .manual-readonly-note {
+    margin-top: 0.5rem;
+    padding: 0.45rem 0.6rem;
+    border-radius: 8px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+    font-size: 0.74rem;
+    font-weight: 600;
+  }
+  .manual-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+  }
+  .section-label {
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+  @media (max-width: 980px) {
+    .manual-builder-layout {
+      grid-template-columns: 1fr;
+    }
+    .manual-builder-summary {
+      position: static;
+    }
+  }
 </style>
 
 <h1>Manual Specification Builder — {{ quotation.reference }}</h1>
 
 <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-  <button id="save-draft" class="btn btn-primary">Save Draft</button>
-  <a id="preview-draft" class="btn btn-outline-primary" href="{{ draft_preview_url }}" target="_blank" rel="noopener">Preview Draft</a>
   <button id="generate-manual-pdf" class="btn btn-success">Generate Manual Specification PDF</button>
   <a class="btn btn-outline-secondary" href="{{ pdf_selection_url }}" target="_blank" rel="noopener">Open PDF Options</a>
 </div>
 
-<div class="mb-3">
-  <label class="form-check-label">
-    <input id="pricing-visible-toggle" type="checkbox" checked> Show pricing in this draft
-  </label>
+<div id="draft-status" class="small text-muted mb-3">Draft ready for editing.</div>
+
+<div class="manual-builder-layout">
+  <aside class="manual-builder-summary">
+    <h2 class="manual-summary-title">MANUAL SPEC BUILDER</h2>
+    <div id="summary-list" class="manual-summary-list"></div>
+  </aside>
+
+  <main class="manual-builder-editor">
+    <div id="editor-root"></div>
+  </main>
 </div>
-
-<div id="draft-status" class="small text-muted mb-2">Draft ready for editing.</div>
-
-<div id="builder-root" class="spec-builder"></div>
 
 <script>
 const INITIAL_SPEC = {{ spec_data_json|safe }};
+const INITIAL_MANUAL_OVERRIDES = {{ manual_overrides_json|safe }} || {};
 const QUOTATION_PK = {{ quotation.pk }};
 const EXPORT_URL = "{{ request.path }}export/";
 const INITIAL_PREVIEW_URL = "{{ draft_preview_url|default:'/specifications/preview/quotation/'|add:quotation.pk|add:'/'|escapejs }}";
@@ -47,174 +278,441 @@ function getCookie(name){
   return match ? decodeURIComponent(match.pop()) : null;
 }
 
-function sectionKey(section, fallbackIndex){
-  return section?.section_key || section?.section_name || `section_${fallbackIndex}`;
+function sectionKey(section, fallbackIndex) {
+  const candidates = [
+    section?.section_pk,
+    section?.pk,
+    section?.id,
+    section?.section_id,
+    section?.resolved_id,
+    section?.section_key,
+    section?.subsection_key,
+    section?.section_name,
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate !== null && candidate !== undefined && candidate !== '') {
+      return String(candidate);
+    }
+  }
+
+  return `section_${fallbackIndex}`;
 }
 
-function blockKey(block){
-  return block?.resolved_id || `${block?.block_type || 'block'}:${block?.pk || block?.title || block?.content || Math.random()}`;
+function getImageUrls(section) {
+  const images = section?.images || [];
+  if (!Array.isArray(images)) return [];
+  return images
+    .map((item) => typeof item === 'string' ? item : item?.url || item?.image || item?.src)
+    .filter((value) => typeof value === 'string' && value.trim());
 }
 
-function renderBuilder(spec){
-  const root = document.getElementById('builder-root');
-  root.innerHTML = '';
-
-  const pricingToggle = document.getElementById('pricing-visible-toggle');
-  pricingToggle.checked = Boolean(spec.pricing_visible !== false);
-
-  (spec.sections || []).forEach((sec, sidx) => {
-    const secNode = document.createElement('div');
-    secNode.className = 'spec-section-card';
-
-    const header = document.createElement('div');
-    header.className = 'spec-section-header';
-    const heading = document.createElement('h3');
-    heading.textContent = sec.section_name || `Section ${sidx + 1}`;
-    const sectionLabel = document.createElement('span');
-    sectionLabel.className = 'small-muted';
-    sectionLabel.textContent = sectionKey(sec, sidx);
-    header.appendChild(heading);
-    header.appendChild(sectionLabel);
-    secNode.appendChild(header);
-
-    const blockWrap = document.createElement('div');
-    blockWrap.className = 'spec-blocks';
-
-    (sec.blocks || []).forEach((block, bidx) => {
-      const blockNode = document.createElement('div');
-      blockNode.className = 'spec-block';
-      blockNode.dataset.blockKey = blockKey(block);
-
-      const blockHeader = document.createElement('div');
-      blockHeader.className = 'spec-block-header';
-
-      const visibleRow = document.createElement('label');
-      visibleRow.className = 'spec-block-row';
-      const visibility = document.createElement('input');
-      visibility.type = 'checkbox';
-      visibility.checked = block.visible !== false;
-      visibility.dataset.kind = 'visible';
-      visibility.dataset.blockKey = blockKey(block);
-      const visibleLabel = document.createElement('span');
-      visibleLabel.textContent = 'Include this block';
-      visibleRow.appendChild(visibility);
-      visibleRow.appendChild(visibleLabel);
-
-      const meta = document.createElement('span');
-      meta.className = 'small-muted';
-      const blockType = block.block_type || 'block';
-      const readableType = {
-        heading: 'Section heading',
-        clause: 'Specification statement',
-        product_description: 'Product / finish',
-        knowledge: 'Knowledge note',
-        image: 'Image',
-      }[blockType] || blockType;
-      meta.textContent = readableType;
-
-      blockHeader.appendChild(visibleRow);
-      blockHeader.appendChild(meta);
-      blockNode.appendChild(blockHeader);
-
-      const editWrap = document.createElement('div');
-      editWrap.className = 'spec-edit';
-
-      if (block.block_type === 'heading' || block.editable || block.block_type === 'product_description') {
-        const titleLabel = document.createElement('label');
-        titleLabel.className = 'small-muted';
-        titleLabel.textContent = block.block_type === 'heading' ? 'Section title' : 'Title';
-        const title = document.createElement('input');
-        title.type = 'text';
-        title.value = block.title || '';
-        title.dataset.kind = 'title';
-        title.dataset.blockKey = blockKey(block);
-        title.placeholder = 'Block title';
-        editWrap.appendChild(titleLabel);
-        editWrap.appendChild(title);
-      }
-
-      if (block.editable || block.block_type === 'heading' || block.block_type === 'product_description' || block.block_type === 'knowledge' || block.block_type === 'image') {
-        const contentLabel = document.createElement('label');
-        contentLabel.className = 'small-muted';
-        contentLabel.textContent = block.block_type === 'image' ? 'Image URL / source' : 'Content';
-        const content = document.createElement(block.block_type === 'image' ? 'input' : 'textarea');
-        if (block.block_type === 'image') {
-          content.type = 'text';
-        } else {
-          content.rows = 3;
-        }
-        content.value = block.content || '';
-        content.dataset.kind = 'content';
-        content.dataset.blockKey = blockKey(block);
-        content.placeholder = block.block_type === 'image' ? 'Image URL' : 'Block content';
-        editWrap.appendChild(contentLabel);
-        editWrap.appendChild(content);
-      }
-
-      if (block.block_type === 'heading') {
-        const headingLabel = document.createElement('label');
-        headingLabel.className = 'small-muted';
-        headingLabel.textContent = 'Section heading override';
-        const headingTitle = document.createElement('input');
-        headingTitle.type = 'text';
-        headingTitle.value = sec.section_name || '';
-        headingTitle.dataset.kind = 'section_heading';
-        headingTitle.dataset.sectionKey = sectionKey(sec, sidx);
-        headingTitle.placeholder = 'Heading override';
-        editWrap.appendChild(headingLabel);
-        editWrap.appendChild(headingTitle);
-      }
-
-      blockNode.appendChild(editWrap);
-      blockWrap.appendChild(blockNode);
-    });
-
-    secNode.appendChild(blockWrap);
-    root.appendChild(secNode);
-  });
+function getAutoPreparationText(section) {
+  if (typeof section?.manual_preparation_requirements === 'string' && section.manual_preparation_requirements.trim()) {
+    return section.manual_preparation_requirements;
+  }
+  if (section?.surface_default && typeof section.surface_default.preparation_requirements === 'string') {
+    return section.surface_default.preparation_requirements;
+  }
+  const instructions = section?.prep_instructions || [];
+  if (Array.isArray(instructions)) {
+    return instructions.join('\n');
+  }
+  return typeof instructions === 'string' ? instructions : '';
 }
 
-function collectSpec(){
-  const spec = JSON.parse(JSON.stringify(INITIAL_SPEC));
-  spec.pricing_visible = document.getElementById('pricing-visible-toggle').checked;
+function getAutoApplicationText(section) {
+  if (typeof section?.manual_application_requirements === 'string' && section.manual_application_requirements.trim()) {
+    return section.manual_application_requirements;
+  }
+  if (typeof section?.application_requirements === 'string' && section.application_requirements.trim()) {
+    return section.application_requirements;
+  }
+  const applications = section?.application_instructions || [];
+  if (Array.isArray(applications)) {
+    return applications.join(' ');
+  }
+  return typeof applications === 'string' ? applications : '';
+}
 
-  const sections = spec.sections || [];
-  const root = document.getElementById('builder-root');
-  const secCards = root.querySelectorAll('.spec-section-card');
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
-  secCards.forEach((secCard, sidx) => {
-    const section = sections[sidx] || {};
-    const headingOverride = secCard.querySelector('input[data-kind="section_heading"]');
-    if (headingOverride && headingOverride.value) {
-      section.section_name = headingOverride.value;
+function formatDisplayQuantity(value) {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed || null;
+  }
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return String(value).trim();
+  if (Number.isInteger(numeric)) return String(numeric);
+  return String(Number(numeric.toFixed(2))).replace(/\.00$/, '');
+}
+
+function getReferenceSummaryData(section) {
+  if (!section) return null;
+
+  const surfaceInfo = section.surface_info && typeof section.surface_info === 'object' ? section.surface_info : {};
+  const materialSummary = Array.isArray(section.material_summary) ? section.material_summary : [];
+  const coatingSystem = Array.isArray(section.coating_system) ? section.coating_system : [];
+  const productDescriptions = Array.isArray(section.product_descriptions) ? section.product_descriptions : [];
+  const resolvedProductDescriptions = Array.isArray(section.resolved_product_descriptions) ? section.resolved_product_descriptions : [];
+  const selectedLineItems = Array.isArray(section.selected_line_items) ? section.selected_line_items : [];
+
+  const normaliseCoatCount = (value) => {
+    if (value === null || value === undefined || value === '') return null;
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric) || numeric <= 0) return null;
+    return numeric;
+  };
+
+  const productDescriptionMap = {};
+  for (const entry of [...productDescriptions, ...resolvedProductDescriptions]) {
+    const name = (entry?.product_name || entry?.title || entry?.name || '').trim();
+    const description = (entry?.description || entry?.content || '').trim();
+    if (name) {
+      productDescriptionMap[name] = description || productDescriptionMap[name] || '';
+    }
+  }
+
+  const wallType = surfaceInfo.wall_type || surfaceInfo.substrate || section?.section?.display_name || '—';
+  const surfaceConditions = Array.isArray(surfaceInfo.surface_conditions) ? surfaceInfo.surface_conditions.filter(Boolean) : [];
+  const finishList = [...new Set(materialSummary.map((item) => item?.finish).filter(Boolean))];
+  const referenceArea = (() => {
+    const areaValues = materialSummary
+      .map((item) => item?.area)
+      .filter((value) => value !== null && value !== undefined && value !== '');
+    if (areaValues.length) {
+      return `${areaValues[0]} m²`;
+    }
+    if (typeof surfaceInfo.reference_area === 'string' && surfaceInfo.reference_area.trim()) {
+      return surfaceInfo.reference_area.trim();
+    }
+    return '—';
+  })();
+
+  const generalNotes = typeof surfaceInfo.general_notes === 'string' ? surfaceInfo.general_notes : '';
+  const moistureMatch = generalNotes.match(/Moisture:\s*([0-9]+(?:\.[0-9]+)?)\s*%/i);
+  const moisture = moistureMatch ? `${moistureMatch[1]}%` : '—';
+
+  const selectedCoatingItems = [];
+  const selectedPrepItems = [];
+  const seenCoatingNames = new Set();
+  const seenPrepNames = new Set();
+
+  const pushCoatingItem = (label, description = '') => {
+    const trimmedLabel = (label || '').trim();
+    if (!trimmedLabel || seenCoatingNames.has(trimmedLabel)) return;
+    seenCoatingNames.add(trimmedLabel);
+    selectedCoatingItems.push({ name: trimmedLabel, description: (description || '').trim() });
+  };
+
+  const pushPrepItem = (label, productName = '', quantity = null) => {
+    const trimmedLabel = (label || '').trim();
+    if (!trimmedLabel || seenPrepNames.has(trimmedLabel)) return;
+    seenPrepNames.add(trimmedLabel);
+    const suffix = productName ? ` — ${productName}` : '';
+    const quantityText = quantity !== null && quantity !== undefined && quantity !== '' ? ` — ${formatDisplayQuantity(quantity)}` : '';
+    selectedPrepItems.push({ name: `${trimmedLabel}${suffix}${quantityText}` });
+  };
+
+  for (const item of selectedLineItems) {
+    const itemType = String(item?.item_type || item?.type || '').toUpperCase();
+
+    if (['PAINT', 'PRIMER', 'WATERPROOFING'].includes(itemType)) {
+      const productName = (item?.product_name || item?.paint_name || item?.product || item?.description || '').trim();
+      const coatCount = normaliseCoatCount(item?.coats ?? item?.coat_count ?? item?.coat_number);
+      const label = productName || item?.description || 'Selected coating';
+      pushCoatingItem(label + (coatCount !== null ? ` — ${coatCount} coat${coatCount === 1 ? '' : 's'}` : ''));
+      continue;
     }
 
-    const blockEls = secCard.querySelectorAll('.spec-block');
-    const blocks = [];
-    blockEls.forEach((blockEl) => {
-      const blockKeyValue = blockEl.dataset.blockKey;
-      let block = (section.blocks || []).find((item) => (item?.resolved_id || `${item?.block_type || 'block'}:${item?.pk || item?.title || item?.content || ''}`) === blockKeyValue) || {};
-      const visible = blockEl.querySelector('input[data-kind="visible"]');
-      if (visible) block.visible = visible.checked;
+    if (itemType === 'PREP_WORK') {
+      const label = (item?.description || item?.name || '').trim();
+      const productName = (item?.product_name || item?.paint_name || item?.product || '').trim();
+      const quantity = item?.quantity ?? item?.qty ?? item?.amount ?? item?.count ?? null;
+      pushPrepItem(label, productName, quantity);
+    }
+  }
 
-      const titleEl = blockEl.querySelector('input[data-kind="title"]');
-      if (titleEl) block.title = titleEl.value;
+  if (!selectedCoatingItems.length) {
+    const seenProducts = new Set();
+    for (const item of coatingSystem) {
+      const productName = (item?.product || item?.coat_label || '').trim();
+      const coatCount = normaliseCoatCount(item?.coats ?? item?.coat_count ?? item?.coat_number);
+      if (!productName || seenProducts.has(productName)) continue;
+      seenProducts.add(productName);
+      pushCoatingItem(productName + (coatCount !== null ? ` — ${coatCount} coat${coatCount === 1 ? '' : 's'}` : ''), productDescriptionMap[productName] || '');
+    }
+  }
 
-      const contentEl = blockEl.querySelector('input[data-kind="content"], textarea[data-kind="content"]');
-      if (contentEl) block.content = contentEl.value;
+  if (!selectedPrepItems.length) {
+    for (const entry of [...productDescriptions, ...resolvedProductDescriptions]) {
+      const productName = (entry?.product_name || entry?.title || '').trim();
+      if (!productName || seenPrepNames.has(productName)) continue;
+      seenPrepNames.add(productName);
+      pushPrepItem(productName, '', null);
+    }
+  }
 
-      blocks.push(block);
+  return {
+    headingName: section.section_name || section.section?.display_name || 'Selected item',
+    wallType,
+    surfaceConditions,
+    finishList,
+    referenceArea,
+    moisture,
+    selectedCoatingItems,
+    selectedPrepItems,
+  };
+}
+
+function renderReferenceSummary(section) {
+  const summaryData = getReferenceSummaryData(section);
+  if (!summaryData) return '';
+
+  const rows = [
+    ['Wall Type', summaryData.wallType],
+    ['Surface Condition', summaryData.surfaceConditions.length ? summaryData.surfaceConditions.join(', ') : '—'],
+    ['Finish', summaryData.finishList.length ? summaryData.finishList.join(', ') : '—'],
+    ['Area', summaryData.referenceArea],
+    ['Moisture', summaryData.moisture],
+  ];
+
+  const coatingMarkup = summaryData.selectedCoatingItems.length
+    ? summaryData.selectedCoatingItems.map((item) => `
+        <div class="manual-reference-product">
+          <div class="manual-reference-product-name">${escapeHtml(item.name)}</div>
+          ${item.description ? `<div class="manual-reference-product-description">${escapeHtml(item.description)}</div>` : ''}
+        </div>
+      `).join('')
+    : '<div class="manual-reference-empty">No selected coating products for this item.</div>';
+
+  const prepMarkup = summaryData.selectedPrepItems.length
+    ? summaryData.selectedPrepItems.map((item) => `
+        <div class="manual-reference-product">
+          <div class="manual-reference-product-name">${escapeHtml(item.name)}</div>
+        </div>
+      `).join('')
+    : '<div class="manual-reference-empty">No selected prep work for this item.</div>';
+
+  return `
+    <section class="manual-reference-panel" aria-label="Quotation reference summary for ${escapeHtml(summaryData.headingName)}">
+      <h3>${escapeHtml(summaryData.headingName)}</h3>
+      <div class="manual-reference-grid">
+        ${rows.map(([label, value]) => `
+          <div class="manual-reference-row">
+            <span class="manual-reference-label">${escapeHtml(label)}:</span>
+            <span class="manual-reference-value">${escapeHtml(value)}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="manual-reference-products">
+        <h4>Selected coating system</h4>
+        ${coatingMarkup}
+      </div>
+      <div class="manual-reference-products">
+        <h4>Selected preparation work</h4>
+        ${prepMarkup}
+      </div>
+    </section>
+  `;
+}
+
+function hasSavedOverride(sectionKey, overrides) {
+  const itemOverride = overrides[sectionKey] || {};
+  return Boolean(
+    itemOverride.images && itemOverride.images.length ||
+    typeof itemOverride.preparation_requirements === 'string' ||
+    typeof itemOverride.application_requirements === 'string'
+  );
+}
+
+function normalizeOverride(entry) {
+  if (!entry || typeof entry !== 'object') {
+    return {};
+  }
+  const clean = {};
+  if (Array.isArray(entry.images)) {
+    clean.images = entry.images.filter((url) => typeof url === 'string' && url.trim());
+  }
+  if ('preparation_requirements' in entry) {
+    clean.preparation_requirements = String(entry.preparation_requirements || '');
+  }
+  if ('application_requirements' in entry) {
+    clean.application_requirements = String(entry.application_requirements || '');
+  }
+  return clean;
+}
+
+const builderState = {
+  selectedIndex: 0,
+  manualOverrides: { ...INITIAL_MANUAL_OVERRIDES }
+};
+
+function getSelectedSection() {
+  return (INITIAL_SPEC.sections || [])[builderState.selectedIndex] || null;
+}
+
+function getCurrentItemOverride(sectionKey) {
+  return normalizeOverride(builderState.manualOverrides[sectionKey] || {});
+}
+
+function renderSummary() {
+  const summaryRoot = document.getElementById('summary-list');
+  if (!summaryRoot) return;
+  summaryRoot.innerHTML = '';
+
+  (INITIAL_SPEC.sections || []).forEach((section, index) => {
+    const key = sectionKey(section, index);
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'manual-summary-item' + (builderState.selectedIndex === index ? ' active' : '') + (hasSavedOverride(key, builderState.manualOverrides) ? ' saved' : '');
+    item.innerHTML = `
+      <span class="status-dot" aria-hidden="true"></span>
+      <span>
+        <span class="summary-text">${index + 1} — ${section?.section_name || 'Untitled Item'}</span>
+        <span class="summary-meta">${hasSavedOverride(key, builderState.manualOverrides) ? 'Edited' : 'Not started'}</span>
+      </span>
+    `;
+    item.addEventListener('click', () => {
+      builderState.selectedIndex = index;
+      render();
     });
-    section.blocks = blocks;
-    sections[sidx] = section;
+    summaryRoot.appendChild(item);
   });
+}
 
-  spec.sections = sections;
+function renderEditor() {
+  const root = document.getElementById('editor-root');
+  if (!root) return;
+
+  const section = getSelectedSection();
+  if (!section) {
+    root.innerHTML = '<p>No sections available.</p>';
+    return;
+  }
+
+  const sectionKeyValue = sectionKey(section, builderState.selectedIndex);
+  const override = getCurrentItemOverride(sectionKeyValue);
+  const currentImages = Array.isArray(override.images) && override.images.length ? override.images : getImageUrls(section);
+  const prepValue = 'preparation_requirements' in override ? override.preparation_requirements : getAutoPreparationText(section);
+  const appValue = 'application_requirements' in override ? override.application_requirements : getAutoApplicationText(section);
+  const referenceSummaryMarkup = renderReferenceSummary(section);
+
+  root.innerHTML = `
+    <div class="manual-editor-header">
+      <div>
+        <div class="section-label">Item ${builderState.selectedIndex + 1}</div>
+        <h2>${section?.section_name || 'Untitled item'}</h2>
+      </div>
+    </div>
+
+    ${referenceSummaryMarkup}
+
+    <div class="manual-editor-body">
+      <section class="manual-form-section">
+        <label>IMAGES</label>
+        <div class="manual-image-grid">
+          ${currentImages.length ? currentImages.map((imageUrl, imageIndex) => `
+            <div class="manual-image-card">
+              <img src="${imageUrl}" alt="Section image ${imageIndex + 1}">
+            </div>
+          `).join('') : '<div class="manual-empty-image">No images for this item.</div>'}
+        </div>
+        <div class="manual-readonly-note"><strong>Read-only summary:</strong> Only Preparation Requirements and Application Requirements are editable.</div>
+      </section>
+
+      <section class="manual-form-section">
+        <label for="manual-prep-${builderState.selectedIndex}">PREPARATION REQUIREMENTS</label>
+        <textarea id="manual-prep-${builderState.selectedIndex}" data-field="preparation_requirements">${prepValue}</textarea>
+      </section>
+
+      <section class="manual-form-section">
+        <label for="manual-app-${builderState.selectedIndex}">APPLICATION REQUIREMENTS</label>
+        <textarea id="manual-app-${builderState.selectedIndex}" data-field="application_requirements">${appValue}</textarea>
+      </section>
+
+      <div class="manual-actions">
+        <button type="button" id="save-item" class="btn btn-primary">Save Item</button>
+        <button type="button" id="revert-item" class="btn btn-outline-secondary">Revert</button>
+      </div>
+    </div>
+  `;
+
+  const saveButton = document.getElementById('save-item');
+  if (saveButton) {
+    saveButton.addEventListener('click', () => {
+      const prepField = document.querySelector(`[data-field="preparation_requirements"]`);
+      const appField = document.querySelector(`[data-field="application_requirements"]`);
+      const nextOverride = {
+        ...builderState.manualOverrides[sectionKeyValue],
+        preparation_requirements: prepField ? prepField.value : '',
+        application_requirements: appField ? appField.value : '',
+      };
+      if (nextOverride.images && !nextOverride.images.length) {
+        nextOverride.images = [];
+      }
+      builderState.manualOverrides[sectionKeyValue] = normalizeOverride(nextOverride);
+      if (!Object.keys(builderState.manualOverrides[sectionKeyValue]).length) {
+        delete builderState.manualOverrides[sectionKeyValue];
+      }
+      saveCurrentItem().then(() => {
+        render();
+      });
+    });
+  }
+
+  const revertButton = document.getElementById('revert-item');
+  if (revertButton) {
+    revertButton.addEventListener('click', () => {
+      const currentKey = sectionKeyValue;
+      builderState.manualOverrides[currentKey] = {
+        ...builderState.manualOverrides[currentKey],
+        preparation_requirements: getAutoPreparationText(section),
+        application_requirements: getAutoApplicationText(section),
+      };
+      saveCurrentItem().then(() => {
+        render();
+      });
+    });
+  }
+}
+
+function render() {
+  renderSummary();
+  renderEditor();
+}
+
+function collectSpec() {
+  const spec = JSON.parse(JSON.stringify(INITIAL_SPEC));
   return spec;
 }
 
-function saveDraft() {
-  const payload = { spec: collectSpec(), draft_id: DRAFT_ID, title: '' };
+function saveCurrentItem() {
+  const section = getSelectedSection();
+  if (!section) {
+    return Promise.reject(new Error('No section selected.'));
+  }
+
+  const sectionKeyValue = sectionKey(section, builderState.selectedIndex);
+  const prepField = document.querySelector(`[data-field="preparation_requirements"]`);
+  const appField = document.querySelector(`[data-field="application_requirements"]`);
+  const sectionId = section?.section_pk ?? section?.pk ?? section?.id ?? section?.section_id ?? sectionKeyValue;
+
+  const payload = {
+    section_id: sectionId,
+    preparation_requirements: prepField ? prepField.value : '',
+    application_requirements: appField ? appField.value : '',
+  };
+
   const csrftoken = getCookie('csrftoken');
   return fetch(window.location.pathname + 'save/', {
     method: 'POST',
@@ -225,46 +723,38 @@ function saveDraft() {
       'X-Requested-With': 'XMLHttpRequest'
     },
     body: JSON.stringify(payload),
-  }).then(r => r.json()).then(js => {
-    if (!js || !js.draft_id) {
+  }).then(async (response) => {
+    const text = await response.text();
+    let payloadJson = {};
+    try {
+      payloadJson = text ? JSON.parse(text) : {};
+    } catch (error) {
+      payloadJson = {};
+    }
+    if (!response.ok) {
+      const message = payloadJson && payloadJson.error ? payloadJson.error : 'Save failed';
+      throw new Error(message);
+    }
+    if (!payloadJson || !payloadJson.manual_overrides) {
       throw new Error('Save failed');
     }
-    DRAFT_ID = js.draft_id;
-    return js;
+    const draftStatus = document.getElementById('draft-status');
+    if (draftStatus) {
+      draftStatus.textContent = 'Item saved. You can continue editing or generate the PDF.';
+    }
+    return payloadJson;
   });
 }
 
-document.addEventListener('DOMContentLoaded', function(){
-  renderBuilder(INITIAL_SPEC);
+function saveDraft() {
+  return saveCurrentItem();
+}
 
-  const previewLink = document.getElementById('preview-draft');
+document.addEventListener('DOMContentLoaded', function(){
   const draftStatus = document.getElementById('draft-status');
-  const saveButton = document.getElementById('save-draft');
   const generateButton = document.getElementById('generate-manual-pdf');
 
-  if (previewLink && !previewLink.href) {
-    previewLink.href = INITIAL_PREVIEW_URL;
-  }
-
-  saveButton.addEventListener('click', function(){
-    saveButton.disabled = true;
-    saveButton.textContent = 'Saving...';
-    if (draftStatus) draftStatus.textContent = 'Saving draft...';
-
-    saveDraft().then(js => {
-      if (previewLink && js.preview_url) {
-        previewLink.href = js.preview_url;
-      }
-      if (draftStatus) draftStatus.textContent = 'Draft saved successfully.';
-      saveButton.textContent = 'Save Draft';
-      saveButton.disabled = false;
-    }).catch(() => {
-      if (draftStatus) draftStatus.textContent = 'Save failed. Please try again.';
-      saveButton.textContent = 'Save Draft';
-      saveButton.disabled = false;
-      alert('Save failed');
-    });
-  });
+  render();
 
   if (generateButton) {
     generateButton.addEventListener('click', function(){
@@ -272,17 +762,14 @@ document.addEventListener('DOMContentLoaded', function(){
       generateButton.textContent = 'Generating...';
       if (draftStatus) draftStatus.textContent = 'Saving before generating PDF...';
 
-      saveDraft().then(js => {
-        if (previewLink && js.preview_url) {
-          previewLink.href = js.preview_url;
-        }
+      saveCurrentItem().then(() => {
         if (draftStatus) draftStatus.textContent = 'Generating manual PDF...';
         window.location.href = EXPORT_URL;
       }).catch(() => {
         if (draftStatus) draftStatus.textContent = 'Could not save before pdf generation.';
         generateButton.textContent = 'Generate Manual Specification PDF';
         generateButton.disabled = false;
-        alert('Please save the draft before generating the manual PDF.');
+        alert('Please save the item before generating the manual PDF.');
       });
     });
   }

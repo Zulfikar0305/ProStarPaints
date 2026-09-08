@@ -113,8 +113,10 @@
   {% for tpl in pdf_templates %}
   <div class="col-12 col-md-6 col-xl-4">
     {% if tpl.key == 'manual_specification' %}
+    <form method="get" action="{% url 'specifications:builder_quotation' quotation.pk %}" class="h-100" data-psp-loading="true">
       <div class="card h-100 psp-pdf-tpl-card{% if tpl.key == preferred_pdf_template_key %} is-preferred{% endif %}{% if preflight and not preflight.can_generate_pdf %} is-disabled{% endif %}"
-           style="border: 2px solid var(--psp-border); border-radius: var(--psp-radius,16px); overflow: hidden; position: relative;">
+           style="border: 2px solid var(--psp-border); border-radius: var(--psp-radius,16px); overflow: hidden; position: relative; cursor: pointer;"
+           onclick="this.closest('form').submit();">
 
         {% if tpl.key == preferred_pdf_template_key %}
         <span class="psp-pdf-default-pill" title="{% trans 'Your saved default template' %}">
@@ -124,7 +126,7 @@
 
         <div style="height: 5px; background: {{ tpl.preview_color }};"></div>
 
-        <div class="psp-pdf-mock" style="--_tpl: {{ tpl.preview_color }};">
+        <div class="psp-pdf-mock" style="--_tpl: {{ tpl.preview_color }}; opacity: 0.9;">
           <div class="psp-pdf-mock-page">
             <div class="psp-pdf-mock-header">
               <div class="psp-pdf-mock-logo"></div>
@@ -173,13 +175,14 @@
         </div>
 
         <div class="card-footer bg-transparent border-0 pt-0 pb-3 px-4">
-          <a href="{% url 'specifications:builder_quotation' quotation.pk %}" class="btn w-100 fw-semibold"
-             style="background:{{ tpl.preview_color }};color:#fff;border:none;border-radius:10px;">
-            <i class="bi bi-pencil-square me-1"></i>{% trans "Open Manual Builder" %}
-          </a>
+          <button type="submit" class="btn w-100 fw-semibold"
+                  style="background:{{ tpl.preview_color }};color:#fff;border:none;border-radius:10px;">
+            <i class="bi bi-pencil-square me-1"></i>{% trans "Open Builder" %}
+          </button>
         </div>
       </div>
-    {% else %}
+    </form>
+  {% else %}
       <form method="post" action="{% url 'quotation:pdf_generate' quotation.pk %}" class="h-100" data-psp-loading="true" target="pspPdfDownloadFrame">
         {% csrf_token %}
         <input type="hidden" name="template_key" value="{{ tpl.key }}">

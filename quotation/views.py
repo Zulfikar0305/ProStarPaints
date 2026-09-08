@@ -2351,9 +2351,6 @@ class QuotationPdfGenerateView(QuotationAccessMixin, View):
             messages.error(request, _("Invalid template selection. Please choose a valid template."))
             return redirect("quotation:pdf_select", pk=pk)
 
-        if template_key == "manual_specification":
-            return redirect("specifications:builder_quotation", quotation_pk=pk)
-
         # Preflight: block only when clearly unsafe (e.g. no sections at all).
         preflight = get_quotation_preflight(quotation)
         if not preflight["can_generate_pdf"]:

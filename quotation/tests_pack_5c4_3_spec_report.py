@@ -159,6 +159,44 @@ class Pack5C4_3_SpecReportTests(TestCase):
         ms = s['material_summary']
         self.assertTrue(any(m.get('product') for m in ms))
 
+    def test_material_summary_uses_selected_type_labels_not_generic_section_context(self):
+        cases = [
+            ('interior_walls', 'Brick wall', {'wall_type_label': 'Brick'}, 'Brick'),
+            ('interior_walls', 'Drywall wall', {'wall_type_label': 'Drywall / Plasterboard'}, 'Drywall / Plasterboard'),
+            ('ceilings', 'Concrete ceiling', {'section_key': 'ceilings', 'section_name': 'Ceilings', 'type_labels': ['Concrete socket'], 'types': ['concrete_socket']}, 'Concrete socket'),
+            ('ceilings', 'Gypsum ceiling', {'section_key': 'ceilings', 'section_name': 'Ceilings', 'type_labels': ['Gypsum boards'], 'types': ['gypsum_boards']}, 'Gypsum boards'),
+        ]
+
+        for subsection_key, display_name, metadata, expected in cases:
+            q = Quotation.objects.create(created_by=self.user, customer_name=f'Case {subsection_key}')
+            s = QuotationSection.objects.create(
+                quotation=q,
+                subsection_key=subsection_key,
+                display_name=display_name,
+                selection_order=1,
+            )
+            QuotationLineItem.objects.create(
+                quotation=q,
+                section=s,
+                item_type=QuotationLineItem.ItemType.NOTE,
+                description='Section note',
+                metadata=metadata,
+            )
+            QuotationLineItem.objects.create(
+                quotation=q,
+                section=s,
+                item_type=QuotationLineItem.ItemType.PAINT,
+                paint=self.paint,
+                coats=1,
+                area_sqm=Decimal('12.00'),
+                price_excl_vat=self.paint.price_excl_vat,
+                price_incl_vat=self.paint.price_incl_vat,
+            )
+
+            ctx = build_pdf_context(q)
+            row = ctx['sections'][0]['material_summary'][0]
+            self.assertEqual(row['substrate'], expected)
+
     def test_authoritative_paint_technical_fields_override_metadata(self):
         self.paint.application_method = 'Spray'
         self.paint.dft_min = Decimal('90.00')

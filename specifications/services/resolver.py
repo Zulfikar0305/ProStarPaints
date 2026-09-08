@@ -55,6 +55,8 @@ class SpecificationResolver:
             sec: Dict[str, Any] = {
                 "section_name": section.display_name,
                 "section_key": section.subsection_key,
+                "section_pk": section.pk,
+                "selection_order": section.selection_order,
                 "clauses": [],
                 "product_descriptions": [],
                 "images": [],

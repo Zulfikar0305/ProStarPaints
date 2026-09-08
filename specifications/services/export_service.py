@@ -7,12 +7,94 @@ representation.
 """
 from __future__ import annotations
 
+import base64
+import mimetypes
 from typing import Any
 
+from django.core.files.storage import default_storage
 from django.template.loader import render_to_string
 
 
 class ExportService:
+    @staticmethod
+    def _as_data_uri(value: Any) -> Any:
+        """Convert media URLs into embedded data-URIs for PDF rendering.
+
+        The PDF templates are rendered with `base_url=None`, so relative media
+        URLs such as `/media/...` are not resolvable by WeasyPrint. We keep the
+        underlying draft data untouched and only embed the binary data at render
+        time, matching the regular quotation PDF behaviour.
+        """
+        if not isinstance(value, str):
+            return value
+
+        candidate = value.strip()
+        if not candidate or candidate.startswith("data:") or "://" in candidate:
+            return candidate
+
+        candidate_path = candidate.split("?", 1)[0].split("#", 1)[0]
+        storage_name = candidate_path
+
+        if candidate_path.startswith("/media/"):
+            storage_name = candidate_path[len("/media/"):]
+        elif candidate_path.startswith("/"):
+            storage_name = candidate_path.lstrip("/")
+
+        raw = None
+        try:
+            with default_storage.open(storage_name, "rb") as fh:
+                raw = fh.read()
+        except Exception:
+            try:
+                import os
+                if os.path.exists(candidate_path):
+                    with open(candidate_path, "rb") as fh:
+                        raw = fh.read()
+                elif os.path.exists(storage_name):
+                    with open(storage_name, "rb") as fh:
+                        raw = fh.read()
+                else:
+                    return candidate
+            except Exception:
+                return candidate
+
+        if raw is None:
+            return candidate
+
+        mime, _ = mimetypes.guess_type(storage_name) or mimetypes.guess_type(candidate_path) or (None, None)
+        if not mime:
+            mime = "image/png"
+        return f"data:{mime};base64,{base64.b64encode(raw).decode('ascii')}"
+
+    def _normalise_pdf_images(self, sections: Any) -> Any:
+        if not isinstance(sections, list):
+            return sections
+
+        for section in sections:
+            if not isinstance(section, dict):
+                continue
+            image_items = section.get("images") or []
+            if not isinstance(image_items, list):
+                continue
+
+            converted = []
+            for item in image_items:
+                if isinstance(item, dict):
+                    image_url = item.get("url") or item.get("image") or item.get("src")
+                    if not isinstance(image_url, str) or not image_url.strip():
+                        continue
+                    payload = dict(item)
+                    payload["url"] = self._as_data_uri(image_url)
+                    converted.append(payload)
+                elif isinstance(item, str):
+                    payload = self._as_data_uri(item)
+                    if isinstance(payload, str) and payload.strip():
+                        converted.append({"url": payload, "sort_order": len(converted)})
+            if converted:
+                section["images"] = converted
+            elif not image_items:
+                section["images"] = []
+        return sections
     """High-level export helpers.
 
     Methods are deliberately small so new exporters (docx, email, html)
@@ -49,6 +131,7 @@ class ExportService:
         # consume the same report state. This is the authoritative render path
         # for draft-based exports.
         ctx = self.preview.preview_context_for_draft(draft)
+        ctx["sections"] = self._normalise_pdf_images(ctx.get("sections") or [])
 
         # Ensure the context looks like a PDF-ready context (has sections)
         if not ctx or not ctx.get("sections"):

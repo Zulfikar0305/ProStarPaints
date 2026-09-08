@@ -6,6 +6,10 @@ app_name = "specifications"
 
 urlpatterns = [
     path("", views.LandingView.as_view(), name="landing"),
+    path("quotations/<int:pk>/builder/", views.BuilderQuotationView.as_view(), name="builder_quotation"),
+    path("quotations/<int:pk>/builder/save/", views.BuilderQuotationSaveView.as_view(), name="builder_quotation_save"),
+    path("quotations/<int:pk>/builder/preview/", views.BuilderQuotationPreviewView.as_view(), name="builder_quotation_preview"),
+    path("quotations/<int:pk>/builder/export/", views.BuilderQuotationExportView.as_view(), name="builder_quotation_export"),
     path("templates/", views.TemplatesIndexView.as_view(), name="templates_index"),
     path("automatic/", views.AutomaticSpecificationView.as_view(), name="automatic_spec"),
     path("templates/<int:pk>/edit/", views.TemplateEditView.as_view(), name="template_edit"),
@@ -36,11 +40,4 @@ urlpatterns = [
     path("rules/<int:pk>/edit/", views.RuleEditView.as_view(), name="rule_edit"),
     path("rules/<int:pk>/delete/", views.RuleDeleteView.as_view(), name="rule_delete"),
     path("rules/<int:pk>/move/<str:direction>/", views.RuleMoveView.as_view(), name="rule_move"),
-    # Manual builder
-    path("builder/quotation/<int:quotation_pk>/", views.ManualBuilderView.as_view(), name="builder_quotation"),
-    path("builder/quotation/<int:quotation_pk>/save/", views.DraftSaveView.as_view(), name="builder_draft_save"),
-    path("builder/quotation/<int:quotation_pk>/export/", views.ManualBuilderExportView.as_view(), name="builder_quotation_export"),
-    # Preview
-    path("preview/draft/<int:draft_pk>/", views.DraftPreviewView.as_view(), name="preview_draft"),
-    path("preview/quotation/<int:quotation_pk>/", views.QuotationPreviewView.as_view(), name="preview_quotation"),
 ]

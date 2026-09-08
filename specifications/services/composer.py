@@ -20,6 +20,56 @@ def _index_by_key(items: List[Dict[str, Any]], key_name: str) -> Dict[str, Dict[
     return out
 
 
+def _section_identity_candidates(section: Any) -> List[str]:
+    values: List[str] = []
+    seen = set()
+
+    def add_value(value):
+        if value is None:
+            return
+        value_str = str(value)
+        if value_str not in ("", "None") and value_str not in seen:
+            seen.add(value_str)
+            values.append(value_str)
+
+    if isinstance(section, dict):
+        for key_name in ("section_pk", "pk", "id", "section_id"):
+            add_value(section.get(key_name))
+        section_key = section.get("section_key") or section.get("subsection_key")
+        selection_order = section.get("selection_order")
+        if section_key and selection_order is not None:
+            add_value(f"{section_key}:{selection_order}")
+        for key_name in ("resolved_id", "section_key", "subsection_key"):
+            add_value(section.get(key_name))
+        nested = section.get("section")
+        if nested is not None:
+            for value in _section_identity_candidates(nested):
+                add_value(value)
+    else:
+        for key_name in ("section_pk", "pk", "id", "section_id"):
+            add_value(getattr(section, key_name, None))
+        section_key = getattr(section, "section_key", None) or getattr(section, "subsection_key", None)
+        selection_order = getattr(section, "selection_order", None)
+        if section_key and selection_order is not None:
+            add_value(f"{section_key}:{selection_order}")
+        for key_name in ("resolved_id", "section_key", "subsection_key"):
+            add_value(getattr(section, key_name, None))
+        nested = getattr(section, "section", None)
+        if nested is not None:
+            for value in _section_identity_candidates(nested):
+                add_value(value)
+
+    return values
+
+
+def _metadata_for_identity(section: Any, mapping: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+    for key in _section_identity_candidates(section):
+        meta = mapping.get(key)
+        if isinstance(meta, dict):
+            return meta
+    return {}
+
+
 def compose_sections(
     enriched_sections: List[Dict[str, Any]],
     template_sections: Optional[List[Dict[str, Any]]] = None,
@@ -58,28 +108,22 @@ def compose_sections(
         if sk:
             enriched_by_key[str(sk)] = (idx, sec)
 
-    # Index template defaults and instance metadata by resolved_id / section_key
+    # Index template defaults and instance metadata by the actual section identity
+    # when available; fall back to section_key only for legacy records. Matching by
+    # section_key alone can collapse repeated sections with the same subsection key.
     template_map = {}
     for t in template_sections or []:
         if not isinstance(t, dict):
             continue
-        rid = t.get("resolved_id")
-        sk = t.get("section_key")
-        if rid:
-            template_map.setdefault(str(rid), {}).update(t)
-        elif sk:
-            template_map.setdefault(str(sk), {}).update(t)
+        for key in _section_identity_candidates(t):
+            template_map.setdefault(str(key), {}).update(t)
 
     instance_map = {}
     for im in instance_metadata or []:
         if not isinstance(im, dict):
             continue
-        rid = im.get("resolved_id")
-        sk = im.get("section_key")
-        if rid:
-            instance_map.setdefault(str(rid), {}).update(im)
-        elif sk:
-            instance_map.setdefault(str(sk), {}).update(im)
+        for key in _section_identity_candidates(im):
+            instance_map.setdefault(str(key), {}).update(im)
 
     # Helper to merge default -> instance metadata
     def _merge_meta(def_meta: Dict[str, Any], inst_meta: Dict[str, Any]) -> Dict[str, Any]:
@@ -105,17 +149,8 @@ def compose_sections(
         except Exception:
             sk = sec.get("section_key")
 
-        def_meta = {}
-        inst_meta = {}
-        if rid and str(rid) in template_map:
-            def_meta = template_map.get(str(rid), {})
-        elif sk and str(sk) in template_map:
-            def_meta = template_map.get(str(sk), {})
-
-        if rid and str(rid) in instance_map:
-            inst_meta = instance_map.get(str(rid), {})
-        elif sk and str(sk) in instance_map:
-            inst_meta = instance_map.get(str(sk), {})
+        def_meta = _metadata_for_identity(sec, template_map)
+        inst_meta = _metadata_for_identity(sec, instance_map)
 
         merged = _merge_meta(def_meta, inst_meta)
 
@@ -176,7 +211,8 @@ def compose_sections(
             if blocks and not sec.get("images"):
                 sec["images"] = [
                     {"url": b.get("content"), "sort_order": (b.get("metadata") or {}).get("sort_order")}
-                    for b in blocks if b.get("block_type") == "image"
+                    for b in blocks
+                    if b.get("block_type") == "image" and b.get("content")
                 ]
     except Exception:
         # Keep composition resilient: if derivation fails, return composed

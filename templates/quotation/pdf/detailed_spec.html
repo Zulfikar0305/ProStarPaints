@@ -631,38 +631,58 @@
 
         {% if report_controls.show_photos and sec_data.images %}
           <div class="photo-strip" style="--photo-columns: {{ sec_data.images|length }};">
-            {% for img_uri in sec_data.images|slice:":3" %}
-              <figure class="gallery-item"><img src="{{ img_uri }}" alt="Section photo"></figure>
+            {% for img_item in sec_data.images|slice:":3" %}
+              {% with img_uri=img_item.url|default:img_item %}
+                <figure class="gallery-item"><img src="{{ img_uri }}" alt="Section photo"></figure>
+              {% endwith %}
             {% endfor %}
           </div>
         {% endif %}
 
-        {% if sec_data.surface_default %}
-          {% with surface_prep=sec_data.surface_default.preparation_requirements|default:'' %}
-            {% if surface_prep %}
+        {% with manual_prep=sec_data.manual_preparation_requirements %}
+          {% if sec_data.manual_preparation_requirements_present %}
+            {% if manual_prep %}
               <div class="section-block">
                 <h3 class="item-section-heading">Preparation Requirements</h3>
-                <p class="prep-copy">{{ surface_prep|linebreaksbr }}</p>
+                <p class="prep-copy">{{ manual_prep|linebreaksbr }}</p>
               </div>
             {% endif %}
-          {% endwith %}
-        {% elif sec_data.prep_instructions %}
-          <div class="section-block">
-            <h3 class="item-section-heading">Preparation Requirements</h3>
-            <div class="prep-copy">
-              {% for instr in sec_data.prep_instructions %}
-                {% if forloop.first %}{{ instr }}{% else %} {{ instr }}{% endif %}
-              {% endfor %}
+          {% elif sec_data.surface_default %}
+            {% with surface_prep=sec_data.surface_default.preparation_requirements|default:'' %}
+              {% if surface_prep %}
+                <div class="section-block">
+                  <h3 class="item-section-heading">Preparation Requirements</h3>
+                  <p class="prep-copy">{{ surface_prep|linebreaksbr }}</p>
+                </div>
+              {% endif %}
+            {% endwith %}
+          {% elif sec_data.prep_instructions %}
+            <div class="section-block">
+              <h3 class="item-section-heading">Preparation Requirements</h3>
+              <div class="prep-copy">
+                {% for instr in sec_data.prep_instructions %}
+                  {% if forloop.first %}{{ instr }}{% else %} {{ instr }}{% endif %}
+                {% endfor %}
+              </div>
             </div>
-          </div>
-        {% endif %}
+          {% endif %}
+        {% endwith %}
 
-        {% if sec_data.application_requirements %}
-          <div class="section-block">
-            <h3 class="item-section-heading">Application Requirements</h3>
-            <p class="prep-copy">{{ sec_data.application_requirements|linebreaksbr }}</p>
-          </div>
-        {% endif %}
+        {% with manual_app=sec_data.manual_application_requirements %}
+          {% if sec_data.manual_application_requirements_present %}
+            {% if manual_app %}
+              <div class="section-block">
+                <h3 class="item-section-heading">Application Requirements</h3>
+                <p class="prep-copy">{{ manual_app|linebreaksbr }}</p>
+              </div>
+            {% endif %}
+          {% elif sec_data.application_requirements %}
+            <div class="section-block">
+              <h3 class="item-section-heading">Application Requirements</h3>
+              <p class="prep-copy">{{ sec_data.application_requirements|linebreaksbr }}</p>
+            </div>
+          {% endif %}
+        {% endwith %}
 
         {% if report_controls.show_coating_system and sec_data.coating_system %}
           <div class="section-block">
@@ -729,8 +749,12 @@
                       <td>
                         {% with substrate=m|dict_get:'substrate' %}
                           {% if substrate %}{{ substrate }}{% else %}
-                            {% with wall_type=sec_data.surface_info|dict_get:'wall_type' %}
-                              {% if wall_type %}{{ wall_type }}{% else %}{{ sec_data.section.substrate_type|default:'—' }}{% endif %}
+                            {% with surface_substrate=sec_data.surface_info|dict_get:'substrate' %}
+                              {% if surface_substrate %}{{ surface_substrate }}{% else %}
+                                {% with wall_type=sec_data.surface_info|dict_get:'wall_type' %}
+                                  {% if wall_type %}{{ wall_type }}{% else %}—{% endif %}
+                                {% endwith %}
+                              {% endif %}
                             {% endwith %}
                           {% endif %}
                         {% endwith %}

@@ -29,12 +29,28 @@ class PreviewService:
 
         resolver = data.get("resolver") if isinstance(data, dict) else None
         draft_overrides = data.get("draft_overrides") if isinstance(data, dict) else None
+        manual_overrides = data.get("manual_overrides") if isinstance(data, dict) else None
+
+        if not isinstance(resolver, dict) or not (resolver.get("sections") or resolver.get("report_controls")):
+            try:
+                from quotation.pdf_service import build_pdf_context
+                resolver = build_pdf_context(getattr(draft, "quotation", None), use_resolver=False)
+            except Exception:
+                logger.exception("Failed to rebuild automatic context for preview")
+                resolver = resolver or {}
+
         if isinstance(resolver, dict) and isinstance(draft_overrides, dict):
             try:
                 from specifications.services.builder_service import ManualSpecificationBuilderService
                 resolver = ManualSpecificationBuilderService().apply_draft_overrides(resolver, draft_overrides)
             except Exception:
                 logger.exception("Failed to apply draft overrides for preview")
+        if isinstance(resolver, dict):
+            try:
+                from specifications.services.builder_service import ManualSpecificationBuilderService
+                resolver = ManualSpecificationBuilderService().apply_manual_overrides(resolver, manual_overrides)
+            except Exception:
+                logger.exception("Failed to apply manual item overrides for preview")
 
         from specifications.services.template_service import TemplateService
         report_controls = TemplateService.normalize_report_controls(
@@ -82,6 +98,13 @@ class PreviewService:
             }
             logo_data_uri = None
 
+        quotation = getattr(draft, "quotation", None)
+        created_by = getattr(quotation, "created_by", None) or getattr(draft, "created_by", None)
+        try:
+            sales_profile = getattr(created_by, "sales_profile", None)
+        except Exception:
+            sales_profile = None
+
         if rendered_html_map:
             # Return a minimal context that tells consumers to render the
             # pre-rendered HTML for a chosen template. The preview view will
@@ -89,7 +112,14 @@ class PreviewService:
             ctx = {
                 "rendered_html": rendered_html_map,
                 "draft": draft,
-                "quotation": getattr(draft, "quotation", None),
+                "quotation": quotation,
+                "created_by": created_by,
+                "sales_profile": sales_profile,
+                "customer_name": getattr(quotation, "customer_name", ""),
+                "customer_email": getattr(quotation, "customer_email", ""),
+                "customer_phone": getattr(quotation, "customer_phone", ""),
+                "project_name": getattr(quotation, "project_name", ""),
+                "project_location": getattr(quotation, "project_location", ""),
                 "branding": branding,
                 "logo_data_uri": logo_data_uri,
                 "generated_at": timezone.now(),
@@ -102,6 +132,14 @@ class PreviewService:
         if pdf_ctx and isinstance(pdf_ctx, dict):
             # Ensure branding/logo and generated timestamp exist
             ctx = dict(pdf_ctx)
+            ctx.setdefault("quotation", quotation)
+            ctx.setdefault("created_by", created_by)
+            ctx.setdefault("sales_profile", sales_profile)
+            ctx.setdefault("customer_name", getattr(quotation, "customer_name", ""))
+            ctx.setdefault("customer_email", getattr(quotation, "customer_email", ""))
+            ctx.setdefault("customer_phone", getattr(quotation, "customer_phone", ""))
+            ctx.setdefault("project_name", getattr(quotation, "project_name", ""))
+            ctx.setdefault("project_location", getattr(quotation, "project_location", ""))
             ctx.setdefault("branding", branding)
             ctx.setdefault("logo_data_uri", logo_data_uri)
             ctx.setdefault("generated_at", timezone.now())
@@ -142,7 +180,14 @@ class PreviewService:
 
         context = {
             "draft": draft,
-            "quotation": getattr(draft, "quotation", None),
+            "quotation": quotation,
+            "created_by": created_by,
+            "sales_profile": sales_profile,
+            "customer_name": getattr(quotation, "customer_name", ""),
+            "customer_email": getattr(quotation, "customer_email", ""),
+            "customer_phone": getattr(quotation, "customer_phone", ""),
+            "project_name": getattr(quotation, "project_name", ""),
+            "project_location": getattr(quotation, "project_location", ""),
             "template": template,
             "sections": sections,
             "branding": branding,
@@ -151,6 +196,12 @@ class PreviewService:
             "sections_metadata": sections_metadata,
             "report_controls": report_controls,
             "report_options": {"pricing_enabled": bool(report_controls.get("show_pricing", True))},
+            "pricing_enabled": bool(report_controls.get("show_pricing", True)),
+            "pricing_status": "pending",
+            "quotation_summary": {},
+            "notes": getattr(quotation, "notes", ""),
+            "has_warranty_content": False,
+            "template_section_map": {},
         }
 
         # If any metadata exists, attempt to compose the sections before

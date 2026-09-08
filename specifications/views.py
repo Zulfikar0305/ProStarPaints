@@ -1,9 +1,18 @@
+import json
+
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
+from django.template.loader import render_to_string
 from django.views.generic import View
 
+from quotation.models import Quotation
+from quotation.views import QuotationAccessMixin
+from specifications.services import ManualSpecificationBuilderService
+from specifications.services.export_service import ExportService
+from specifications.services.preview_service import PreviewService
 from users.mixins import AdminRequiredMixin
 
-from .models import SpecificationTemplate, KnowledgeEntry, KnowledgeCategory, SpecificationRule, KNOWLEDGE_CATEGORIES, SurfaceDefault
+from .models import SpecificationTemplate, KnowledgeEntry, KnowledgeCategory, SpecificationRule, KNOWLEDGE_CATEGORIES, SurfaceDefault, ManualSpecificationItem
 from .forms import SpecificationTemplateForm, SpecificationRuleForm
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -186,6 +195,147 @@ class RuleMoveView(AdminRequiredMixin, View):
             other.save()
             obj.save()
         return redirect(reverse("specifications:rules_index"))
+
+
+class BuilderQuotationAccessMixin(QuotationAccessMixin):
+    """Access control for quotation-specific manual builder views."""
+
+    def get_quotation(self, request, pk):
+        return get_object_or_404(self.get_base_qs(), pk=pk)
+
+
+class BuilderQuotationView(BuilderQuotationAccessMixin, View):
+    template_name = "specifications/builder.html"
+
+    def get(self, request, pk):
+        quotation = self.get_quotation(request, pk)
+        service = ManualSpecificationBuilderService()
+        resolver = service.build_serialisable_automatic_context(quotation)
+        manual_overrides = service.manual_overrides_for_quotation(quotation)
+
+        ctx = {
+            "quotation": quotation,
+            "spec_data_json": json.dumps(resolver),
+            "manual_overrides_json": json.dumps(manual_overrides),
+            "draft_id": quotation.pk,
+            "draft_preview_url": reverse("specifications:builder_quotation_preview", args=[quotation.pk]),
+            "pdf_selection_url": reverse("quotation:pdf_select", args=[quotation.pk]),
+            "request": request,
+        }
+        return render(request, self.template_name, ctx)
+
+
+class BuilderQuotationSaveView(BuilderQuotationAccessMixin, View):
+    def post(self, request, pk):
+        quotation = self.get_quotation(request, pk)
+        service = ManualSpecificationBuilderService()
+
+        try:
+            payload = json.loads(request.body.decode("utf-8")) if request.body else {}
+        except Exception:
+            payload = {}
+
+        if not isinstance(payload, dict):
+            return JsonResponse({"error": "Invalid payload"}, status=400)
+
+        section_id = payload.get("section_id")
+        if section_id is None:
+            section_id = payload.get("section_pk")
+        if section_id is None:
+            section_id = payload.get("section_key")
+
+        if section_id is not None:
+            section = service.resolve_section_for_manual_key(quotation, section_id)
+            if section is None:
+                return JsonResponse({"error": "Section not found"}, status=404)
+
+            preparation_requirements = str(payload.get("preparation_requirements") or "")
+            application_requirements = str(payload.get("application_requirements") or "")
+            service.save_manual_item(
+                quotation,
+                section,
+                preparation_requirements=preparation_requirements,
+                application_requirements=application_requirements,
+                images=[],
+                created_by=request.user,
+            )
+            return JsonResponse({
+                "draft_id": quotation.pk,
+                "preview_url": reverse("specifications:builder_quotation_preview", args=[quotation.pk]),
+                "manual_overrides": service.manual_overrides_for_quotation(quotation),
+            })
+
+        manual_overrides = payload.get("manual_overrides") if isinstance(payload.get("manual_overrides"), dict) else {}
+        normalized_overrides = service.normalize_manual_overrides(manual_overrides)
+        for section_key, item_override in normalized_overrides.items():
+            section = service.resolve_section_for_manual_key(quotation, section_key)
+            if section is None:
+                continue
+            service.save_manual_item(
+                quotation,
+                section,
+                preparation_requirements=item_override.get("preparation_requirements", ""),
+                application_requirements=item_override.get("application_requirements", ""),
+                images=item_override.get("images", []),
+                created_by=request.user,
+            )
+
+        return JsonResponse({
+            "draft_id": quotation.pk,
+            "preview_url": reverse("specifications:builder_quotation_preview", args=[quotation.pk]),
+            "manual_overrides": service.manual_overrides_for_quotation(quotation),
+        })
+
+
+class BuilderQuotationPreviewView(BuilderQuotationAccessMixin, View):
+    def get(self, request, pk):
+        quotation = self.get_quotation(request, pk)
+        service = ManualSpecificationBuilderService()
+        resolver = service.build_serialisable_automatic_context(quotation)
+        manual_overrides = service.manual_overrides_for_quotation(quotation)
+
+        from types import SimpleNamespace
+        draft = SimpleNamespace(
+            quotation=quotation,
+            data={
+                "resolver": resolver,
+                "manual_overrides": manual_overrides,
+                "draft_overrides": {"pricing_visible": True, "sections": {}, "report_controls": {}},
+                "rendered_html": {},
+            },
+            created_by=request.user,
+        )
+
+        preview_ctx = PreviewService().preview_context_for_draft(draft)
+        html = render_to_string("quotation/pdf/manual_specification.html", preview_ctx)
+        return HttpResponse(html)
+
+
+class BuilderQuotationExportView(BuilderQuotationAccessMixin, View):
+    def get(self, request, pk):
+        quotation = self.get_quotation(request, pk)
+        service = ManualSpecificationBuilderService()
+        resolver = service.build_serialisable_automatic_context(quotation)
+        manual_overrides = service.manual_overrides_for_quotation(quotation)
+
+        from types import SimpleNamespace
+        draft = SimpleNamespace(
+            quotation=quotation,
+            data={
+                "resolver": resolver,
+                "manual_overrides": manual_overrides,
+                "draft_overrides": {"pricing_visible": True, "sections": {}, "report_controls": {}},
+                "rendered_html": {},
+            },
+            created_by=request.user,
+        )
+
+        export = ExportService().export_pdf_from_draft(draft, "manual_specification", request.user, request=request)
+        if export and export.pk and export.status == export.Status.GENERATED:
+            return redirect("quotation:pdf_download_direct", export_id=export.pk)
+
+        messages.error(request, "Manual specification PDF could not be generated.")
+        return redirect("quotation:pdf_select", pk=quotation.pk)
 
 
 class LandingView(AdminRequiredMixin, View):
@@ -452,234 +602,3 @@ class KnowledgeDeactivateView(SurfaceDefaultDeactivateView):
     pass
 
 
-# ---------------------------------------------------------------------------
-# Manual Specification Builder
-# ---------------------------------------------------------------------------
-
-import json
-
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import JsonResponse
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import ensure_csrf_cookie
-
-
-class ManualBuilderView(LoginRequiredMixin, View):
-    """Render the manual builder for a given `Quotation`.
-
-    Loads the latest user-owned draft if present; otherwise uses the
-    `SpecificationResolver` output as the editable starting point.
-    """
-
-    template_name = "specifications/builder.html"
-
-    @method_decorator(ensure_csrf_cookie)
-    def get(self, request, quotation_pk):
-        from django.shortcuts import get_object_or_404
-
-        from quotation.models import Quotation
-        from .services import ManualSpecificationBuilderService
-        from .models import ManualSpecificationDraft
-
-        # Restrict access: reps see only their own quotations, admins see all
-        is_admin = request.user.is_superuser or getattr(request.user, "role", None) == "ADMIN"
-        qs = Quotation.objects
-        if not is_admin:
-            qs = qs.filter(created_by=request.user)
-
-        quotation = get_object_or_404(qs, pk=quotation_pk)
-
-        # Load latest draft for this user if available
-        draft = (
-            ManualSpecificationDraft.objects.filter(quotation=quotation, created_by=request.user)
-            .order_by("-updated_at")
-            .first()
-        )
-
-        svc = ManualSpecificationBuilderService()
-        if draft and isinstance(draft.data, dict):
-            resolver = draft.data.get("resolver")
-            if isinstance(resolver, dict) and (resolver.get("sections") or []):
-                spec_data = resolver
-                draft_overrides = draft.data.get("draft_overrides") if isinstance(draft.data.get("draft_overrides"), dict) else {}
-                if draft_overrides:
-                    spec_data = svc.apply_draft_overrides(spec_data, draft_overrides)
-                draft_id = draft.pk
-            else:
-                spec_data = svc.prepare_spec(quotation)
-                draft_id = None
-        else:
-            spec_data = svc.prepare_spec(quotation)
-            draft_id = None
-
-        if not isinstance(spec_data, dict) or not spec_data.get("sections"):
-            spec_data = svc.prepare_spec(quotation)
-            draft_id = None
-
-        draft_preview_url = reverse("specifications:preview_draft", args=[draft.pk]) if draft else reverse("specifications:preview_quotation", args=[quotation_pk])
-        pdf_selection_url = reverse("quotation:pdf_select", args=[quotation_pk])
-
-        # Serialize safely for embedding in the page
-        spec_json = json.dumps(spec_data, ensure_ascii=False, default=str)
-
-        return render(
-            request,
-            self.template_name,
-            {
-                "quotation": quotation,
-                "spec_data_json": spec_json,
-                "draft_id": draft_id,
-                "draft_preview_url": draft_preview_url,
-                "pdf_selection_url": pdf_selection_url,
-            },
-        )
-
-
-class DraftSaveView(LoginRequiredMixin, View):
-    """Create or update a `ManualSpecificationDraft` via POSTed JSON.
-
-    Expects JSON body with `spec` (the edited spec), optional `draft_id`,
-    and optional `title`. Returns JSON `{status: 'ok', draft_id: ...}`.
-    """
-
-    def post(self, request, quotation_pk=None):
-        try:
-            payload = json.loads(request.body.decode("utf-8") or "{}")
-        except Exception as exc:
-            logger.exception("Invalid JSON in DraftSaveView POST: %s", exc)
-            return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
-
-        spec = payload.get("spec") or payload
-        draft_id = payload.get("draft_id")
-        title = payload.get("title", "")
-
-        from django.shortcuts import get_object_or_404
-        from .models import ManualSpecificationDraft
-        from .services import ManualSpecificationBuilderService
-        from quotation.models import Quotation
-
-        is_admin = request.user.is_superuser or getattr(request.user, "role", None) == "ADMIN"
-        qs = Quotation.objects
-        if not is_admin:
-            qs = qs.filter(created_by=request.user)
-
-        if quotation_pk:
-            quotation = get_object_or_404(qs, pk=quotation_pk)
-        else:
-            qpk = payload.get("quotation_pk")
-            if not qpk:
-                return JsonResponse({"status": "error", "message": "quotation_pk required"}, status=400)
-            quotation = get_object_or_404(qs, pk=qpk)
-
-        svc = ManualSpecificationBuilderService()
-
-        if draft_id:
-            draft = get_object_or_404(ManualSpecificationDraft, pk=draft_id)
-            if draft.created_by != request.user and not is_admin:
-                return JsonResponse({"status": "error", "message": "permission denied"}, status=403)
-            draft = svc.save_draft(draft, spec)
-        else:
-            draft = svc.create_draft_from_resolver(quotation, created_by=request.user, title=title)
-            draft = svc.save_draft(draft, spec)
-
-        preview_url = reverse("specifications:preview_draft", args=[draft.pk])
-        return JsonResponse({"status": "ok", "draft_id": draft.pk, "preview_url": preview_url})
-
-
-class ManualBuilderExportView(LoginRequiredMixin, View):
-    """Generate the manual specification PDF from the saved draft state."""
-
-    def _get_latest_draft(self, request, quotation):
-        from .models import ManualSpecificationDraft
-
-        qs = ManualSpecificationDraft.objects.filter(quotation=quotation, created_by=request.user)
-        if request.user.is_superuser or getattr(request.user, "role", None) == "ADMIN":
-            qs = ManualSpecificationDraft.objects.filter(quotation=quotation)
-        return qs.order_by("-updated_at").first()
-
-    def get(self, request, quotation_pk):
-        from django.shortcuts import get_object_or_404
-        from quotation.models import Quotation
-
-        is_admin = request.user.is_superuser or getattr(request.user, "role", None) == "ADMIN"
-        qs = Quotation.objects
-        if not is_admin:
-            qs = qs.filter(created_by=request.user)
-        quotation = get_object_or_404(qs, pk=quotation_pk)
-
-        draft = self._get_latest_draft(request, quotation)
-        if draft is None:
-            from .services import ManualSpecificationBuilderService
-            draft = ManualSpecificationBuilderService().create_draft_from_resolver(
-                quotation,
-                created_by=request.user,
-                title=f"Manual specification for {quotation.reference}",
-            )
-
-        from specifications.services.export_service import ExportService
-        export = ExportService().export_pdf_from_draft(draft, "manual_specification", generated_by=request.user, request=request)
-
-        if export.status == "GENERATED":
-            messages.success(request, "Manual specification PDF generated from the saved draft.")
-            return redirect(f"/quotations/pdf/{export.pk}/")
-
-        messages.error(request, f"Manual specification PDF generation failed: {export.error_message[:200]}")
-        return redirect("specifications:builder_quotation", quotation_pk=quotation_pk)
-
-
-class DraftPreviewView(LoginRequiredMixin, View):
-    """Read-only preview of a saved `ManualSpecificationDraft` by draft pk."""
-
-    template_name = "specifications/preview.html"
-
-    def get(self, request, draft_pk):
-        from .models import ManualSpecificationDraft
-        from .services import PreviewService
-
-        draft = get_object_or_404(ManualSpecificationDraft, pk=draft_pk)
-
-        # Permission: owner or admin
-        is_admin = request.user.is_superuser or getattr(request.user, "role", None) == "ADMIN"
-        if draft.created_by != request.user and not is_admin:
-            return render(request, "specifications/preview_no_access.html", status=403)
-
-        svc = PreviewService()
-        ctx = svc.preview_context_for_draft(draft)
-        # If the preview service returned pre-rendered HTML, use the
-        # lightweight renderer that embeds the HTML directly to ensure
-        # preview == export.
-        if isinstance(ctx, dict) and ctx.get("rendered_html"):
-            # Allow selecting template key via ?template= in the URL
-            tpl_key = request.GET.get("template", "manual_specification")
-            ctx["render_template_key"] = tpl_key
-            return render(request, "specifications/preview_rendered.html", ctx)
-        return render(request, self.template_name, ctx)
-
-
-class QuotationPreviewView(LoginRequiredMixin, View):
-    """Preview the latest draft for a quotation (user-scoped)."""
-
-    template_name = "specifications/preview.html"
-
-    def get(self, request, quotation_pk):
-        from quotation.models import Quotation
-        from .services import PreviewService
-
-        is_admin = request.user.is_superuser or getattr(request.user, "role", None) == "ADMIN"
-        qs = Quotation.objects
-        if not is_admin:
-            qs = qs.filter(created_by=request.user)
-
-        quotation = get_object_or_404(qs, pk=quotation_pk)
-
-        svc = PreviewService()
-        draft = svc.latest_draft_for_quotation(quotation, user=request.user)
-        if not draft:
-            return render(request, "specifications/preview_no_draft.html", {"quotation": quotation})
-
-        ctx = svc.preview_context_for_draft(draft)
-        if isinstance(ctx, dict) and ctx.get("rendered_html"):
-            tpl_key = request.GET.get("template", "manual_specification")
-            ctx["render_template_key"] = tpl_key
-            return render(request, "specifications/preview_rendered.html", ctx)
-        return render(request, self.template_name, ctx)

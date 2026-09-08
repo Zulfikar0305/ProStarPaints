@@ -388,6 +388,42 @@ class SpecificationRule(TimeStampedModel):
         return f"{self.name} ({self.get_rule_type_display()}) — {rng}"
 
 
+class ManualSpecificationItem(TimeStampedModel):
+    """Authoritative manual override storage for a single quotation section.
+
+    Each row stores the editable PREPARATION and APPLICATION text for a single
+    section and is keyed strictly by the live QuotationSection identity. The
+    automatic resolver remains the source of base content; this table is the
+    only persisted source for manual edits for a section.
+    """
+
+    quotation = models.ForeignKey(
+        "quotation.Quotation",
+        on_delete=models.CASCADE,
+        related_name="manual_specification_items",
+    )
+    section = models.ForeignKey(
+        "quotation.QuotationSection",
+        on_delete=models.CASCADE,
+        related_name="manual_specification_items",
+    )
+    original_preparation_requirements = models.TextField(blank=True, default="")
+    original_application_requirements = models.TextField(blank=True, default="")
+    preparation_requirements = models.TextField(blank=True, default="")
+    application_requirements = models.TextField(blank=True, default="")
+    images = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        ordering = ["section__sort_order", "section__pk", "pk"]
+        unique_together = [("quotation", "section")]
+        verbose_name = "Manual Specification Item"
+        verbose_name_plural = "Manual Specification Items"
+
+    def __str__(self):
+        qref = getattr(self.quotation, "reference", "?")
+        return f"Manual item for {qref} / {self.section_id}"
+
+
 class ManualSpecificationDraft(TimeStampedModel):
     """User-editable draft of a resolved specification.
 

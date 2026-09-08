@@ -16,6 +16,7 @@ import re
 from decimal import Decimal
 from typing import Any
 
+from .config import ALL_GENERIC_SECTION_CONFIGS, WALL_TYPES
 from .description_engine import generate_line_item_description
 
 
@@ -381,6 +382,60 @@ def compose_application_requirements(section_data: dict | list | None) -> str:
     return " ".join(sentences)
 
 
+def _normalise_selection_value(value):
+    if value is None:
+        return None
+    if isinstance(value, (list, tuple, set)):
+        for item in value:
+            label = _normalise_selection_value(item)
+            if label:
+                return label
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    return text
+
+
+def _resolve_selected_substrate(note_item, section_obj=None) -> str | None:
+    if note_item is None:
+        return None
+    meta = getattr(note_item, "metadata", {}) or {}
+    if not isinstance(meta, dict):
+        return None
+
+    section_key = getattr(section_obj, "subsection_key", None) or meta.get("section_key")
+    mapping = {}
+    if section_key == "interior_walls":
+        mapping.update(dict(WALL_TYPES))
+    cfg = ALL_GENERIC_SECTION_CONFIGS.get(section_key) if section_key else None
+    if cfg is not None:
+        mapping.update(dict(cfg.types))
+
+    lower_map = {str(k).lower(): v for k, v in mapping.items()}
+
+    for candidate in (
+        meta.get("wall_type_label"),
+        meta.get("wall_type"),
+        meta.get("type_label"),
+        meta.get("type_labels"),
+        meta.get("types"),
+        meta.get("type"),
+        meta.get("surface"),
+        meta.get("surface_label"),
+        meta.get("surface_type"),
+    ):
+        value = _normalise_selection_value(candidate)
+        if not value:
+            continue
+        key = str(value).lower()
+        if key in lower_map:
+            return str(lower_map[key])
+        return value
+
+    return None
+
+
 def _material_summary_for_item(item, item_no=None, surface_type=None, substrate=None) -> dict:
     # Use persisted fields only; do not recalculate pricing or quantities here.
     product = None
@@ -522,9 +577,7 @@ def generate_spec_for_sections(section_data: list[dict]) -> list[dict]:
                     surface_default = default_map.get(("EXTERIOR", section_key, surface_key))
 
             # --- Surface info ---
-            wall_type = None
-            if note_item and getattr(note_item, "metadata", None):
-                wall_type = (note_item.metadata or {}).get("wall_type_label")
+            wall_type = _resolve_selected_substrate(note_item, section_obj)
             if not wall_type:
                 try:
                     wall_type = getattr(sec.get("section"), "get_substrate_type_display", lambda: None)()
@@ -721,7 +774,7 @@ def generate_spec_for_sections(section_data: list[dict]) -> list[dict]:
                             it,
                             item_no=section_index + 1,
                             surface_type=getattr(section_obj, "display_name", None) or None,
-                            substrate=wall_type or getattr(section_obj, "substrate_type", None),
+                            substrate=wall_type,
                         )
                     )
 
@@ -738,6 +791,7 @@ def generate_spec_for_sections(section_data: list[dict]) -> list[dict]:
             enriched.update({
                 "surface_info": {
                     "wall_type": wall_type,
+                    "substrate": wall_type,
                     "reference_area": reference_area,
                     "surface_conditions": surface_conditions,
                     "general_notes": sec.get("description", ""),
@@ -763,7 +817,7 @@ def generate_spec_for_sections(section_data: list[dict]) -> list[dict]:
             s.setdefault("coating_system", [])
             s.setdefault("technical", [])
             s.setdefault("material_summary", [])
-            s.setdefault("surface_info", {"wall_type": None, "reference_area": "", "surface_conditions": [], "general_notes": s.get("description", "")})
+            s.setdefault("surface_info", {"wall_type": None, "substrate": None, "reference_area": "", "surface_conditions": [], "general_notes": s.get("description", "")})
             out_sections.append(s)
 
     return out_sections
