@@ -633,8 +633,9 @@
       var matched = catFiltered.filter(function (p) {
         if (!p) return false;
         if (rowType === 'paint' && finishKey && p.finish && p.finish !== finishKey) return false;
-        // substrate constraint: if section is EXTERIOR, prefer EXTERIOR category only
-        if (substrate && substrate === 'EXTERIOR' && p.category !== 'EXTERIOR') return false;
+        // Only paint rows are limited by the section substrate category.
+        // Primer and waterproofing rows must remain category-specific regardless of substrate.
+        if (rowType === 'paint' && substrate && substrate === 'EXTERIOR' && p.category !== 'EXTERIOR') return false;
         return true;
       });
 

@@ -130,6 +130,8 @@ class BrandingSetting(models.Model):
     company_name    = models.CharField(_("company name"), max_length=120, default=DEFAULT_COMPANY_NAME)
     company_tagline = models.CharField(_("tagline"), max_length=200, blank=True, default="")
     company_logo    = models.ImageField(_("logo"), upload_to="branding/", blank=True, null=True)
+    pdf_header_image = models.ImageField(_("PDF header image"), upload_to="branding/", blank=True, null=True)
+    pdf_footer_image = models.ImageField(_("PDF footer image"), upload_to="branding/", blank=True, null=True)
     primary_colour  = models.CharField(_("primary colour"), max_length=7, blank=True, default="")
     accent_colour   = models.CharField(_("accent colour"), max_length=7, blank=True, default="")
     support_email   = models.EmailField(_("support email"), blank=True, default="")

@@ -481,6 +481,12 @@ def _material_summary_for_item(item, item_no=None, surface_type=None, substrate=
                 pack_size = value
                 break
 
+    package_unit = None
+    if paint is not None:
+        package_unit = getattr(paint, "package_unit", None)
+    if package_unit in (None, "") and isinstance(metadata, dict):
+        package_unit = metadata.get("package_unit")
+
     unit_price = getattr(item, "price_excl_vat", None)
     if unit_price in (None, "") and paint is not None:
         unit_price = getattr(paint, "price_excl_vat", None)
@@ -507,12 +513,66 @@ def _material_summary_for_item(item, item_no=None, surface_type=None, substrate=
         "coverage_per_20l": coverage_per_20l,
         "colour": getattr(paint, "colour", None) if paint is not None else "",
         "pack_size": pack_size,
+        "package_unit": package_unit,
         "unit_price_excl_vat": unit_price,
         "paint_cost_per_m2_excl_vat": paint_cost_per_m2,
         "required_litres": metadata.get("required_litres"),
         "recommended_containers": metadata.get("recommended_containers"),
         "est_material_cost": getattr(item, "total_excl_vat", None),
         "line_item_pk": getattr(item, "pk", None),
+    }
+
+
+def _prep_treatment_materials_for_item(item) -> dict:
+    paint = getattr(item, "paint", None)
+    metadata = getattr(item, "metadata", {}) or {}
+    tech = _gather_technical_for_item(item)
+
+    quantity = getattr(item, "quantity", None)
+    if quantity is None:
+        quantity = getattr(item, "area_sqm", None)
+    if quantity is None and isinstance(metadata, dict):
+        quantity = metadata.get("quantity") or metadata.get("package_count") or metadata.get("roll_count")
+
+    unit = getattr(item, "unit", None) or ""
+    if not unit and isinstance(metadata, dict):
+        unit = str(metadata.get("package_unit") or "")
+
+    pack_size = None
+    if paint is not None:
+        for key in ("package_size", "pack_size", "priced_volume_litres"):
+            value = getattr(paint, key, None)
+            if value not in (None, ""):
+                pack_size = value
+                break
+    if pack_size is None and isinstance(metadata, dict):
+        for key in ("package_size", "pack_size", "recommended_containers", "priced_volume_litres"):
+            value = metadata.get(key)
+            if value not in (None, ""):
+                pack_size = value
+                break
+
+    unit_price = getattr(item, "price_excl_vat", None)
+    if unit_price in (None, "") and paint is not None:
+        unit_price = getattr(paint, "price_excl_vat", None)
+
+    total_price = getattr(item, "total_excl_vat", None)
+    if total_price in (None, "") and paint is not None:
+        total_price = getattr(paint, "total_excl_vat", None)
+
+    return {
+        "line_item_pk": getattr(item, "pk", None),
+        "description": generate_line_item_description(item),
+        "product": getattr(paint, "name", None) or (getattr(item, "description", "") or ""),
+        "quantity": quantity,
+        "unit": unit,
+        "pack_size": pack_size,
+        "unit_price_excl_vat": unit_price,
+        "total_excl_vat": total_price,
+        "tds_reference": tech.get("tds_reference") or metadata.get("tds_reference"),
+        "spread_rate_per_litre": tech.get("spread_rate_per_litre") or metadata.get("spread_rate_per_litre"),
+        "dft": tech.get("dft") or _format_dft_range(metadata.get("dft_min"), metadata.get("dft_max")),
+        "application_method": tech.get("application_method") or metadata.get("application_method") or metadata.get("application_method_label"),
     }
 
 
@@ -687,6 +747,15 @@ def generate_spec_for_sections(section_data: list[dict]) -> list[dict]:
                 "note_item": note_item,
             })
 
+            # --- Preparation / treatment materials ---
+            prep_treatment_materials = []
+            for it in work_items:
+                try:
+                    if getattr(it, "item_type", None) == QuotationLineItem.ItemType.PREP_WORK:
+                        prep_treatment_materials.append(_prep_treatment_materials_for_item(it))
+                except Exception:
+                    continue
+
             # --- Coating system ---
             coating_system = []
             stage = 0
@@ -768,7 +837,12 @@ def generate_spec_for_sections(section_data: list[dict]) -> list[dict]:
             # --- Material summary ---
             material_summary = []
             for it in work_items:
-                if getattr(it, "item_type", None) in (QuotationLineItem.ItemType.PAINT, QuotationLineItem.ItemType.PRIMER, QuotationLineItem.ItemType.WATERPROOFING):
+                if getattr(it, "item_type", None) in (
+                    QuotationLineItem.ItemType.PAINT,
+                    QuotationLineItem.ItemType.PRIMER,
+                    QuotationLineItem.ItemType.WATERPROOFING,
+                    QuotationLineItem.ItemType.PREP_WORK,
+                ):
                     material_summary.append(
                         _material_summary_for_item(
                             it,
@@ -801,6 +875,7 @@ def generate_spec_for_sections(section_data: list[dict]) -> list[dict]:
                 "prep_instructions": prep_instructions,
                 "application_instructions": app_instructions,
                 "application_requirements": application_requirements,
+                "prep_treatment_materials": prep_treatment_materials,
                 "coating_system": coating_system,
                 "technical": technical,
                 "material_summary": material_summary,
@@ -814,6 +889,7 @@ def generate_spec_for_sections(section_data: list[dict]) -> list[dict]:
             s.setdefault("prep_instructions", [])
             s.setdefault("application_instructions", [])
             s.setdefault("application_requirements", "")
+            s.setdefault("prep_treatment_materials", [])
             s.setdefault("coating_system", [])
             s.setdefault("technical", [])
             s.setdefault("material_summary", [])

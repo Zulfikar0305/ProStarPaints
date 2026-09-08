@@ -619,6 +619,7 @@ class ManualSpecificationBuilderService:
                 "prep_instructions": self._json_safe_value(sec.get("prep_instructions") or []),
                 "application_instructions": self._json_safe_value(sec.get("application_instructions") or []),
                 "application_requirements": self._json_safe_value(sec.get("application_requirements")),
+                "prep_treatment_materials": self._json_safe_value(sec.get("prep_treatment_materials") or []),
                 "coating_system": self._json_safe_value(sec.get("coating_system") or []),
                 "material_summary": self._json_safe_value(sec.get("material_summary") or []),
                 "technical": self._json_safe_value(sec.get("technical") or []),

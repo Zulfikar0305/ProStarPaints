@@ -8,21 +8,17 @@
 /* ── Page setup ── */
 @page {
   size: A4;
-  margin: 18mm 20mm 22mm 20mm;
+  margin: 26mm 20mm 24mm 20mm;
+  @top-center { content: element(pdf-header); }
   @bottom-left {
     content: "{{ branding.company_name|default:'ProStar Paints' }} — Professional Quotation";
     font-size: 8pt;
     color: #94a3b8;
     font-family: Arial, Helvetica, sans-serif;
   }
-  @bottom-center {
-    content: "Page " counter(page) " of " counter(pages);
-    font-size: 8pt;
-    color: #94a3b8;
-    font-family: Arial, Helvetica, sans-serif;
-  }
+  @bottom-center { content: element(pdf-footer); }
   @bottom-right {
-    content: "{{ quotation.reference }} | Generated {{ generated_at|date:'d M Y' }}";
+    content: "Page " counter(page) " of " counter(pages);
     font-size: 8pt;
     color: #94a3b8;
     font-family: Arial, Helvetica, sans-serif;
@@ -37,6 +33,40 @@ body {
   color: #1e293b;
   line-height: 1.55;
   background: #fff;
+}
+
+#pdf-header, #pdf-footer {
+  position: running(pdf-header);
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  min-height: 18mm;
+}
+
+#pdf-footer {
+  position: running(pdf-footer);
+}
+
+.pdf-brand-image {
+  max-height: 22mm;
+  max-width: 66mm;
+  object-fit: contain;
+}
+
+#pdf-footer .pdf-brand-image {
+  max-height: 16mm;
+  max-width: 48mm;
+  object-fit: contain;
+}
+
+.pdf-brand-text {
+  font-size: 10pt;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #7c3aed;
 }
 a { color: #7c3aed; text-decoration: none; }
 p { margin-bottom: 4pt; }
@@ -337,6 +367,23 @@ p { margin-bottom: 4pt; }
 </style>
 </head>
 <body>
+<div id="pdf-header" class="pdf-header">
+  {% if branding.pdf_header_image_data_uri %}
+    <img class="pdf-brand-image" src="{{ branding.pdf_header_image_data_uri }}" alt="{{ branding.company_name|default:'ProStar Paints' }}">
+  {% else %}
+    <div class="pdf-brand-text">{{ branding.company_name|default:"ProStar Paints" }}</div>
+  {% endif %}
+</div>
+
+<div id="pdf-footer" class="pdf-footer">
+  {% if branding.pdf_footer_image_data_uri %}
+    <img class="pdf-brand-image" src="{{ branding.pdf_footer_image_data_uri }}" alt="{{ branding.company_name|default:'ProStar Paints' }} footer">
+  {% elif branding.pdf_footer_note %}
+    <div class="pdf-brand-text">{{ branding.pdf_footer_note }}</div>
+  {% else %}
+    <div class="pdf-brand-text">{{ branding.company_name|default:"ProStar Paints" }}</div>
+  {% endif %}
+</div>
 
 <!-- ══ HEADER ══════════════════════════════════════════════════════════════ -->
 <div class="header">

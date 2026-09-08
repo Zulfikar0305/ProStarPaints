@@ -300,7 +300,13 @@
               {% endif %}
             </td>
             <td class="px-3 py-2 text-muted" title="{{ export.created_at|date:'d M Y H:i' }}">{{ export.created_at|timesince }} {% trans "ago" %}</td>
-            <td class="px-3 py-2 text-muted">{{ export.generated_by.get_full_name|default:export.generated_by.username|default:"—" }}</td>
+            <td class="px-3 py-2 text-muted">
+              {% if export.generated_by %}
+                {{ export.generated_by.get_full_name|default:export.generated_by.username|default:"—" }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
             <td class="px-3 py-2 text-end">
               {% if export.status == "GENERATED" and export.file %}
                 <a href="{% url 'quotation:pdf_download' export.pk %}"

@@ -53,6 +53,7 @@ class BrandingSettingForm(forms.ModelForm):
         model = BrandingSetting
         fields = [
             "company_name", "company_tagline", "company_logo",
+            "pdf_header_image", "pdf_footer_image",
             "primary_colour", "accent_colour",
             "support_email", "support_phone", "website",
             "pdf_footer_note",
@@ -62,6 +63,10 @@ class BrandingSettingForm(forms.ModelForm):
             "company_tagline": forms.TextInput(attrs={"class": "form-control", "maxlength": 200,
                                                        "placeholder": _("Optional short tagline")}),
             "company_logo":    forms.ClearableFileInput(attrs={"class": "form-control",
+                                                                "accept": "image/png,image/jpeg,image/webp,image/svg+xml"}),
+            "pdf_header_image": forms.ClearableFileInput(attrs={"class": "form-control",
+                                                                "accept": "image/png,image/jpeg,image/webp,image/svg+xml"}),
+            "pdf_footer_image": forms.ClearableFileInput(attrs={"class": "form-control",
                                                                 "accept": "image/png,image/jpeg,image/webp,image/svg+xml"}),
             "primary_colour":  forms.TextInput(attrs={"class": "form-control", "placeholder": "#7c3aed",
                                                        "maxlength": 7}),
@@ -97,16 +102,24 @@ class BrandingSettingForm(forms.ModelForm):
     def clean_accent_colour(self):
         return self._clean_colour(self.cleaned_data.get("accent_colour"))
 
-    def clean_company_logo(self):
-        f = self.cleaned_data.get("company_logo")
+    def _clean_uploaded_brand_image(self, field_name):
+        f = self.cleaned_data.get(field_name)
         if not f or not hasattr(f, "size"):
-            # Either unchanged (existing file) or cleared — let ModelForm handle it.
             return f
         if f.size > MAX_LOGO_BYTES:
-            raise ValidationError(_("Logo must be 2 MB or smaller."))
+            raise ValidationError(_("Image must be 2 MB or smaller."))
         content_type = (getattr(f, "content_type", "") or "").lower()
         if content_type and content_type not in ALLOWED_LOGO_TYPES:
             raise ValidationError(
                 _("Unsupported image type. Use PNG, JPEG, WebP or SVG.")
             )
         return f
+
+    def clean_company_logo(self):
+        return self._clean_uploaded_brand_image("company_logo")
+
+    def clean_pdf_header_image(self):
+        return self._clean_uploaded_brand_image("pdf_header_image")
+
+    def clean_pdf_footer_image(self):
+        return self._clean_uploaded_brand_image("pdf_footer_image")

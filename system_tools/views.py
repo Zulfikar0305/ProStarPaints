@@ -155,6 +155,7 @@ class BrandingSettingsView(AdminRequiredMixin, View):
         fields = [
             "company_name", "company_tagline", "primary_colour", "accent_colour",
             "support_email", "support_phone", "website", "pdf_footer_note",
+            "pdf_header_image", "pdf_footer_image",
         ]
         changed = {}
         for f in fields:
@@ -166,6 +167,12 @@ class BrandingSettingsView(AdminRequiredMixin, View):
         new_logo = getattr(after.company_logo, "name", "") or ""
         if old_logo != new_logo:
             changed["company_logo"] = {"old": old_logo, "new": new_logo}
+
+        for field_name in ["pdf_header_image", "pdf_footer_image"]:
+            old_image = getattr(getattr(before, field_name), "name", "") or ""
+            new_image = getattr(getattr(after, field_name), "name", "") or ""
+            if old_image != new_image:
+                changed[field_name] = {"old": old_image, "new": new_image}
         return changed
 
     def get(self, request):

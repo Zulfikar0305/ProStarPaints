@@ -31,6 +31,29 @@ def _safe_static(path: str) -> str:
         return f"/static/{path}"
 
 
+def _get_image_field_data_uri(image_field) -> str:
+    if not image_field or not getattr(image_field, "name", None):
+        return ""
+
+    try:
+        path = getattr(image_field, "path", None)
+        if path and os.path.exists(path):
+            ext = (os.path.splitext(path)[1] or ".png").lower().lstrip(".")
+            mime = {
+                "png": "image/png",
+                "jpg": "image/jpeg",
+                "jpeg": "image/jpeg",
+                "gif": "image/gif",
+                "webp": "image/webp",
+                "svg": "image/svg+xml",
+            }.get(ext, "image/png")
+            with open(path, "rb") as fh:
+                return f"data:{mime};base64," + base64.b64encode(fh.read()).decode()
+    except Exception:
+        logger.exception("Failed to load image field for PDF branding")
+    return ""
+
+
 def get_branding() -> dict[str, Any]:
     """
     Return the effective branding values as a dict.
@@ -43,16 +66,22 @@ def get_branding() -> dict[str, Any]:
     """
     fallback_logo = _safe_static(_STATIC_LOGO_PATH)
     base = {
-        "company_name":     DEFAULT_COMPANY_NAME,
-        "company_tagline":  "",
-        "support_email":    "",
-        "support_phone":    "",
-        "website":          "",
-        "pdf_footer_note":  "",
-        "primary_colour":   "",
-        "accent_colour":    "",
-        "logo_url":         fallback_logo,
-        "has_custom_logo":  False,
+        "company_name": DEFAULT_COMPANY_NAME,
+        "company_tagline": "",
+        "support_email": "",
+        "support_phone": "",
+        "website": "",
+        "pdf_footer_note": "",
+        "pdf_header_image_url": "",
+        "pdf_footer_image_url": "",
+        "pdf_header_image_data_uri": "",
+        "pdf_footer_image_data_uri": "",
+        "primary_colour": "",
+        "accent_colour": "",
+        "logo_url": fallback_logo,
+        "has_custom_logo": False,
+        "has_pdf_header_image": False,
+        "has_pdf_footer_image": False,
     }
 
     try:
@@ -76,6 +105,22 @@ def get_branding() -> dict[str, Any]:
             url = obj.company_logo.url
             base["logo_url"] = url
             base["has_custom_logo"] = True
+        except Exception:
+            pass
+
+    if getattr(obj, "pdf_header_image", None):
+        try:
+            base["pdf_header_image_url"] = obj.pdf_header_image.url
+            base["has_pdf_header_image"] = True
+            base["pdf_header_image_data_uri"] = _get_image_field_data_uri(obj.pdf_header_image)
+        except Exception:
+            pass
+
+    if getattr(obj, "pdf_footer_image", None):
+        try:
+            base["pdf_footer_image_url"] = obj.pdf_footer_image.url
+            base["has_pdf_footer_image"] = True
+            base["pdf_footer_image_data_uri"] = _get_image_field_data_uri(obj.pdf_footer_image)
         except Exception:
             pass
 

@@ -75,6 +75,33 @@
 
           <div class="row g-3">
             <div class="col-sm-6">
+              <label for="{{ form.pdf_header_image.id_for_label }}" class="form-label fw-semibold">
+                {% trans "PDF header image" %}
+              </label>
+              {{ form.pdf_header_image }}
+              {% if form.pdf_header_image.errors %}<div class="invalid-feedback d-block">{{ form.pdf_header_image.errors|join:", " }}</div>{% endif %}
+              {% if branding_obj.pdf_header_image %}
+                <div class="mt-2">
+                  <img src="{{ branding_obj.pdf_header_image.url }}" alt="" style="max-height:44px;max-width:180px;border:1px solid var(--psp-border);border-radius:8px;background:#fff;padding:6px;">
+                </div>
+              {% endif %}
+            </div>
+            <div class="col-sm-6">
+              <label for="{{ form.pdf_footer_image.id_for_label }}" class="form-label fw-semibold">
+                {% trans "PDF footer image" %}
+              </label>
+              {{ form.pdf_footer_image }}
+              {% if form.pdf_footer_image.errors %}<div class="invalid-feedback d-block">{{ form.pdf_footer_image.errors|join:", " }}</div>{% endif %}
+              {% if branding_obj.pdf_footer_image %}
+                <div class="mt-2">
+                  <img src="{{ branding_obj.pdf_footer_image.url }}" alt="" style="max-height:44px;max-width:180px;border:1px solid var(--psp-border);border-radius:8px;background:#fff;padding:6px;">
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-sm-6">
               <label for="{{ form.primary_colour.id_for_label }}" class="form-label fw-semibold">{% trans "Primary colour" %}</label>
               <div class="input-group">
                 {{ form.primary_colour }}

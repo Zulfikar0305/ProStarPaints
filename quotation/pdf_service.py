@@ -230,8 +230,16 @@ def build_pdf_context(quotation, request=None, use_resolver: bool = True, pricin
     except Exception:
         logger.exception("Failed to load branding for PDF; using safe defaults")
         branding = {
-            "company_name": "ProStar Paints", "company_tagline": "", "pdf_footer_note": "",
-            "support_email": "", "support_phone": "", "website": "",
+            "company_name": "ProStar Paints",
+            "company_tagline": "",
+            "pdf_footer_note": "",
+            "pdf_header_image_url": "",
+            "pdf_footer_image_url": "",
+            "pdf_header_image_data_uri": "",
+            "pdf_footer_image_data_uri": "",
+            "support_email": "",
+            "support_phone": "",
+            "website": "",
         }
         logo_data_uri = _load_logo_data_uri()
 

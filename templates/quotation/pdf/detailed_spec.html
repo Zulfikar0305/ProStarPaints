@@ -6,13 +6,15 @@
   <style>
     @page {
       size: A4;
-      margin: 16mm 16mm 18mm 16mm;
+      margin: 28mm 16mm 26mm 16mm;
+      @top-center { content: element(pdf-header); }
       @bottom-left {
         content: "{{ branding.company_name|default:'ProStar Paints' }} · {{ quotation.reference }} · Generated {{ generated_at|date:'d M Y' }}";
         font-size: 8pt;
         color: #9aa6b8;
         font-family: Arial, Helvetica, sans-serif;
       }
+      @bottom-center { content: element(pdf-footer); }
       @bottom-right {
         content: "Page " counter(page) " of " counter(pages);
         font-size: 8pt;
@@ -37,6 +39,34 @@
       color: var(--brand);
       margin: 0;
       background: #fff;
+    }
+
+    #pdf-header, #pdf-footer {
+      position: running(pdf-header);
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      min-height: 16mm;
+    }
+
+    #pdf-footer {
+      position: running(pdf-footer);
+    }
+
+    .pdf-brand-image {
+      max-height: 22mm;
+      max-width: 66mm;
+      object-fit: contain;
+    }
+
+    .pdf-brand-text {
+      font-size: 9pt;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--brand);
     }
 
     .document-shell {
@@ -360,9 +390,13 @@
 
     .gallery-item img {
       display: block;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      object-position: center;
+      margin: 0 auto;
     }
 
     .prep-panel {
@@ -506,6 +540,24 @@
 </head>
 <body>
   {% load pdf_extras %}
+
+  <div id="pdf-header" class="pdf-header">
+    {% if branding.pdf_header_image_data_uri %}
+      <img class="pdf-brand-image" src="{{ branding.pdf_header_image_data_uri }}" alt="{{ branding.company_name|default:'ProStar Paints' }}">
+    {% else %}
+      <div class="pdf-brand-text">{{ branding.company_name|default:"ProStar Paints" }}</div>
+    {% endif %}
+  </div>
+
+  <div id="pdf-footer" class="pdf-footer">
+    {% if branding.pdf_footer_image_data_uri %}
+      <img class="pdf-brand-image" src="{{ branding.pdf_footer_image_data_uri }}" alt="{{ branding.company_name|default:'ProStar Paints' }} footer">
+    {% elif branding.pdf_footer_note %}
+      <div class="pdf-brand-text">{{ branding.pdf_footer_note }}</div>
+    {% else %}
+      <div class="pdf-brand-text">{{ branding.company_name|default:"ProStar Paints" }}</div>
+    {% endif %}
+  </div>
 
   <div class="document-shell">
     <section class="cover-page" aria-label="Cover page">
@@ -684,9 +736,40 @@
           {% endif %}
         {% endwith %}
 
+        {% if sec_data.prep_treatment_materials %}
+          <div class="section-block">
+            <table class="dense-table compact-coat-table">
+              <thead>
+                <tr>
+                  <th>Prep / Treatment Product</th>
+                  <th>Technical Data Sheet</th>
+                  <th>Spread Rate (m²/L)</th>
+                  <th>DFT (µm)</th>
+                  <th>Application Methods</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in sec_data.prep_treatment_materials %}
+                  <tr>
+                    <td>
+                      {% if item.description %}{{ item.description }}{% endif %}
+                      {% if item.product %}
+                        {% if item.description %} — {% endif %}{{ item.product }}
+                      {% endif %}
+                    </td>
+                    <td>{{ item.tds_reference|default_if_none:'' }}</td>
+                    <td>{{ item.spread_rate_per_litre|default_if_none:'' }}</td>
+                    <td>{{ item.dft|default_if_none:'' }}</td>
+                    <td>{{ item.application_method|default_if_none:'' }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+
         {% if report_controls.show_coating_system and sec_data.coating_system %}
           <div class="section-block">
-            <h3 class="item-section-heading">Coating System</h3>
             <table class="dense-table compact-coat-table">
               <thead>
                 <tr>
@@ -720,7 +803,6 @@
 
         {% if report_controls.show_product_table and sec_data.material_summary %}
           <div class="section-block">
-            <h3 class="item-section-heading">Surface / Product</h3>
             <table class="dense-table compact-cost-table">
               <thead>
                 <tr>
@@ -763,7 +845,15 @@
                       <td>{% if m|dict_get:'coverage_per_20l' %}{{ m|dict_get:'coverage_per_20l'|floatformat:2 }}{% else %}—{% endif %}</td>
                       <td>{% if m|dict_get:'coverage' %}{{ m|dict_get:'coverage'|floatformat:2 }}{% else %}—{% endif %}</td>
                       <td>{{ m|dict_get:'colour'|default:'—' }}</td>
-                      <td>{% if m|dict_get:'pack_size' %}{{ m|dict_get:'pack_size'|floatformat:0 }}L{% else %}—{% endif %}</td>
+                      <td>
+                        {% with pack_size=m|dict_get:'pack_size' package_unit=m|dict_get:'package_unit' %}
+                          {% if pack_size %}
+                            {{ pack_size|floatformat:0 }}{% if package_unit and package_unit != 'NA' %} {{ package_unit }}{% endif %}
+                          {% else %}
+                            —
+                          {% endif %}
+                        {% endwith %}
+                      </td>
                       <td>{% if pricing_enabled and m|dict_get:'unit_price_excl_vat' %}R {{ m|dict_get:'unit_price_excl_vat'|floatformat:2 }}{% else %}—{% endif %}</td>
                       <td>
                         {% with mat_cost=m|dict_get:'paint_cost_per_m2_excl_vat' %}
