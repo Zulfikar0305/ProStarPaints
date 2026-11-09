@@ -1202,15 +1202,31 @@ body {
 }
 
 
-/* ── Sticky summary column (desktop) ── */
-.psp-builder-summary-sticky {
-  position: sticky;
-  top: 80px;          /* 64 px topbar + 16 px breathing room */
-  max-height: calc(100vh - 96px);
-  overflow-y: auto;
-  /* Thin custom scrollbar so it doesn't look bulky */
-  scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+/* ── Desktop summary column (fixed while the builder scrolls) ── */
+@media (min-width: 992px) {
+  #pspBuilderContainer > .col-lg-4.d-none.d-lg-block {
+    flex: 0 0 min(445px, calc((100vw - 240px - 64px) * .32));
+    width: min(445px, calc((100vw - 240px - 64px) * .32));
+    max-width: min(445px, calc((100vw - 240px - 64px) * .32));
+    height: auto;
+    min-height: 1px;
+    align-self: stretch;
+    position: relative;
+  }
+
+  .psp-builder-summary-sticky {
+    position: fixed;
+    top: 176px;
+    right: 24px;
+    left: auto;
+    width: min(445px, calc((100vw - 240px - 64px) * .32));
+    max-height: calc(100vh - 196px);
+    height: calc(100vh - 196px);
+    overflow-y: auto;
+    z-index: 4;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
 }
 
 .psp-builder-summary-sticky::-webkit-scrollbar {
