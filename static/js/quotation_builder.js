@@ -885,6 +885,36 @@
       return;
     }
 
+    function queueAddFiles(files) {
+      var selected = Array.prototype.slice.call(files || []);
+      if (!selected.length) return 0;
+
+      var existingCount = (existingWrapper && existingWrapper.querySelectorAll && existingWrapper.querySelectorAll('img').length) || 0;
+      var maxAllowed = Math.max(0, 3 - existingCount);
+      var availableSlots = Math.max(0, maxAllowed - dt.files.length);
+
+      var added = 0;
+      selected.forEach(function (f) {
+        if (added >= availableSlots) return;
+        var dup = false;
+        Array.prototype.slice.call(dt.files).forEach(function (qf) {
+          if (qf.name === f.name && qf.size === f.size && (qf.lastModified || 0) === (f.lastModified || 0)) {
+            dup = true;
+          }
+        });
+        if (dup) return;
+        try { dt.items.add(f); added += 1; } catch (err) { /* ignore add error */ }
+      });
+
+      if (added < selected.length && selected.length > 0) {
+        try { window.alert('Maximum 3 images per section; extras were ignored.'); } catch (ex) { /* ignore */ }
+      }
+
+      rebuildInputFiles();
+      rebuildPendingPreview();
+      return added;
+    }
+
     function rebuildInputFiles() {
       try {
         input.files = dt.files;
@@ -892,6 +922,21 @@
         // assignment may fail in some environments; log and continue
         console.warn('Unable to assign input.files from DataTransfer', e);
       }
+    }
+
+    function queueCommitFromSelection(selected) {
+      var added = queueAddFiles(selected);
+      rebuildInputFiles();
+      rebuildPendingPreview();
+      try {
+        var card = input && input.closest && input.closest('[data-section-pk]');
+        if (card) {
+          card.dataset.unsaved = '1';
+          var b = card.querySelector && card.querySelector('.psp-unsaved-badge');
+          if (b) b.style.display = 'inline-flex';
+        }
+      } catch (ex) { /* ignore */ }
+      return added;
     }
 
     function rebuildPendingPreview() {
@@ -1051,13 +1096,41 @@
     // Expose a small API if needed for tests
     input._pspImageQueue = {
       getFiles: function () { return Array.prototype.slice.call(dt.files); },
-      clear: function () { dt = new DataTransfer(); rebuildInputFiles(); rebuildPendingPreview(); }
+      clear: function () { dt = new DataTransfer(); rebuildInputFiles(); rebuildPendingPreview(); },
+      addFiles: function (files) { return queueCommitFromSelection(files); }
     };
   }
 
+  function bindCameraInput(cameraInput) {
+    if (!cameraInput || cameraInput._pspCameraBind) return;
+    cameraInput._pspCameraBind = true;
+
+    cameraInput.addEventListener('change', function (e) {
+      try {
+        if (!e.isTrusted) return;
+        var form = cameraInput.closest && cameraInput.closest('form');
+        var baseInput = form && form.querySelector ? form.querySelector('input[type="file"][name="section_images"]:not([capture])') : null;
+        if (!baseInput || !baseInput._pspImageQueue || typeof baseInput._pspImageQueue.addFiles !== 'function') return;
+
+        var selected = Array.prototype.slice.call(cameraInput.files || []);
+        if (!selected.length) return;
+        var added = baseInput._pspImageQueue.addFiles(selected);
+        try { cameraInput.value = ''; } catch (ex) { /* ignore */ }
+        if (added === 0 && selected.length > 0) {
+          try { window.alert('Maximum 3 images per section; extras were ignored.'); } catch (ex) { /* ignore */ }
+        }
+      } catch (err) {
+        console.error('psp camera-input queue error', err);
+      }
+    }, true);
+  }
+
   function initAllQueues() {
-    Array.prototype.slice.call(document.querySelectorAll('input[type="file"][name="section_images"]')).forEach(function (inp) {
+    Array.prototype.slice.call(document.querySelectorAll('input[type="file"][name="section_images"]:not([capture])')).forEach(function (inp) {
       initImageQueueForInput(inp);
+    });
+    Array.prototype.slice.call(document.querySelectorAll('input[type="file"][name="section_images"][capture]')).forEach(function (inp) {
+      bindCameraInput(inp);
     });
   }
 

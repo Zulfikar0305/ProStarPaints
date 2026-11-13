@@ -543,8 +543,12 @@
           </div>
             <div>
             <input type="file" name="section_images" accept="image/*" multiple id="sectionImageInput_{{ section.pk }}" style="display:none;">
-            <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('sectionImageInput_{{ section.pk }}').click();">Upload Images</button>
-            <small class="text-muted ms-2">Max 3 images. JPG/PNG/WebP/GIF. Max 3MB each.</small>
+            <input type="file" name="section_images" accept="image/*" capture="environment" id="sectionCameraInput_{{ section.pk }}" style="display:none;">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('sectionImageInput_{{ section.pk }}').click();">Upload Images</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('sectionCameraInput_{{ section.pk }}').click();">Take Photo</button>
+            </div>
+            <small class="text-muted d-block mt-2">Max 3 images. JPG/PNG/WebP/GIF. Max 3MB each.</small>
           </div>
         </div>
 
